@@ -302,6 +302,18 @@ async function loadDayData() {
     }
 }
 
+// Teslimat durumuna göre renk belirleme
+function getDeliveryStatusColor(status) {
+    const colors = {
+        'pending': 'primary',
+        'assigned': 'info',
+        'on_way': 'warning',
+        'completed': 'success',
+        'failed': 'danger'
+    };
+    return colors[status] || 'secondary';
+}
+
 // Helper fonksiyonlar
 function formatDateISO(date) {
     const year = date.getFullYear();

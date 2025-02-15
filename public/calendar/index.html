@@ -12,30 +12,38 @@
     <div id="header"></div>
 
     <div class="container-fluid mt-4">
-        <div class="card">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Teslimat Takvimi</h5>
+                    <button class="btn btn-sm btn-primary" onclick="window.location.href='/orders/new'">
+                        <i class="bi bi-plus-lg"></i> Yeni Sipariş
+                    </button>
+                </div>
+            </div>
             <div class="card-body p-0">
-                <!-- Takvim Görünüm Seçici -->
-                <div class="calendar-header p-3 border-bottom d-flex justify-content-between align-items-center">
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-secondary" onclick="previousMonth()">
-                            <i class="bi bi-chevron-left"></i>
-                        </button>
-                        <button class="btn btn-outline-primary" onclick="goToToday()">Bugün</button>
-                        <button class="btn btn-outline-secondary" onclick="nextMonth()">
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
-                    </div>
-                    <h4 class="current-date mb-0"><!-- JS ile doldurulacak --></h4>
-                    <div class="btn-group">
-                        <button class="btn btn-outline-secondary active" onclick="switchView('month')">Ay</button>
-                        <button class="btn btn-outline-secondary" onclick="switchView('day')">Gün</button>
+                <!-- Takvim Kontrolleri -->
+                <div class="calendar-header p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="previousMonth()">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="goToToday()">Bugün</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="nextMonth()">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                        <h4 class="current-date mb-0"></h4>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary btn-sm active" onclick="switchView('month')">Ay</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="switchView('day')">Gün</button>
+                        </div>
                     </div>
                 </div>
-                
+
                 <!-- Takvim İçeriği -->
-                <div id="calendar">
-                    <!-- JS ile doldurulacak -->
-                </div>
+                <div id="calendar"></div>
             </div>
         </div>
     </div>
@@ -44,7 +52,19 @@
     <div class="modal fade" id="orderDetailModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <!-- Modal içeriği JS ile doldurulacak -->
+                <div class="modal-header">
+                    <h5 class="modal-title">Sipariş Detayı</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="delivery-info"></div>
+                    <div class="customer-info mt-3"></div>
+                    <div class="order-items mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    <button type="button" class="btn btn-primary edit-order">Düzenle</button>
+                </div>
             </div>
         </div>
     </div>
