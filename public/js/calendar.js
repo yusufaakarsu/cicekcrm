@@ -1,7 +1,6 @@
 // Temel state yönetimi
 let state = {
-    // currentDate'i 2015 Şubat ayına sabitleyelim
-    currentDate: new Date(2015, 1, 1), // Ay değeri 0'dan başlar, 1 = Şubat
+    currentDate: new Date(), // Sabitlemeyi kaldırdık, gerçek tarihi kullanıyoruz
     view: 'month' // 'month' veya 'day'
 };
 
@@ -38,8 +37,7 @@ function switchView(view) {
 
 // Bugüne git
 function goToToday() {
-    // Şubat 2015'e git
-    state.currentDate = new Date(2015, 1, 1);
+    state.currentDate = new Date(); // Gerçek bugünün tarihine git
     renderView();
 }
 
@@ -191,9 +189,10 @@ async function loadMonthData() {
         const startDate = formatDateISO(new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1));
         const endDate = formatDateISO(new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0));
         
-        console.log('Tarih aralığı:', startDate, endDate); // Debug
+        console.log('Tarih aralığı:', startDate, endDate);
 
-        const response = await fetch(`${API_URL}/orders/filtered?start_date=${startDate}&end_date=${endDate}&per_page=1000`);
+        // date_filter parametresi ekleyelim
+        const response = await fetch(`${API_URL}/orders/filtered?start_date=${startDate}&end_date=${endDate}&per_page=1000&date_filter=month`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
