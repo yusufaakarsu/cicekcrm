@@ -22,6 +22,7 @@ CREATE VIEW finance_stats AS SELECT DATE(created_at) AS date,COUNT(*) AS total_o
 CREATE VIEW delivery_stats AS SELECT DATE(delivery_date) AS date,delivery_time_slot,delivery_district,COUNT(*) AS total_deliveries,AVG(delivery_fee) AS avg_delivery_fee,SUM(CASE WHEN delivery_status='completed' THEN 1 ELSE 0 END) AS completed_deliveries FROM orders GROUP BY DATE(delivery_date),delivery_time_slot,delivery_district;
 -- Triggerlar
 CREATE TRIGGER update_customers_updated_at AFTER UPDATE ON customers FOR EACH ROW BEGIN UPDATE customers SET updated_at=CURRENT_TIMESTAMP WHERE id=OLD.id; END;
+DROP TABLE IF EXISTS audit_log;
 CREATE TABLE audit_log (id INTEGER PRIMARY KEY AUTOINCREMENT,table_name TEXT NOT NULL,record_id INTEGER NOT NULL,operation TEXT CHECK(operation IN ('INSERT','UPDATE','DELETE')),changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,old_data TEXT,new_data TEXT);
 CREATE TRIGGER audit_customers_update AFTER UPDATE ON customers FOR EACH ROW BEGIN INSERT INTO audit_log(table_name,record_id,operation,old_data,new_data) VALUES('customers',OLD.id,'UPDATE',json_object('name',OLD.name,'email',OLD.email,'phone',OLD.phone),json_object('name',NEW.name,'email',NEW.email,'phone',NEW.phone)); END;
 CREATE TRIGGER audit_customers_insert AFTER INSERT ON customers FOR EACH ROW BEGIN INSERT INTO audit_log(table_name,record_id,operation,new_data) VALUES('customers',NEW.id,'INSERT',json_object('name',NEW.name,'email',NEW.email,'phone',NEW.phone)); END;

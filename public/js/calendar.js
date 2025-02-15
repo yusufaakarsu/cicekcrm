@@ -1,6 +1,7 @@
 // Temel state yönetimi
 let state = {
-    currentDate: new Date(),
+    // currentDate'i 2015 Şubat ayına sabitleyelim
+    currentDate: new Date(2015, 1, 1), // Ay değeri 0'dan başlar, 1 = Şubat
     view: 'month' // 'month' veya 'day'
 };
 
@@ -37,7 +38,8 @@ function switchView(view) {
 
 // Bugüne git
 function goToToday() {
-    state.currentDate = new Date();
+    // Şubat 2015'e git
+    state.currentDate = new Date(2015, 1, 1);
     renderView();
 }
 
