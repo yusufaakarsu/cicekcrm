@@ -39,8 +39,6 @@ git checkout development
 # Değişiklikleri commitle
 git add .
 git commit -m "Açıklayıcı commit mesajı"
-
-# Push yap
 git push origin development
 ```
 

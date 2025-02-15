@@ -1,8 +1,12 @@
 {
   "name": "cicek-crm",
   "version": "1.0.0",
-  "description": "Çiçekçi sipariş ve müşteri yönetim sistemi",
+  "description": "Çiçek CRM",
   "scripts": {
-    "build": "cp -r public dist"
+    "build": "cp -r public/* dist/",
+    "start": "http-server public"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
   }
 }
