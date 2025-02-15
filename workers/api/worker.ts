@@ -37,25 +37,26 @@ api.get('/api/dashboard', async (c) => {
       AND tenant_id = ?
     `).bind(tenant_id).first();
 
-    // 2. Finansal İstatistikler - total_amount -> total_price olarak düzeltildi
+    // 2. Finansal İstatistikler - total_price -> total_amount düzeltildi
     const finance = await db.prepare(`
       SELECT 
-        COALESCE(SUM(CASE WHEN DATE(created_at) = DATE('now') THEN total_price ELSE 0 END), 0) as daily_revenue,
-        COALESCE(SUM(CASE WHEN strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now') THEN total_price ELSE 0 END), 0) as monthly_income,
-        COALESCE(SUM(CASE WHEN payment_status = 'pending' THEN total_price ELSE 0 END), 0) as pending_payments,
+        COALESCE(SUM(CASE WHEN DATE(created_at) = DATE('now') THEN total_amount ELSE 0 END), 0) as daily_revenue,
+        COALESCE(SUM(CASE WHEN strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now') THEN total_amount ELSE 0 END), 0) as monthly_income,
+        COALESCE(SUM(CASE WHEN payment_status = 'pending' THEN total_amount ELSE 0 END), 0) as pending_payments,
         ROUND(AVG(profit_margin), 1) as profit_margin
       FROM orders
       WHERE tenant_id = ? AND status != 'cancelled'
     `).bind(tenant_id).first();
 
-    // 3. Müşteri İstatistikleri - total_amount -> total_price olarak düzeltildi
+    // 3. Müşteri İstatistikleri
     const customers = await db.prepare(`
       SELECT 
-        COUNT(DISTINCT CASE WHEN DATE(created_at) >= DATE('now', '-30 days') THEN id END) as new_count,
-        COUNT(DISTINCT id) as repeat_count,
-        ROUND(AVG(total_price), 0) as avg_basket
-      FROM customers
-      WHERE tenant_id = ?
+        COUNT(DISTINCT CASE WHEN DATE(created_at) >= DATE('now', '-30 days') THEN o.id END) as new_count,
+        COUNT(DISTINCT o.customer_id) as repeat_count,
+        ROUND(AVG(o.total_amount), 0) as avg_basket
+      FROM orders o
+      WHERE o.tenant_id = ?
+      AND o.status != 'cancelled'
     `).bind(tenant_id).first();
 
     // 4. Stok Uyarıları
