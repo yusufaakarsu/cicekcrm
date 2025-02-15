@@ -12,97 +12,74 @@
     <div id="header"></div>
 
     <div class="container-fluid mt-4">
-        <!-- Hızlı Aksiyonlar -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Hızlı İşlemler</h5>
-                        <div class="btn-group">
-                            <button class="btn btn-primary" onclick="window.location.href='/orders/new'">
-                                <i class="bi bi-plus-lg"></i> Yeni Sipariş
-                            </button>
-                            <button class="btn btn-outline-primary" onclick="window.location.href='/customers/new'">
-                                <i class="bi bi-person-plus"></i> Yeni Müşteri
-                            </button>
-                            <button class="btn btn-outline-primary" onclick="window.location.href='/calendar'">
-                                <i class="bi bi-calendar-week"></i> Teslimat Takvimi
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Özet İstatistikler -->
+        <!-- Üst Kartlar - 4x1 -->
         <div class="row g-3 mb-4">
+            <!-- Bugünkü Teslimatlar -->
             <div class="col-md-3">
-                <div class="card h-100">
+                <div class="card h-100 border-primary">
                     <div class="card-body">
-                        <div class="d-flex align-items-start justify-content-between">
-                            <div>
-                                <h6 class="card-subtitle mb-2 text-muted">Bugünkü Teslimatlar</h6>
-                                <h2 class="mb-2" id="todayDeliveries">-</h2>
-                                <div class="small">
-                                    <span class="text-success" id="completedDeliveries">-</span> tamamlandı
-                                </div>
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-2">Bugünkü Teslimatlar</h6>
+                                <h3 id="todayDeliveries" class="mb-0">-</h3>
+                                <small class="text-success" id="completedDeliveries">- tamamlandı</small>
                             </div>
-                            <div class="bg-primary bg-opacity-10 rounded-3 p-3">
-                                <i class="bi bi-truck text-primary fs-3"></i>
+                            <div class="bg-primary bg-opacity-10 rounded p-3">
+                                <i class="bi bi-truck text-primary"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Günlük Ciro -->
             <div class="col-md-3">
-                <div class="card h-100">
+                <div class="card h-100 border-success">
                     <div class="card-body">
-                        <div class="d-flex align-items-start justify-content-between">
-                            <div>
-                                <h6 class="card-subtitle mb-2 text-muted">Yarının Siparişleri</h6>
-                                <h2 class="mb-2" id="tomorrowOrders">-</h2>
-                                <div class="small">
-                                    <span class="text-warning" id="needsAttention">-</span> hazırlanacak
-                                </div>
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-2">Günlük Ciro</h6>
+                                <h3 id="dailyRevenue" class="mb-0">-</h3>
+                                <small class="text-success" id="profitMargin">- kar</small>
                             </div>
-                            <div class="bg-warning bg-opacity-10 rounded-3 p-3">
-                                <i class="bi bi-calendar-check text-warning fs-3"></i>
+                            <div class="bg-success bg-opacity-10 rounded p-3">
+                                <i class="bi bi-graph-up text-success"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Yarının Siparişleri -->
             <div class="col-md-3">
-                <div class="card h-100">
+                <div class="card h-100 border-warning">
                     <div class="card-body">
-                        <div class="d-flex align-items-start justify-content-between">
-                            <div>
-                                <h6 class="card-subtitle mb-2 text-muted">Günlük Ciro</h6>
-                                <h2 class="mb-2" id="dailyRevenue">-</h2>
-                                <div class="small">
-                                    <span class="text-success" id="profitMargin">-</span> kar marjı
-                                </div>
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-2">Yarın</h6>
+                                <h3 id="tomorrowOrders" class="mb-0">-</h3>
+                                <small class="text-warning" id="needsAttention">- hazırlanacak</small>
                             </div>
-                            <div class="bg-success bg-opacity-10 rounded-3 p-3">
-                                <i class="bi bi-graph-up text-success fs-3"></i>
+                            <div class="bg-warning bg-opacity-10 rounded p-3">
+                                <i class="bi bi-calendar-check text-warning"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Stok Durumu -->
             <div class="col-md-3">
-                <div class="card h-100">
+                <div class="card h-100 border-danger">
                     <div class="card-body">
-                        <div class="d-flex align-items-start justify-content-between">
-                            <div>
-                                <h6 class="card-subtitle mb-2 text-muted">Düşük Stok</h6>
-                                <h2 class="mb-2" id="lowStock">-</h2>
-                                <div class="small">
-                                    <span class="text-danger" id="outOfStock">-</span> ürün kritik seviyede
-                                </div>
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="text-muted mb-2">Stok Durumu</h6>
+                                <h3 id="lowStock" class="mb-0">-</h3>
+                                <small class="text-danger" id="criticalStock">- kritik</small>
                             </div>
-                            <div class="bg-danger bg-opacity-10 rounded-3 p-3">
-                                <i class="bi bi-exclamation-triangle text-danger fs-3"></i>
+                            <div class="bg-danger bg-opacity-10 rounded p-3">
+                                <i class="bi bi-box text-danger"></i>
                             </div>
                         </div>
                     </div>
@@ -110,158 +87,55 @@
             </div>
         </div>
 
-        <!-- Ana İçerik -->
-        <div class="row g-3">
-            <!-- Sol Bölüm -->
-            <div class="col-md-8">
-                <div class="row g-3">
-                    <!-- En Çok Satan Ürünler -->
-                    <div class="col-md-6">
-                        <div class="card h-100">
-                            <div class="card-header bg-white">
-                                <h5 class="mb-0">En Çok Satan Ürünler</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="top-products">
-                                    <!-- JS ile doldurulacak -->
-                                </div>
-                            </div>
-                        </div>
+        <!-- Orta Kartlar - 2x2 -->
+        <div class="row g-3 mb-4">
+            <!-- Teslimat Analizi -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0">Teslimat Performansı</h6>
                     </div>
-                    
-                    <!-- Popüler Teslimat Bölgeleri -->
-                    <div class="col-md-6">
-                        <div class="card h-100">
-                            <div class="card-header bg-white">
-                                <h5 class="mb-0">Popüler Teslimat Bölgeleri</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="delivery-areas">
-                                    <!-- JS ile doldurulacak -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Teslimat Zaman Dilimi Analizi -->
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header bg-white">
-                                <h5 class="mb-0">Teslimat Zaman Dilimi Analizi</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="time-slots">
-                                    <div class="d-flex justify-content-around text-center">
-                                        <div class="time-slot">
-                                            <div class="display-6 text-warning mb-2">
-                                                <i class="bi bi-sunrise"></i>
-                                            </div>
-                                            <h3 class="mb-1" id="morningCount">-</h3>
-                                            <div class="text-muted">Sabah</div>
-                                        </div>
-                                        <div class="time-slot">
-                                            <div class="display-6 text-info mb-2">
-                                                <i class="bi bi-sun"></i>
-                                            </div>
-                                            <h3 class="mb-1" id="afternoonCount">-</h3>
-                                            <div class="text-muted">Öğlen</div>
-                                        </div>
-                                        <div class="time-slot">
-                                            <div class="display-6 text-success mb-2">
-                                                <i class="bi bi-moon"></i>
-                                            </div>
-                                            <h3 class="mb-1" id="eveningCount">-</h3>
-                                            <div class="text-muted">Akşam</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="card-body" id="deliveryStats">
+                        <!-- JS ile doldurulacak -->
                     </div>
                 </div>
             </div>
-            
-            <!-- Sağ Bölüm -->
-            <div class="col-md-4">
-                <!-- Müşteri Tipleri Dağılımı -->
-                <div class="card mb-3">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Müşteri Dağılımı</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="customer-types">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Bireysel Müşteriler</span>
-                                <span class="badge bg-primary" id="retailCount">-</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Kurumsal Müşteriler</span>
-                                <span class="badge bg-success" id="corporateCount">-</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Düşük Stok Uyarıları -->
-                <div class="card">
+            <!-- Bölge Analizi -->
+            <div class="col-md-6">
+                <div class="card h-100">
                     <div class="card-header bg-white">
-                        <h5 class="mb-0">Stok Uyarıları</h5>
+                        <h6 class="mb-0">Popüler Bölgeler</h6>
                     </div>
-                    <div class="list-group list-group-flush" id="lowStockList">
+                    <div class="card-body" id="areaStats">
                         <!-- JS ile doldurulacak -->
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Ek Analizler -->
-        <div class="row g-3 mt-4">
-            <!-- Aylık Satış Trendi -->
+        <!-- Alt Kartlar - 2x2 -->
+        <div class="row g-3">
+            <!-- Satış Özeti -->
             <div class="col-md-6">
                 <div class="card h-100">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Aylık Satış Trendi</h5>
-                        <div class="text-muted">Son 30 gün</div>
-                    </div>
-                    <div class="card-body">
-                        <div id="salesTrendChart"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- En Aktif Müşteriler -->
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">En Aktif Müşteriler</h5>
-                        <div class="text-muted">Son 90 gün</div>
-                    </div>
-                    <div class="card-body">
-                        <div id="topCustomers" class="list-group list-group-flush">
-                            <!-- JS ile doldurulacak -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Teslimat Performansı -->
-            <div class="col-md-12">
-                <div class="card">
                     <div class="card-header bg-white">
-                        <h5 class="mb-0">Teslimat Performansı</h5>
+                        <h6 class="mb-0">Son Satışlar</h6>
                     </div>
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-md-4 text-center">
-                                <div class="display-4 text-success" id="deliverySuccessRate">-%</div>
-                                <div class="text-muted">Başarılı Teslimat Oranı</div>
-                            </div>
-                            <div class="col-md-8">
-                                <div id="deliveryStats" class="d-flex justify-content-around">
-                                    <!-- JS ile doldurulacak -->
-                                </div>
-                            </div>
-                        </div>
+                    <div class="card-body" id="recentSales">
+                        <!-- JS ile doldurulacak -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stok Uyarıları -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0">Stok Uyarıları</h6>
+                    </div>
+                    <div class="card-body" id="stockWarnings">
+                        <!-- JS ile doldurulacak -->
                     </div>
                 </div>
             </div>

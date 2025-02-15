@@ -5,235 +5,102 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadDashboardData() {
     try {
-        // Sadece gerekli API çağrılarını yapalım
-        const [dashboardStats, financeStats] = await Promise.all([
-            fetch(`${API_URL}/api/dashboard`).then(r => r.json()),
-            fetch(`${API_URL}/api/finance/stats`).then(r => r.json())
+        const [dashboardStats, deliveryStats, areaStats, salesData, stockWarnings] = await Promise.all([
+            fetch(`${API_URL}/api/dashboard/summary`).then(r => r.json()),
+            fetch(`${API_URL}/api/dashboard/delivery-stats`).then(r => r.json()),
+            fetch(`${API_URL}/api/dashboard/area-stats`).then(r => r.json()),
+            fetch(`${API_URL}/api/dashboard/recent-sales`).then(r => r.json()),
+            fetch(`${API_URL}/api/dashboard/stock-warnings`).then(r => r.json())
         ]);
 
-        // Ana sayfa kartlarını güncelle
-        updateSummaryStats(dashboardStats, financeStats);
-        
-        // Stok uyarılarını yükle
-        loadLowStockWarnings(dashboardStats.tomorrowNeeds);
+        updateSummaryCards(dashboardStats);
+        updateDeliveryStats(deliveryStats);
+        updateAreaStats(areaStats);
+        updateRecentSales(salesData);
+        updateStockWarnings(stockWarnings);
 
     } catch (error) {
         console.error('Dashboard veri yükleme hatası:', error);
     }
 }
 
-function updateSummaryStats(dashboard, finance) {
-    // Teslimat istatistikleri
-    document.getElementById('todayDeliveries').textContent = dashboard.deliveryStats.total_orders;
-    document.getElementById('completedDeliveries').textContent = dashboard.deliveryStats.delivered_orders;
+function updateSummaryCards(data) {
+    document.getElementById('todayDeliveries').textContent = data.deliveries.total;
+    document.getElementById('completedDeliveries').textContent = `${data.deliveries.completed} tamamlandı`;
     
-    // Yarının siparişleri
-    document.getElementById('tomorrowOrders').textContent = dashboard.orderSummary[0]?.count || 0;
-    document.getElementById('needsAttention').textContent = dashboard.tomorrowNeeds.length;
+    document.getElementById('dailyRevenue').textContent = formatCurrency(data.revenue.total);
+    document.getElementById('profitMargin').textContent = `${data.revenue.margin}% kar`;
     
-    // Finansal veriler
-    document.getElementById('dailyRevenue').textContent = formatCurrency(finance.dailyRevenue);
-    document.getElementById('profitMargin').textContent = `%${finance.profitMargin}`;
+    document.getElementById('tomorrowOrders').textContent = data.tomorrow.total;
+    document.getElementById('needsAttention').textContent = `${data.tomorrow.preparing} hazırlanacak`;
     
-    // Stok durumu
-    document.getElementById('lowStock').textContent = dashboard.lowStock;
-    document.getElementById('outOfStock').textContent = dashboard.lowStock;
+    document.getElementById('lowStock').textContent = data.stock.low;
+    document.getElementById('criticalStock').textContent = `${data.stock.critical} kritik`;
 }
 
-async function loadDeliveries() {
-    try {
-        const response = await fetch(`${API_URL}/orders/today`);
-        const deliveries = await response.json();
-
-        document.getElementById('deliveryList').innerHTML = deliveries.map(delivery => `
-            <tr>
-                <td>${formatTime(delivery.delivery_date)}</td>
-                <td>${delivery.recipient_name}</td>
-                <td>${delivery.delivery_address}</td>
-                <td>${getStatusBadge(delivery.status)}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewOrder(${delivery.id})">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-
-    } catch (error) {
-        console.error('Teslimat listesi yükleme hatası:', error);
-    }
-}
-
-async function loadRecentTransactions() {
-    try {
-        const response = await fetch(`${API_URL}/api/finance/transactions`);
-        const transactions = await response.json();
-
-        document.getElementById('recentTransactions').innerHTML = transactions.map(tx => `
-            <div class="list-group-item">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fw-bold">${tx.customer_name}</div>
-                        <small class="text-muted">${formatDate(tx.created_at)}</small>
-                    </div>
-                    <div class="text-end">
-                        <div class="fw-bold ${tx.status === 'paid' ? 'text-success' : 'text-warning'}">
-                            ${formatCurrency(tx.amount)}
-                        </div>
-                        <small class="text-muted">${formatPaymentStatus(tx.status)}</small>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-    } catch (error) {
-        console.error('Son işlemler yükleme hatası:', error);
-    }
-}
-
-function loadLowStockWarnings(items) {
-    document.getElementById('lowStockList').innerHTML = items.map(item => `
-        <div class="list-group-item">
-            <div class="d-flex justify-content-between align-items-center">
+function updateDeliveryStats(data) {
+    const container = document.getElementById('deliveryStats');
+    
+    const html = `
+        <div class="d-flex justify-content-around text-center">
+            ${data.stats.map(stat => `
                 <div>
-                    <div class="fw-bold">${item.name}</div>
-                    <small class="text-muted">Stok: ${item.current_stock}</small>
+                    <h3 class="text-${stat.color}">${stat.count}</h3>
+                    <div class="small text-muted">${stat.label}</div>
                 </div>
-                <div class="text-danger">
-                    ${item.needed_quantity} adet gerekli
-                </div>
-            </div>
+            `).join('')}
         </div>
-    `).join('');
-}
-
-function updateTopProducts(products) {
-    const container = document.querySelector('.top-products');
-    if (!container) return;
-
-    container.innerHTML = products.map(product => `
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div>
-                <div class="fw-bold">${product.name}</div>
-                <small class="text-muted">${product.total_sold} adet satıldı</small>
-            </div>
-            <span class="text-success">${formatCurrency(product.total_revenue)}</span>
-        </div>
-    `).join('');
-}
-
-function updatePopularAreas(areas) {
-    const container = document.querySelector('.delivery-areas');
-    if (!container) return;
-
-    container.innerHTML = areas.map(area => `
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div>
-                <div class="fw-bold">${area.district}</div>
-                <small class="text-muted">${area.delivery_count} teslimat</small>
-            </div>
-            <span class="badge bg-info">%${area.percentage}</span>
-        </div>
-    `).join('');
-}
-
-function updateTimeSlots(slots) {
-    const timeSlotMap = {
-        'morning': 'morningCount',
-        'afternoon': 'afternoonCount',
-        'evening': 'eveningCount'
-    };
-
-    slots.forEach(slot => {
-        const elementId = timeSlotMap[slot.delivery_time_slot];
-        if (elementId) {
-            document.getElementById(elementId).textContent = slot.count;
-        }
-    });
-}
-
-function updateCustomerDistribution(distribution) {
-    const typeMap = {
-        'retail': 'retailCount',
-        'corporate': 'corporateCount'
-    };
-
-    distribution.forEach(type => {
-        const elementId = typeMap[type.customer_type];
-        if (elementId) {
-            document.getElementById(elementId).textContent = type.count;
-        }
-    });
-}
-
-// Yeni fonksiyonlar
-function updateSalesTrend(data) {
-    const container = document.getElementById('salesTrendChart');
-    if (!container) return;
-
-    let html = data.map(item => `
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div>
-                <div class="fw-bold">${formatDate(item.date)}</div>
-                <small class="text-muted">${item.total_orders} sipariş</small>
-            </div>
-            <span class="text-success">${formatCurrency(item.revenue)}</span>
-        </div>
-    `).join('');
-
+    `;
+    
     container.innerHTML = html;
 }
 
-function updateTopCustomers(data) {
-    const container = document.getElementById('topCustomers');
-    if (!container) return;
-
-    let html = data.map(customer => `
-        <div class="list-group-item">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="fw-bold">${customer.name}</div>
-                    <small class="text-muted">${customer.order_count} sipariş</small>
-                </div>
-                <div class="text-end">
-                    <div class="fw-bold text-success">${formatCurrency(customer.total_spent)}</div>
-                    <small class="text-muted">${formatDate(customer.last_order_date)}</small>
-                </div>
+function updateAreaStats(data) {
+    const container = document.getElementById('areaStats');
+    
+    const html = data.areas.map(area => `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <div class="fw-bold">${area.name}</div>
+                <small class="text-muted">${area.count} teslimat</small>
             </div>
+            <span class="badge bg-primary">${area.percentage}%</span>
         </div>
     `).join('');
-
+    
     container.innerHTML = html;
 }
 
-function updateDeliveryPerformance(data) {
-    // Başarı oranını göster
-    const successRate = document.getElementById('deliverySuccessRate');
-    if (successRate) {
-        const rate = data.find(item => item.delivery_status === 'completed')?.success_rate || 0;
-        successRate.textContent = `%${rate}`;
-    }
-
-    // Durumları listele
-    const statsContainer = document.getElementById('deliveryStats');
-    if (!statsContainer) return;
-
-    const statusMap = {
-        'pending': { label: 'Bekleyen', color: 'warning' },
-        'completed': { label: 'Tamamlanan', color: 'success' },
-        'failed': { label: 'Başarısız', color: 'danger' }
-    };
-
-    let html = data.map(stat => `
-        <div class="text-center">
-            <div class="h4 mb-0 text-${statusMap[stat.delivery_status]?.color || 'secondary'}">
-                ${stat.count}
+function updateRecentSales(data) {
+    const container = document.getElementById('recentSales');
+    
+    const html = data.sales.map(sale => `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <div class="fw-bold">${sale.customer}</div>
+                <small class="text-muted">${formatDate(sale.date)}</small>
             </div>
-            <small class="text-muted">${statusMap[stat.delivery_status]?.label || stat.delivery_status}</small>
+            <span class="text-success">${formatCurrency(sale.amount)}</span>
         </div>
     `).join('');
+    
+    container.innerHTML = html;
+}
 
-    statsContainer.innerHTML = html;
+function updateStockWarnings(data) {
+    const container = document.getElementById('stockWarnings');
+    
+    const html = data.warnings.map(item => `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <div class="fw-bold">${item.name}</div>
+                <small class="text-muted">Stok: ${item.current}</small>
+            </div>
+            <span class="text-danger">Min: ${item.minimum}</span>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
 }
 
 // Helper fonksiyonlar
