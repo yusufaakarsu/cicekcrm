@@ -81,6 +81,70 @@ api.get('/api/dashboard', async (c) => {
   }
 });
 
+// Dashboard özet istatistikleri
+api.get('/api/dashboard/summary', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+
+  try {
+    const [delivery, finance, customers, stock] = await Promise.all([
+      // Teslimat istatistikleri
+      db.prepare(`
+        SELECT 
+          COUNT(*) as today_total,
+          SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
+          SUM(CASE WHEN status = 'delivering' THEN 1 ELSE 0 END) as on_route,
+          SUM(CASE WHEN status = 'preparing' THEN 1 ELSE 0 END) as preparing
+        FROM orders 
+        WHERE DATE(delivery_date) = DATE('now')
+        AND tenant_id = ?
+      `).bind(tenant_id).first(),
+
+      // Finansal istatistikler
+      db.prepare(`
+        SELECT 
+          COALESCE(SUM(CASE WHEN DATE(created_at) = DATE('now') THEN total_amount ELSE 0 END), 0) as daily_revenue,
+          COALESCE(SUM(CASE WHEN strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now') THEN total_amount ELSE 0 END), 0) as monthly_income,
+          COALESCE(SUM(CASE WHEN payment_status = 'pending' THEN total_amount ELSE 0 END), 0) as pending_payments,
+          ROUND(AVG(profit_margin), 1) as avg_margin
+        FROM orders
+        WHERE tenant_id = ?
+        AND status != 'cancelled'
+      `).bind(tenant_id).first(),
+
+      // Müşteri istatistikleri
+      db.prepare(`
+        SELECT 
+          COUNT(CASE WHEN DATE(created_at) >= DATE('now', '-30 days') THEN 1 END) as new_customers,
+          COUNT(DISTINCT customer_id) as repeat_customers,
+          ROUND(AVG(total_amount), 0) as avg_basket
+        FROM orders
+        WHERE tenant_id = ?
+        AND status != 'cancelled'
+      `).bind(tenant_id).first(),
+
+      // Stok istatistikleri
+      db.prepare(`
+        SELECT COUNT(*) as critical_count
+        FROM products 
+        WHERE stock <= min_stock 
+        AND tenant_id = ?
+      `).bind(tenant_id).first()
+    ]);
+
+    return c.json({
+      delivery,
+      finance,
+      customers,
+      stock
+    });
+
+  } catch (error) {
+    console.error('Dashboard summary error:', error);
+    return c.json({ error: 'Internal Server Error' }, 500);
+  }
+});
+
 // Finans istatistikleri
 api.get('/api/finance/stats', async (c) => {
   const db = c.env.DB;

@@ -38,6 +38,33 @@ function updateSummaryCards(data) {
     document.getElementById('criticalStock').textContent = `${data.stock.critical} kritik`;
 }
 
+function updateSummaryStats(data) {
+    // Teslimat istatistikleri
+    document.getElementById('todayDeliveries').textContent = data.delivery.today_total;
+    document.getElementById('completedDeliveries').textContent = `${data.delivery.delivered} tamamlandı`;
+    document.getElementById('deliveredCount').textContent = data.delivery.delivered;
+    document.getElementById('deliveryRate').textContent = `${Math.round(data.delivery.delivered / data.delivery.today_total * 100)}%`;
+    document.getElementById('onRouteCount').textContent = data.delivery.on_route;
+    document.getElementById('routeStatus').textContent = `${data.delivery.on_route} kuryede`;
+    document.getElementById('preparingCount').textContent = data.delivery.preparing;
+    document.getElementById('prepStatus').textContent = `hazırlanıyor`;
+
+    // Finansal istatistikler
+    document.getElementById('dailyRevenue').textContent = formatCurrency(data.finance.daily_revenue);
+    document.getElementById('monthlyIncome').textContent = formatCurrency(data.finance.monthly_income);
+    document.getElementById('pendingPayments').textContent = formatCurrency(data.finance.pending_payments);
+    document.getElementById('profitMargin').textContent = `${data.finance.avg_margin}%`;
+
+    // Müşteri istatistikleri
+    document.getElementById('newCustomers').textContent = data.customers.new_customers;
+    document.getElementById('repeatCustomers').textContent = data.customers.repeat_customers;
+    document.getElementById('avgBasket').textContent = formatCurrency(data.customers.avg_basket);
+
+    // Stok istatistikleri
+    document.getElementById('lowStock').textContent = data.stock.critical_count;
+    document.getElementById('stockAlert').textContent = `${data.stock.critical_count} ürün kritik`;
+}
+
 function updateDeliveryStats(data) {
     const container = document.getElementById('deliveryStats');
     

@@ -12,76 +12,127 @@
     <div id="header"></div>
 
     <div class="container-fluid mt-4">
-        <!-- Üst Kartlar - 4x1 -->
+        <!-- Üst Kartlar - 12x1 (4x3 grid) -->
         <div class="row g-3 mb-4">
-            <!-- Bugünkü Teslimatlar -->
+            <!-- Teslimat İstatistikleri -->
             <div class="col-md-3">
                 <div class="card h-100 border-primary">
                     <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-grow-1">
-                                <h6 class="text-muted mb-2">Bugünkü Teslimatlar</h6>
-                                <h3 id="todayDeliveries" class="mb-0">-</h3>
-                                <small class="text-success" id="completedDeliveries">- tamamlandı</small>
-                            </div>
-                            <div class="bg-primary bg-opacity-10 rounded p-3">
-                                <i class="bi bi-truck text-primary"></i>
-                            </div>
-                        </div>
+                        <h6 class="text-muted mb-2">Bugünün Teslimatları</h6>
+                        <h3 id="todayDeliveries" class="mb-0">-</h3>
+                        <small class="text-success" id="completedDeliveries">- tamamlandı</small>
                     </div>
                 </div>
             </div>
 
-            <!-- Günlük Ciro -->
             <div class="col-md-3">
                 <div class="card h-100 border-success">
                     <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-grow-1">
-                                <h6 class="text-muted mb-2">Günlük Ciro</h6>
-                                <h3 id="dailyRevenue" class="mb-0">-</h3>
-                                <small class="text-success" id="profitMargin">- kar</small>
-                            </div>
-                            <div class="bg-success bg-opacity-10 rounded p-3">
-                                <i class="bi bi-graph-up text-success"></i>
-                            </div>
-                        </div>
+                        <h6 class="text-muted mb-2">Teslim Edilenler</h6>
+                        <h3 id="deliveredCount" class="mb-0">-</h3>
+                        <small class="text-success" id="deliveryRate">- başarı oranı</small>
                     </div>
                 </div>
             </div>
 
-            <!-- Yarının Siparişleri -->
+            <div class="col-md-3">
+                <div class="card h-100 border-info">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Yoldaki Siparişler</h6>
+                        <h3 id="onRouteCount" class="mb-0">-</h3>
+                        <small class="text-info" id="routeStatus">- kurye</small>
+                    </div>
+                </div>
+            </div>
+
             <div class="col-md-3">
                 <div class="card h-100 border-warning">
                     <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-grow-1">
-                                <h6 class="text-muted mb-2">Yarın</h6>
-                                <h3 id="tomorrowOrders" class="mb-0">-</h3>
-                                <small class="text-warning" id="needsAttention">- hazırlanacak</small>
-                            </div>
-                            <div class="bg-warning bg-opacity-10 rounded p-3">
-                                <i class="bi bi-calendar-check text-warning"></i>
-                            </div>
-                        </div>
+                        <h6 class="text-muted mb-2">Hazırlananlar</h6>
+                        <h3 id="preparingCount" class="mb-0">-</h3>
+                        <small class="text-warning" id="prepStatus">- hazırlanıyor</small>
                     </div>
                 </div>
             </div>
 
-            <!-- Stok Durumu -->
+            <!-- Finansal Göstergeler -->
+            <div class="col-md-3">
+                <div class="card h-100 border-success">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Günlük Ciro</h6>
+                        <h3 id="dailyRevenue" class="mb-0">-</h3>
+                        <small class="text-success" id="revenueChange">- artış</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card h-100 border-info">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Aylık Gelir</h6>
+                        <h3 id="monthlyIncome" class="mb-0">-</h3>
+                        <small class="text-info" id="monthlyTarget">- hedef</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card h-100 border-warning">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Bekleyen Tahsilat</h6>
+                        <h3 id="pendingPayments" class="mb-0">-</h3>
+                        <small class="text-warning" id="paymentDue">- vadesi gelen</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card h-100 border-success">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Kar Marjı</h6>
+                        <h3 id="profitMargin" class="mb-0">-</h3>
+                        <small class="text-success" id="marginChange">- ortalama</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stok ve Müşteri Göstergeleri -->
             <div class="col-md-3">
                 <div class="card h-100 border-danger">
                     <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-grow-1">
-                                <h6 class="text-muted mb-2">Stok Durumu</h6>
-                                <h3 id="lowStock" class="mb-0">-</h3>
-                                <small class="text-danger" id="criticalStock">- kritik</small>
-                            </div>
-                            <div class="bg-danger bg-opacity-10 rounded p-3">
-                                <i class="bi bi-box text-danger"></i>
-                            </div>
-                        </div>
+                        <h6 class="text-muted mb-2">Kritik Stok</h6>
+                        <h3 id="lowStock" class="mb-0">-</h3>
+                        <small class="text-danger" id="stockAlert">- ürün kritik</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card h-100 border-primary">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Yeni Müşteriler</h6>
+                        <h3 id="newCustomers" class="mb-0">-</h3>
+                        <small class="text-primary" id="customerGrowth">- bu ay</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card h-100 border-success">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Tekrar Eden</h6>
+                        <h3 id="repeatCustomers" class="mb-0">-</h3>
+                        <small class="text-success" id="loyaltyRate">- sadakat oranı</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card h-100 border-info">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Ortalama Sepet</h6>
+                        <h3 id="avgBasket" class="mb-0">-</h3>
+                        <small class="text-info" id="basketTrend">- trend</small>
                     </div>
                 </div>
             </div>
