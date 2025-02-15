@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siparişler - Çiçek CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body data-page="orders">
+    <div id="header"></div>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-box"></i> Siparişler</h2>
+            <a href="/orders/new.html" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> Yeni Sipariş
+            </a>
+        </div>
+
+        <!-- Filtreler -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Durum</label>
+                        <select class="form-select" id="statusFilter">
+                            <option value="">Tümü</option>
+                            <option value="new">Yeni</option>
+                            <option value="preparing">Hazırlanıyor</option>
+                            <option value="delivering">Yolda</option>
+                            <option value="delivered">Teslim Edildi</option>
+                            <option value="cancelled">İptal</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tarih Aralığı</label>
+                        <select class="form-select" id="dateFilter">
+                            <option value="all">Tümü</option>
+                            <option value="today">Bugün</option>
+                            <option value="tomorrow">Yarın</option>
+                            <option value="week">Bu Hafta</option>
+                            <option value="month">Bu Ay</option>
+                            <option value="custom">Özel Aralık</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4" id="customDateRange" style="display:none;">
+                        <div class="row g-2">
+                            <div class="col-5">
+                                <label class="form-label">Başlangıç</label>
+                                <input type="date" class="form-control" id="startDate">
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label">Bitiş</label>
+                                <input type="date" class="form-control" id="endDate">
+                            </div>
+                            <div class="col-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-primary w-100" id="applyDateFilter">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Sıralama</label>
+                        <select class="form-select" id="sortFilter">
+                            <option value="date_desc">Tarih ↓</option>
+                            <option value="date_asc">Tarih ↑</option>
+                            <option value="amount_desc">Tutar ↓</option>
+                            <option value="amount_asc">Tutar ↑</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sipariş Tablosu -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Sipariş No</th>
+                                <th>Tarih</th>
+                                <th>Müşteri</th>
+                                <th>Teslimat</th>
+                                <th>Alıcı</th>
+                                <th>Ürünler</th>
+                                <th>Durum</th>
+                                <th>Tutar</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTable">
+                            <!-- Siparişler JavaScript ile doldurulacak -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Sayfalama -->
+                <nav aria-label="Sayfalama" class="mt-3">
+                    <ul class="pagination justify-content-center" id="pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sipariş Detay Modal -->
+    <div class="modal" id="orderDetailModal" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderDetailModalLabel">Sipariş #<span id="order-detail-id"></span></h5>
+                    <div class="ms-auto btn-toolbar">
+                        <div class="btn-group me-2" role="group">
+                            <button type="button" class="btn btn-outline-warning status-btn" data-action="updateStatus" data-status="preparing" tabindex="0">
+                                <i class="bi bi-box-seam" aria-hidden="true"></i> Hazırlanıyor
+                            </button>
+                            <button type="button" class="btn btn-outline-info status-btn" data-action="updateStatus" data-status="ready" tabindex="0">
+                                <i class="bi bi-box" aria-hidden="true"></i> Hazır
+                            </button>
+                            <button type="button" class="btn btn-outline-primary status-btn" data-action="updateStatus" data-status="delivering" tabindex="0">
+                                <i class="bi bi-truck" aria-hidden="true"></i> Yolda
+                            </button>
+                            <button type="button" class="btn btn-outline-success status-btn" data-action="updateStatus" data-status="delivered" tabindex="0">
+                                <i class="bi bi-check-circle" aria-hidden="true"></i> Teslim Edildi
+                            </button>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Sipariş Bilgileri</h6>
+                            <dl>
+                                <dt>Sipariş Tarihi</dt>
+                                <dd id="order-detail-created_at">-</dd>
+                                <dt>Durum</dt>
+                                <dd id="order-detail-status">-</dd>
+                                <dt>Ödeme Durumu</dt>
+                                <dd id="order-detail-payment_status">-</dd>
+                                <dt>Ödeme Yöntemi</dt>
+                                <dd id="order-detail-payment_method">-</dd>
+                                <dt>Tutar</dt>
+                                <dd id="order-detail-total_amount">-</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Müşteri Bilgileri</h6>
+                            <dl>
+                                <dt>Müşteri</dt>
+                                <dd id="order-detail-customer_name">-</dd>
+                                <dt>Telefon</dt>
+                                <dd id="order-detail-customer_phone">-</dd>
+                            </dl>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <h6>Teslimat Bilgileri</h6>
+                            <dl>
+                                <dt>Teslimat Tarihi</dt>
+                                <dd id="order-detail-delivery_date">-</dd>
+                                <dt>Teslimat Adresi</dt>
+                                <dd id="order-detail-delivery_address">-</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Alıcı Bilgileri</h6>
+                            <dl>
+                                <dt>Alıcı</dt>
+                                <dd id="order-detail-recipient_name">-</dd>
+                                <dt>Telefon</dt>
+                                <dd id="order-detail-recipient_phone">-</dd>
+                                <dt>Not</dt>
+                                <dd id="order-detail-recipient_note">-</dd>
+                                <dt>Kart Mesajı</dt>
+                                <dd id="order-detail-card_message">-</dd>
+                            </dl>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>Ürünler</h6>
+                            <div id="order-detail-items" class="list-group">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sipariş Düzenleme Modal -->
+    <div class="modal fade" id="editOrderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sipariş Düzenle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editOrderForm">
+                        <input type="hidden" name="id">
+                        <div class="mb-3">
+                            <label class="form-label">Teslimat Tarihi</label>
+                            <input type="datetime-local" class="form-control" name="delivery_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Adres</label>
+                            <textarea class="form-control" name="delivery_address" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Durum</label>
+                            <select class="form-control" name="status" required>
+                                <option value="new">Yeni</option>
+                                <option value="preparing">Hazırlanıyor</option>
+                                <option value="delivering">Yolda</option>
+                                <option value="delivered">Teslim Edildi</option>
+                                <option value="cancelled">İptal</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="updateOrder()">Güncelle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/js/orders.js"></script>
+
+    <script>
+        function renderOrder(order) {
+            return `
+                <tr class="border-b">
+                    <td class="px-4 py-2">${order.id}</td>
+                    <td class="px-4 py-2">
+                        <div class="status-badge ${order.status}">${getOrderStatus(order.status)}</div>
+                        <div class="status-badge ${order.delivery_status}">${getDeliveryStatus(order.delivery_status)}</div>
+                    </td>
+                    <td class="px-4 py-2">
+                        <div>${order.customer_name}</div>
+                        <div class="text-sm text-gray-600">${order.customer_phone}</div>
+                    </td>
+                    <td class="px-4 py-2">
+                        <div>${formatDate(order.delivery_date)} - ${order.delivery_time_slot}</div>
+                        <div class="text-sm">${order.delivery_address}</div>
+                        <div class="text-sm">${order.delivery_district}, ${order.delivery_city}</div>
+                        ${order.delivery_notes ? `<div class="text-sm text-red-600">${order.delivery_notes}</div>` : ''}
+                    </td>
+                    <td class="px-4 py-2">
+                        <div>${order.recipient_name}</div>
+                        <div class="text-sm">${order.recipient_phone}</div>
+                        ${order.recipient_note ? `<div class="text-sm text-red-600">${order.recipient_note}</div>` : ''}
+                        ${order.card_message ? `<div class="text-sm italic">"${order.card_message}"</div>` : ''}
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="font-bold">${formatPrice(order.total_amount)}</div>
+                        <div class="status-badge ${order.payment_status}">${getPaymentStatus(order.payment_status)}</div>
+                        <div class="text-sm">${order.payment_method}</div>
+                    </td>
+                    <td class="px-4 py-2">
+                        <!-- ...existing actions... -->
+                    </td>
+                </tr>
+            `;
+        }
+
+        function getDeliveryStatus(status) {
+            const statuses = {
+                'pending': 'Bekliyor',
+                'assigned': 'Atandı',
+                'on_way': 'Yolda',
+                'completed': 'Tamamlandı',
+                'failed': 'Başarısız'
+            };
+            return statuses[status] || status;
+        }
+    </script>
+
+    <style>
+        .status-badge {
+            @apply px-2 py-1 rounded-full text-sm;
+        }
+
+        .status-badge.pending { @apply bg-gray-100 text-gray-700; }
+        .status-badge.assigned { @apply bg-blue-100 text-blue-700; }
+        .status-badge.on_way { @apply bg-yellow-100 text-yellow-700; }
+        .status-badge.completed { @apply bg-green-100 text-green-700; }
+        .status-badge.failed { @apply bg-red-100 text-red-700; }
+    </style>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teslimat Takvimi - Çiçek CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body data-page="calendar">
+    <div id="header"></div>
+
+    <div class="container-fluid mt-4">
+        <div class="card">
+            <div class="card-body p-0">
+                <!-- Takvim Görünüm Seçici -->
+                <div class="calendar-header p-3 border-bottom d-flex justify-content-between align-items-center">
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary" onclick="previousMonth()">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="goToToday()">Bugün</button>
+                        <button class="btn btn-outline-secondary" onclick="nextMonth()">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                    <h4 class="current-date mb-0"><!-- JS ile doldurulacak --></h4>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary active" onclick="switchView('month')">Ay</button>
+                        <button class="btn btn-outline-secondary" onclick="switchView('day')">Gün</button>
+                    </div>
+                </div>
+                
+                <!-- Takvim İçeriği -->
+                <div id="calendar">
+                    <!-- JS ile doldurulacak -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sipariş Detay Modal -->
+    <div class="modal fade" id="orderDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <!-- Modal içeriği JS ile doldurulacak -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/js/calendar.js"></script>
+</body>
+</html>
