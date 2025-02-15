@@ -5,29 +5,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadDashboardData() {
     try {
-        const [dashboardStats, financeStats, topProducts, popularAreas, timeSlots, customerDistribution, salesTrend, topCustomers, deliveryPerformance] = await Promise.all([
+        // Sadece gerekli API çağrılarını yapalım
+        const [dashboardStats, financeStats] = await Promise.all([
             fetch(`${API_URL}/api/dashboard`).then(r => r.json()),
-            fetch(`${API_URL}/api/finance/stats`).then(r => r.json()),
-            fetch(`${API_URL}/products/top-selling`).then(r => r.json()),
-            fetch(`${API_URL}/orders/popular-areas`).then(r => r.json()),
-            fetch(`${API_URL}/orders/time-slots`).then(r => r.json()),
-            fetch(`${API_URL}/customers/distribution`).then(r => r.json()),
-            fetch(`${API_URL}/analytics/sales-trend`).then(r => r.json()),
-            fetch(`${API_URL}/analytics/top-customers`).then(r => r.json()),
-            fetch(`${API_URL}/analytics/delivery-performance`).then(r => r.json())
+            fetch(`${API_URL}/api/finance/stats`).then(r => r.json())
         ]);
 
-        // Mevcut istatistikleri güncelle
+        // Ana sayfa kartlarını güncelle
         updateSummaryStats(dashboardStats, financeStats);
         
-        // Yeni bölümleri güncelle
-        updateTopProducts(topProducts);
-        updatePopularAreas(popularAreas);
-        updateTimeSlots(timeSlots);
-        updateCustomerDistribution(customerDistribution);
-        updateSalesTrend(salesTrend);
-        updateTopCustomers(topCustomers);
-        updateDeliveryPerformance(deliveryPerformance);
+        // Stok uyarılarını yükle
+        loadLowStockWarnings(dashboardStats.tomorrowNeeds);
 
     } catch (error) {
         console.error('Dashboard veri yükleme hatası:', error);
