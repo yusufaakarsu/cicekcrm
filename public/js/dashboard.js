@@ -5,17 +5,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadDashboardData() {
     try {
-        // Sadece tek bir API çağrısı yapalım
+        console.log('Dashboard verisi yükleniyor...');
         const response = await fetch(`${API_URL}/api/dashboard`);
-        if (!response.ok) throw new Error('API yanıt vermedi');
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.details || 'API yanıt vermedi');
+        }
         
         const data = await response.json();
-        
+        console.log('Gelen veri:', data);
+
         // Teslimat İstatistikleri
         document.getElementById('todayDeliveries').textContent = data.deliveryStats.total_orders;
         document.getElementById('completedDeliveries').textContent = `${data.deliveryStats.delivered_orders} tamamlandı`;
-        document.getElementById('deliveredCount').textContent = data.deliveryStats.delivered_orders;
-        document.getElementById('deliveryRate').textContent = `${Math.round((data.deliveryStats.delivered_orders / data.deliveryStats.total_orders) * 100)}% başarı`;
         document.getElementById('onRouteCount').textContent = data.deliveryStats.pending_orders;
         document.getElementById('preparingCount').textContent = data.deliveryStats.preparing_orders;
         
@@ -26,22 +29,19 @@ async function loadDashboardData() {
         document.getElementById('profitMargin').textContent = `${data.finance.profit_margin}%`;
         
         // Müşteri İstatistikleri
-        document.getElementById('newCustomers').textContent = data.customers?.new_count || 0;
-        document.getElementById('repeatCustomers').textContent = data.customers?.repeat_count || 0;
-        document.getElementById('avgBasket').textContent = formatCurrency(data.customers?.avg_basket || 0);
+        document.getElementById('newCustomers').textContent = data.customers.new_count;
+        document.getElementById('repeatCustomers').textContent = data.customers.repeat_count;
+        document.getElementById('avgBasket').textContent = formatCurrency(data.customers.avg_basket);
         
         // Stok İstatistikleri
         document.getElementById('lowStock').textContent = data.lowStock;
         document.getElementById('stockAlert').textContent = `${data.lowStock} ürün kritik`;
 
-        // Alt kartlar
-        updateDeliveryStats(data.deliveryStats);
-        updateAreaStats(data.popularAreas);
-        updateRecentSales(data.recentSales);
-        updateStockWarnings(data.stockWarnings);
-
     } catch (error) {
         console.error('Dashboard veri yükleme hatası:', error);
+        // Hata mesajını göster
+        document.querySelectorAll('[id$="Count"],[id$="Revenue"],[id$="Income"],[id$="Margin"],[id$="Stock"]')
+            .forEach(el => el.textContent = '-');
     }
 }
 

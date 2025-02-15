@@ -19,100 +19,80 @@ api.use('*', async (c, next) => {
 
 api.get('/', () => new Response('API Running'))
 
-// Ana sayfa istatistikleri için tek endpoint
+// Ana sayfa istatistikleri için endpoint'i düzelt
 api.get('/api/dashboard', async (c) => {
   const db = c.env.DB;
   const tenant_id = c.get('tenant_id');
 
   try {
-    const [deliveryStats, finance, customers, stockStats, popularAreas, recentSales, stockWarnings] = await Promise.all([
-      // Teslimat İstatistikleri
-      db.prepare(`
-        SELECT 
-          COUNT(*) as total_orders,
-          SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered_orders,
-          SUM(CASE WHEN status = 'delivering' THEN 1 ELSE 0 END) as pending_orders,
-          SUM(CASE WHEN status = 'preparing' THEN 1 ELSE 0 END) as preparing_orders
-        FROM orders 
-        WHERE DATE(delivery_date) = DATE('now')
-        AND tenant_id = ?
-      `).bind(tenant_id).first(),
+    // 1. Teslimat İstatistikleri
+    const deliveryStats = await db.prepare(`
+      SELECT 
+        COUNT(*) as total_orders,
+        SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered_orders,
+        SUM(CASE WHEN status = 'delivering' THEN 1 ELSE 0 END) as pending_orders,
+        SUM(CASE WHEN status = 'preparing' THEN 1 ELSE 0 END) as preparing_orders
+      FROM orders 
+      WHERE DATE(delivery_date) = DATE('now')
+      AND tenant_id = ?
+    `).bind(tenant_id).first();
 
-      // Finansal İstatistikler
-      db.prepare(`
-        SELECT 
-          SUM(CASE WHEN DATE(created_at) = DATE('now') THEN total_amount ELSE 0 END) as daily_revenue,
-          SUM(CASE WHEN strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now') THEN total_amount ELSE 0 END) as monthly_income,
-          SUM(CASE WHEN payment_status = 'pending' THEN total_amount ELSE 0 END) as pending_payments,
-          ROUND(AVG(profit_margin), 0) as profit_margin
-        FROM orders
-        WHERE tenant_id = ?
-        AND status != 'cancelled'
-      `).bind(tenant_id).first(),
+    // 2. Finansal İstatistikler
+    const finance = await db.prepare(`
+      SELECT 
+        COALESCE(SUM(CASE WHEN DATE(created_at) = DATE('now') THEN total_amount ELSE 0 END), 0) as daily_revenue,
+        COALESCE(SUM(CASE WHEN strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now') THEN total_amount ELSE 0 END), 0) as monthly_income,
+        COALESCE(SUM(CASE WHEN payment_status = 'pending' THEN total_amount ELSE 0 END), 0) as pending_payments,
+        ROUND(AVG(profit_margin), 1) as profit_margin
+      FROM orders
+      WHERE tenant_id = ? AND status != 'cancelled'
+    `).bind(tenant_id).first();
 
-      // Müşteri İstatistikleri
-      db.prepare(`
-        SELECT 
-          COUNT(DISTINCT CASE WHEN DATE(created_at) >= DATE('now', '-30 days') THEN id END) as new_count,
-          COUNT(DISTINCT id) as repeat_count,
-          ROUND(AVG(total_amount), 0) as avg_basket
-        FROM customers
-        WHERE tenant_id = ?
-      `).bind(tenant_id).first(),
+    // 3. Müşteri İstatistikleri
+    const customers = await db.prepare(`
+      SELECT 
+        COUNT(DISTINCT CASE WHEN DATE(created_at) >= DATE('now', '-30 days') THEN id END) as new_count,
+        COUNT(DISTINCT id) as repeat_count,
+        ROUND(AVG(total_amount), 0) as avg_basket
+      FROM customers
+      WHERE tenant_id = ?
+    `).bind(tenant_id).first();
 
-      // Stok Durumu
-      db.prepare(`
-        SELECT COUNT(*) as low_stock
-        FROM products
-        WHERE stock <= min_stock
-        AND tenant_id = ?
-      `).bind(tenant_id).first(),
+    // 4. Stok Uyarıları
+    const stockStats = await db.prepare(`
+      SELECT COUNT(*) as low_stock
+      FROM products
+      WHERE stock <= min_stock AND tenant_id = ?
+    `).bind(tenant_id).first();
 
-      // Popüler Bölgeler
-      db.prepare(`
-        SELECT delivery_district as name, COUNT(*) as count
-        FROM orders
-        WHERE tenant_id = ?
-        AND DATE(delivery_date) >= DATE('now', '-30 days')
-        GROUP BY delivery_district
-        ORDER BY count DESC
-        LIMIT 5
-      `).bind(tenant_id).all(),
-
-      // Son Satışlar
-      db.prepare(`
-        SELECT o.total_amount as amount, c.name as customer, o.created_at as date
-        FROM orders o
-        LEFT JOIN customers c ON o.customer_id = c.id
-        WHERE o.tenant_id = ?
-        ORDER BY o.created_at DESC
-        LIMIT 5
-      `).bind(tenant_id).all(),
-
-      // Stok Uyarıları
-      db.prepare(`
-        SELECT name, stock as current, min_stock as minimum
-        FROM products
-        WHERE stock <= min_stock
-        AND tenant_id = ?
-        ORDER BY stock ASC
-        LIMIT 5
-      `).bind(tenant_id).all()
-    ]);
-
+    // 5. Özet veriyi döndür
     return c.json({
-      deliveryStats,
-      finance,
-      customers,
-      lowStock: stockStats.low_stock,
-      popularAreas: popularAreas.results,
-      recentSales: recentSales.results,
-      stockWarnings: stockWarnings.results
+      deliveryStats: deliveryStats || {
+        total_orders: 0,
+        delivered_orders: 0,
+        pending_orders: 0,
+        preparing_orders: 0
+      },
+      finance: finance || {
+        daily_revenue: 0,
+        monthly_income: 0,
+        pending_payments: 0,
+        profit_margin: 0
+      },
+      customers: customers || {
+        new_count: 0,
+        repeat_count: 0,
+        avg_basket: 0
+      },
+      lowStock: stockStats?.low_stock || 0
     });
 
   } catch (error) {
     console.error('Dashboard error:', error);
-    return c.json({ error: 'Internal Server Error' }, 500);
+    return c.json({ 
+      error: 'Internal Server Error',
+      details: error.message 
+    }, 500);
   }
 });
 
