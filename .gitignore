@@ -1,8 +1,7 @@
 # Dependencies
-node_modules
-*/node_modules
-**/node_modules
-workers/api/node_modules
+node_modules/
+**/node_modules/
+workers/api/node_modules/
 package-lock.json
 yarn.lock
 
