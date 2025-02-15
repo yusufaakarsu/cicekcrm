@@ -737,4 +737,99 @@ api.put('/orders/:id', async (c) => {
   }
 });
 
+// En çok satan ürünleri getir
+api.get('/products/top-selling', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        p.name,
+        SUM(oi.quantity) as total_sold,
+        SUM(oi.quantity * oi.unit_price) as total_revenue
+      FROM products p
+      JOIN order_items oi ON p.id = oi.product_id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.status != 'cancelled'
+      AND p.tenant_id = ?
+      GROUP BY p.id, p.name
+      ORDER BY total_sold DESC
+      LIMIT 5
+    `).bind(tenant_id).all();
+    
+    return c.json(results);
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// Popüler teslimat bölgeleri
+api.get('/orders/popular-areas', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        delivery_district as district,
+        COUNT(*) as delivery_count,
+        ROUND(COUNT(*) * 100.0 / (
+          SELECT COUNT(*) FROM orders 
+          WHERE tenant_id = ? AND status != 'cancelled'
+        ), 1) as percentage
+      FROM orders
+      WHERE tenant_id = ?
+      AND status != 'cancelled'
+      GROUP BY delivery_district
+      ORDER BY delivery_count DESC
+      LIMIT 5
+    `).bind(tenant_id, tenant_id).all();
+    
+    return c.json(results);
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// Teslimat zaman dilimi analizi
+api.get('/orders/time-slots', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        delivery_time_slot,
+        COUNT(*) as count
+      FROM orders
+      WHERE tenant_id = ?
+      AND status != 'cancelled'
+      GROUP BY delivery_time_slot
+    `).bind(tenant_id).all();
+    
+    return c.json(results);
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// Müşteri tipi dağılımı
+api.get('/customers/distribution', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        customer_type,
+        COUNT(*) as count
+      FROM customers
+      WHERE tenant_id = ?
+      AND is_deleted = 0
+      GROUP BY customer_type
+    `).bind(tenant_id).all();
+    
+    return c.json(results);
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
 export default api

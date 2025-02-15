@@ -5,22 +5,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadDashboardData() {
     try {
-        const [dashboardStats, financeStats] = await Promise.all([
+        const [dashboardStats, financeStats, topProducts, popularAreas, timeSlots, customerDistribution] = await Promise.all([
             fetch(`${API_URL}/api/dashboard`).then(r => r.json()),
-            fetch(`${API_URL}/api/finance/stats`).then(r => r.json())
+            fetch(`${API_URL}/api/finance/stats`).then(r => r.json()),
+            fetch(`${API_URL}/products/top-selling`).then(r => r.json()),
+            fetch(`${API_URL}/orders/popular-areas`).then(r => r.json()),
+            fetch(`${API_URL}/orders/time-slots`).then(r => r.json()),
+            fetch(`${API_URL}/customers/distribution`).then(r => r.json())
         ]);
 
-        // Özet istatistikleri güncelle
+        // Mevcut güncellemeler
         updateSummaryStats(dashboardStats, financeStats);
-
-        // Teslimat listesini güncelle
-        loadDeliveries();
-
-        // Son işlemleri yükle
-        loadRecentTransactions();
-
-        // Düşük stok uyarılarını göster
         loadLowStockWarnings(dashboardStats.tomorrowNeeds);
+
+        // Yeni bölümleri güncelle
+        updateTopProducts(topProducts);
+        updatePopularAreas(popularAreas);
+        updateTimeSlots(timeSlots);
+        updateCustomerDistribution(customerDistribution);
 
     } catch (error) {
         console.error('Dashboard veri yükleme hatası:', error);
@@ -112,6 +114,65 @@ function loadLowStockWarnings(items) {
     `).join('');
 }
 
+function updateTopProducts(products) {
+    const container = document.querySelector('.top-products');
+    if (!container) return;
+
+    container.innerHTML = products.map(product => `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <div class="fw-bold">${product.name}</div>
+                <small class="text-muted">${product.total_sold} adet satıldı</small>
+            </div>
+            <span class="text-success">${formatCurrency(product.total_revenue)}</span>
+        </div>
+    `).join('');
+}
+
+function updatePopularAreas(areas) {
+    const container = document.querySelector('.delivery-areas');
+    if (!container) return;
+
+    container.innerHTML = areas.map(area => `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <div class="fw-bold">${area.district}</div>
+                <small class="text-muted">${area.delivery_count} teslimat</small>
+            </div>
+            <span class="badge bg-info">%${area.percentage}</span>
+        </div>
+    `).join('');
+}
+
+function updateTimeSlots(slots) {
+    const timeSlotMap = {
+        'morning': 'morningCount',
+        'afternoon': 'afternoonCount',
+        'evening': 'eveningCount'
+    };
+
+    slots.forEach(slot => {
+        const elementId = timeSlotMap[slot.delivery_time_slot];
+        if (elementId) {
+            document.getElementById(elementId).textContent = slot.count;
+        }
+    });
+}
+
+function updateCustomerDistribution(distribution) {
+    const typeMap = {
+        'retail': 'retailCount',
+        'corporate': 'corporateCount'
+    };
+
+    distribution.forEach(type => {
+        const elementId = typeMap[type.customer_type];
+        if (elementId) {
+            document.getElementById(elementId).textContent = type.count;
+        }
+    });
+}
+
 // Helper fonksiyonlar
 function formatCurrency(amount) {
     return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
@@ -149,4 +210,3 @@ function formatPaymentStatus(status) {
 function viewOrder(id) {
     window.location.href = `/orders/${id}`;
 }
---sds
