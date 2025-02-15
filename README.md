@@ -59,44 +59,52 @@ wrangler deploy
 
 Çiçekçi sipariş ve müşteri yönetim sistemi.
 
-## Proje Yapısı ve Açıklamalar
+## Proje Yapısı ve Dosya Açıklamaları
 
 ```
-/CicekCRM
-├── migrations/                      # Veritabanı veri dosyaları
-│   └── data.sql                    # Örnek veriler ve seed data
-├── public/                         # Frontend ana klasörü
-│   ├── common/                    # Ortak UI bileşenleri
-│   │   ├── header.html           # Site üst menü
-│   │   └── layout.html           # Ana sayfa düzeni
-│   ├── css/                      # Stil dosyaları
-│   │   └── style.css            # Ana stil tanımları
-│   ├── customers/                # Müşteri yönetimi modülü
-│   │   ├── customers.js         # Müşteri işlemleri 
-│   │   └── index.html           # Müşteri listeleme sayfası
-│   ├── finance/                 # Finans modülü
-│   │   └── index.html           # Finans rapor sayfası
-│   ├── js/                      # JavaScript ana klasörü
-│   │   ├── common.js           # Ortak fonksiyonlar
-│   │   ├── customers.js        # Müşteri mantık işlemleri
-│   │   ├── dashboard.js        # Panel fonksiyonları
-│   │   ├── finance.js          # Finans hesaplamaları
-│   │   └── orders.js           # Sipariş işlemleri
-│   ├── orders/                 # Sipariş modülü
-│   │   ├── index.html         # Sipariş listeleme
-│   │   ├── new.html           # Yeni sipariş formu
-│   │   └── orders.js          # Sipariş sayfası mantığı
-│   └── index.html             # Ana sayfa
-├── workers/                    # Cloudflare Workers klasörü
-│   └── api/                   # API servisleri
-│       ├── package.json       # API bağımlılıkları
-│       ├── worker.ts         # API endpoint kodları
-│       └── wrangler.toml     # Cloudflare yapılandırması
-├── .gitignore                  # 
-├── package.json                # 
-├── PLAN.md                    # Geliştirme planı ve notlar
-├── README.md                  # Proje dokümantasyonu
-└── schema.sql               # Veritabanı tablo yapısı
+/Users/yusuf/Downloads/kod/CCRM/
+├── compare/                            # API ve Dökümantasyon Karşılaştırma Klasörü
+│   ├── endpoints.md                    # Tüm API endpointlerinin listesi ve açıklamaları
+│   ├── frontend-api-usage.md          # Frontend'de kullanılan API endpoint'lerinin dökümantasyonu
+│   └── unused-endpoints.md            # Kullanılmayan/kaldırılan API endpoint'lerinin listesi
+├── migrations/                         # Veritabanı Migrasyon Klasörü
+│   ├── data.sql                       # Test verileri ve örnek kayıtlar
+│   └── schema.sql                     # Veritabanı tablo yapıları ve ilişkileri
+├── public/                            # Frontend Ana Klasörü
+│   ├── calendar/                      # Takvim Modülü
+│   │   └── index.html                 # Teslimat takvimi görünümü
+│   ├── common/                        # Ortak UI Bileşenleri
+│   │   ├── header.html               # Site üst menü ve navigasyon
+│   │   └── layout.html               # Ana sayfa düzeni şablonu
+│   ├── css/                          # Stil Dosyaları
+│   │   └── style.css                 # Özel CSS tanımlamaları
+│   ├── customers/                     # Müşteri Yönetimi Modülü
+│   │   ├── customers.js             # Müşteri sayfası özel JS kodları
+│   │   └── index.html               # Müşteri listeleme sayfası
+│   ├── delivery/                     # Teslimat Yönetimi Modülü
+│   │   └── index.html               # Teslimat takip ve yönetim sayfası
+│   ├── finance/                      # Finans Modülü
+│   │   └── index.html               # Finansal raporlar ve analizler
+│   ├── js/                          # JavaScript Ana Klasörü
+│   │   ├── calendar.js             # Takvim işlevleri ve teslimat planlaması
+│   │   ├── common.js               # Ortak yardımcı fonksiyonlar
+│   │   ├── customers.js            # Müşteri işlemleri mantığı
+│   │   ├── dashboard.js            # Panel ve istatistik işlemleri
+│   │   ├── delivery.js            # Teslimat takip ve güncelleme işlevleri
+│   │   ├── finance.js             # Finansal hesaplama ve raporlama
+│   │   └── orders.js              # Sipariş yönetimi işlevleri
+│   ├── orders/                     # Sipariş Yönetimi Modülü
+│   │   ├── index.html             # Sipariş listeleme sayfası
+│   │   ├── new.html              # Yeni sipariş oluşturma formu
+│   │   └── orders.js             # Sipariş sayfası özel JS kodları
+│   └── index.html                 # Ana sayfa (Dashboard)
+├── workers/                        # Cloudflare Workers Backend
+│   ├── package-lock.json          # NPM bağımlılık kilitleri
+│   ├── package.json               # Backend bağımlılıkları
+│   ├── worker.ts                  # Ana API endpoint kodları
+│   └── wrangler.toml             # Cloudflare Workers yapılandırması
+├── README.md                      # Proje dokümantasyonu (bu dosya)
+└── package.json                   # Frontend bağımlılıkları
 ```
 
 ## Teknolojiler
@@ -256,5 +264,125 @@ wrangler d1 execute cicek-crm-db --remote --file=./migrations/data.sql
 - purchase_orders -> suppliers (supplier_id)
 - purchase_order_items -> purchase_orders (purchase_order_id)
 - purchase_order_items -> products (product_id)
+
+## Aktif Endpointler
+
+### Dashboard & İstatistikler
+- `/api/dashboard`: Ana panel istatistiklerini döndürür
+- `/api/finance/stats`: Finansal metrikleri döndürür
+- `/api/finance/transactions`: Son finansal işlemleri listeler
+
+### Siparişler
+- `GET /orders`: Tüm siparişleri listeler
+- `POST /orders`: Yeni sipariş oluşturur
+- `PUT /orders/:id`: Sipariş günceller
+- `GET /orders/:id/details`: Sipariş detaylarını getirir
+- `PUT /orders/:id/status`: Sipariş durumunu günceller
+- `PUT /orders/:id/cancel`: Siparişi iptal eder
+- `GET /orders/filtered`: Filtrelenmiş sipariş listesi
+- `GET /orders/today`: Bugünün teslimatları
+- `GET /orders/recent`: Son 5 siparişi listeler
+
+### Müşteriler
+- `GET /customers`: Tüm müşterileri listeler
+- `POST /customers`: Yeni müşteri ekler
+- `PUT /customers/:id`: Müşteri bilgilerini günceller
+- `GET /customers/:id`: Müşteri detaylarını getirir
+- `GET /customers/search/phone/:phone`: Telefon ile müşteri arar
+- `GET /customers/recent`: Son 5 müşteriyi listeler
+- `GET /customers/:id/orders`: Müşterinin siparişlerini listeler
+
+### Ürünler
+- `GET /products/low-stock`: Düşük stoklu ürünleri listeler
+- `GET /products/top-selling`: En çok satan ürünleri listeler
+
+## Teknolojiler
+- Backend: Cloudflare Workers
+- Frontend: Vanilla JS + Bootstrap 5.3.2
+- Veritabanı: Cloudflare D1 (SQLite)
+
+## Kurulum & Geliştirme
+
+### 1. Projeyi klonla
+```bash
+git clone https://github.com/username/CCRM.git
+cd CCRM
+```
+
+### 2. Bağımlılıkları yükle
+```bash
+# Worker API için
+cd workers/api
+npm install
+
+# Frontend için
+cd ../../
+npm install
+```
+
+### 3. Geliştirme ortamı
+```bash
+# API'yi başlat
+cd workers/api
+wrangler dev
+
+# Frontend'i başlat (ayrı terminalde)
+npm run dev
+```
+
+### 4. Deploy
+```bash
+# API deploy
+cd workers/api
+wrangler deploy
+
+# Frontend deploy
+npm run build
+```
+
+## Veritabanı İşlemleri
+
+### Schema güncelleme
+```bash
+cd workers/api
+wrangler d1 execute cicek-crm-db --remote --file=./schema.sql
+```
+
+### Test datası yükleme
+```bash
+wrangler d1 execute cicek-crm-db --remote --file=./migrations/data.sql
+```
+
+## Git İş Akışı
+
+1. Development branch'inde çalış:
+```bash
+git checkout development
+```
+
+2. Değişiklikleri commit'le:
+```bash
+git add .
+git commit -m "feat/fix/docs: Açıklayıcı mesaj"
+```
+
+3. Push ve deploy:
+```bash
+git push origin development
+cd workers/api && wrangler deploy
+```
+
+## Test & Hata Ayıklama
+
+- API Testleri: `wrangler dev` ile lokalde test et
+- Frontend Testleri: `npm run dev` ile lokalde test et
+- Hata logları: Cloudflare Workers dashboard'da görüntüle
+
+## Notlar
+
+- `tenant_id` middleware ile otomatik ekleniyor
+- Tüm tarihler UTC formatında
+- Frontend'de Bootstrap 5.3.2 kullanılıyor
+- API güvenlik katmanı henüz eklenmedi
 
 
