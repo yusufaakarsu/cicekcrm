@@ -25,54 +25,89 @@ api.get('/api/dashboard', async (c) => {
   const tenant_id = c.get('tenant_id');
 
   try {
-    const [todayDeliveries, { results: tomorrowNeeds }, { results: orderSummary }, lowStock] = await Promise.all([
-      // 1. Bugünün teslimat durumu
+    const [deliveryStats, finance, customers, stockStats, popularAreas, recentSales, stockWarnings] = await Promise.all([
+      // Teslimat İstatistikleri
       db.prepare(`
         SELECT 
           COUNT(*) as total_orders,
           SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered_orders,
-          SUM(CASE WHEN status NOT IN ('delivered', 'cancelled') THEN 1 END) as pending_orders
+          SUM(CASE WHEN status = 'delivering' THEN 1 ELSE 0 END) as pending_orders,
+          SUM(CASE WHEN status = 'preparing' THEN 1 ELSE 0 END) as preparing_orders
         FROM orders 
         WHERE DATE(delivery_date) = DATE('now')
         AND tenant_id = ?
       `).bind(tenant_id).first(),
 
-      // 2. Yarının siparişleri için ürün ihtiyacı
+      // Finansal İstatistikler
       db.prepare(`
         SELECT 
-          p.name,
-          p.stock as current_stock,
-          SUM(oi.quantity) as needed_quantity
-        FROM orders o
-        JOIN order_items oi ON o.id = oi.order_id
-        JOIN products p ON oi.product_id = p.id
-        WHERE DATE(o.delivery_date) = DATE('now', '+1 day')
-        AND o.tenant_id = ?
-        GROUP BY p.id, p.name, p.stock
-        ORDER BY needed_quantity DESC
-      `).bind(tenant_id).all(),
-
-      // 3. Teslimat programı
-      db.prepare(`
-        SELECT 
-          date(delivery_date) as date,
-          COUNT(*) as count
+          SUM(CASE WHEN DATE(created_at) = DATE('now') THEN total_amount ELSE 0 END) as daily_revenue,
+          SUM(CASE WHEN strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now') THEN total_amount ELSE 0 END) as monthly_income,
+          SUM(CASE WHEN payment_status = 'pending' THEN total_amount ELSE 0 END) as pending_payments,
+          ROUND(AVG(profit_margin), 0) as profit_margin
         FROM orders
-        WHERE date(delivery_date) BETWEEN date('now') AND date('now', '+2 days')
+        WHERE tenant_id = ?
+        AND status != 'cancelled'
+      `).bind(tenant_id).first(),
+
+      // Müşteri İstatistikleri
+      db.prepare(`
+        SELECT 
+          COUNT(DISTINCT CASE WHEN DATE(created_at) >= DATE('now', '-30 days') THEN id END) as new_count,
+          COUNT(DISTINCT id) as repeat_count,
+          ROUND(AVG(total_amount), 0) as avg_basket
+        FROM customers
+        WHERE tenant_id = ?
+      `).bind(tenant_id).first(),
+
+      // Stok Durumu
+      db.prepare(`
+        SELECT COUNT(*) as low_stock
+        FROM products
+        WHERE stock <= min_stock
         AND tenant_id = ?
-        GROUP BY date(delivery_date)
-        ORDER BY date
+      `).bind(tenant_id).first(),
+
+      // Popüler Bölgeler
+      db.prepare(`
+        SELECT delivery_district as name, COUNT(*) as count
+        FROM orders
+        WHERE tenant_id = ?
+        AND DATE(delivery_date) >= DATE('now', '-30 days')
+        GROUP BY delivery_district
+        ORDER BY count DESC
+        LIMIT 5
       `).bind(tenant_id).all(),
 
-      // 4. Düşük stok sayısı
-      db.prepare(`SELECT COUNT(*) as count FROM products WHERE stock <= min_stock AND tenant_id = ?`).bind(tenant_id).first()
+      // Son Satışlar
+      db.prepare(`
+        SELECT o.total_amount as amount, c.name as customer, o.created_at as date
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        WHERE o.tenant_id = ?
+        ORDER BY o.created_at DESC
+        LIMIT 5
+      `).bind(tenant_id).all(),
+
+      // Stok Uyarıları
+      db.prepare(`
+        SELECT name, stock as current, min_stock as minimum
+        FROM products
+        WHERE stock <= min_stock
+        AND tenant_id = ?
+        ORDER BY stock ASC
+        LIMIT 5
+      `).bind(tenant_id).all()
     ]);
 
     return c.json({
-      deliveryStats: todayDeliveries,
-      tomorrowNeeds,
-      orderSummary,
-      lowStock: lowStock.count
+      deliveryStats,
+      finance,
+      customers,
+      lowStock: stockStats.low_stock,
+      popularAreas: popularAreas.results,
+      recentSales: recentSales.results,
+      stockWarnings: stockWarnings.results
     });
 
   } catch (error) {

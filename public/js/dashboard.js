@@ -5,19 +5,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadDashboardData() {
     try {
-        const [dashboardStats, deliveryStats, areaStats, salesData, stockWarnings] = await Promise.all([
-            fetch(`${API_URL}/api/dashboard/summary`).then(r => r.json()),
-            fetch(`${API_URL}/api/dashboard/delivery-stats`).then(r => r.json()),
-            fetch(`${API_URL}/api/dashboard/area-stats`).then(r => r.json()),
-            fetch(`${API_URL}/api/dashboard/recent-sales`).then(r => r.json()),
-            fetch(`${API_URL}/api/dashboard/stock-warnings`).then(r => r.json())
-        ]);
+        // Sadece tek bir API çağrısı yapalım
+        const response = await fetch(`${API_URL}/api/dashboard`);
+        if (!response.ok) throw new Error('API yanıt vermedi');
+        
+        const data = await response.json();
+        
+        // Teslimat İstatistikleri
+        document.getElementById('todayDeliveries').textContent = data.deliveryStats.total_orders;
+        document.getElementById('completedDeliveries').textContent = `${data.deliveryStats.delivered_orders} tamamlandı`;
+        document.getElementById('deliveredCount').textContent = data.deliveryStats.delivered_orders;
+        document.getElementById('deliveryRate').textContent = `${Math.round((data.deliveryStats.delivered_orders / data.deliveryStats.total_orders) * 100)}% başarı`;
+        document.getElementById('onRouteCount').textContent = data.deliveryStats.pending_orders;
+        document.getElementById('preparingCount').textContent = data.deliveryStats.preparing_orders;
+        
+        // Finansal İstatistikler
+        document.getElementById('dailyRevenue').textContent = formatCurrency(data.finance.daily_revenue);
+        document.getElementById('monthlyIncome').textContent = formatCurrency(data.finance.monthly_income);
+        document.getElementById('pendingPayments').textContent = formatCurrency(data.finance.pending_payments);
+        document.getElementById('profitMargin').textContent = `${data.finance.profit_margin}%`;
+        
+        // Müşteri İstatistikleri
+        document.getElementById('newCustomers').textContent = data.customers?.new_count || 0;
+        document.getElementById('repeatCustomers').textContent = data.customers?.repeat_count || 0;
+        document.getElementById('avgBasket').textContent = formatCurrency(data.customers?.avg_basket || 0);
+        
+        // Stok İstatistikleri
+        document.getElementById('lowStock').textContent = data.lowStock;
+        document.getElementById('stockAlert').textContent = `${data.lowStock} ürün kritik`;
 
-        updateSummaryCards(dashboardStats);
-        updateDeliveryStats(deliveryStats);
-        updateAreaStats(areaStats);
-        updateRecentSales(salesData);
-        updateStockWarnings(stockWarnings);
+        // Alt kartlar
+        updateDeliveryStats(data.deliveryStats);
+        updateAreaStats(data.popularAreas);
+        updateRecentSales(data.recentSales);
+        updateStockWarnings(data.stockWarnings);
 
     } catch (error) {
         console.error('Dashboard veri yükleme hatası:', error);
