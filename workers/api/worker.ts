@@ -343,13 +343,29 @@ api.get('/products/low-stock', async (c) => {
   const db = c.env.DB
   const tenant_id = c.get('tenant_id');
   try {
-    const { results } = await db
-      .prepare('SELECT * FROM products WHERE stock <= min_stock AND tenant_id = ? ORDER BY stock ASC')
-      .bind(tenant_id)
-      .all()
-    return c.json(results)
+    const { results } = await db.prepare(`
+      SELECT 
+        p.*,
+        COALESCE(SUM(oi.quantity), 0) as reserved_quantity,  -- Siparişler için ayrılan miktar
+        (p.stock - COALESCE(SUM(oi.quantity), 0)) as available_stock,  -- Kullanılabilir stok
+        CASE 
+          WHEN p.stock <= p.min_stock THEN 'critical'
+          WHEN p.stock <= p.min_stock * 1.5 THEN 'warning'
+          ELSE 'ok'
+        END as stock_status
+      FROM products p
+      LEFT JOIN order_items oi ON p.id = oi.product_id
+      LEFT JOIN orders o ON oi.order_id = o.id AND o.status IN ('new', 'preparing')
+      WHERE p.tenant_id = ?
+      AND p.is_deleted = 0
+      GROUP BY p.id
+      HAVING available_stock <= p.min_stock * 1.5
+      ORDER BY available_stock ASC
+    `).bind(tenant_id).all();
+    
+    return c.json(results);
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    return c.json({ error: 'Database error' }, 500);
   }
 })
 
@@ -811,19 +827,97 @@ api.get('/orders/time-slots', async (c) => {
   }
 });
 
-// Müşteri tipi dağılımı
+// Müşteri tipi dağılımı - Düzeltilmiş sorgu
 api.get('/customers/distribution', async (c) => {
   const db = c.env.DB;
   const tenant_id = c.get('tenant_id');
   try {
     const { results } = await db.prepare(`
       SELECT 
-        customer_type,
-        COUNT(*) as count
+        COALESCE(customer_type, 'retail') as customer_type,
+        COUNT(*) as count,
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM customers WHERE tenant_id = ?), 1) as percentage
       FROM customers
       WHERE tenant_id = ?
       AND is_deleted = 0
       GROUP BY customer_type
+    `).bind(tenant_id, tenant_id).all();
+    
+    return c.json(results);
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// Yeni API Endpointleri - Önerilen Yeni Kartlar İçin:
+
+// 1. Aylık Satış Trendi
+api.get('/analytics/sales-trend', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        strftime('%Y-%m-%d', delivery_date) as date,
+        COUNT(*) as total_orders,
+        SUM(total_amount) as revenue
+      FROM orders
+      WHERE tenant_id = ?
+      AND date(delivery_date) >= date('now', '-30 days')
+      GROUP BY date
+      ORDER BY date DESC
+    `).bind(tenant_id).all();
+    
+    return c.json(results);
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// 2. En Aktif Müşteriler
+api.get('/analytics/top-customers', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        c.name,
+        c.customer_type,
+        COUNT(o.id) as order_count,
+        SUM(o.total_amount) as total_spent,
+        MAX(o.delivery_date) as last_order_date
+      FROM customers c
+      JOIN orders o ON c.id = o.customer_id
+      WHERE c.tenant_id = ?
+      AND o.created_at >= date('now', '-90 days')
+      GROUP BY c.id
+      ORDER BY order_count DESC
+      LIMIT 5
+    `).bind(tenant_id).all();
+    
+    return c.json(results);
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// 3. Teslimat Performansı
+api.get('/analytics/delivery-performance', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        delivery_status,
+        COUNT(*) as count,
+        ROUND(AVG(CASE 
+          WHEN delivery_status = 'completed' THEN 1 
+          WHEN delivery_status = 'failed' THEN 0 
+        END) * 100, 1) as success_rate
+      FROM orders
+      WHERE tenant_id = ?
+      AND delivery_date >= date('now', '-30 days')
+      GROUP BY delivery_status
     `).bind(tenant_id).all();
     
     return c.json(results);

@@ -5,24 +5,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadDashboardData() {
     try {
-        const [dashboardStats, financeStats, topProducts, popularAreas, timeSlots, customerDistribution] = await Promise.all([
+        const [dashboardStats, financeStats, topProducts, popularAreas, timeSlots, customerDistribution, salesTrend, topCustomers, deliveryPerformance] = await Promise.all([
             fetch(`${API_URL}/api/dashboard`).then(r => r.json()),
             fetch(`${API_URL}/api/finance/stats`).then(r => r.json()),
             fetch(`${API_URL}/products/top-selling`).then(r => r.json()),
             fetch(`${API_URL}/orders/popular-areas`).then(r => r.json()),
             fetch(`${API_URL}/orders/time-slots`).then(r => r.json()),
-            fetch(`${API_URL}/customers/distribution`).then(r => r.json())
+            fetch(`${API_URL}/customers/distribution`).then(r => r.json()),
+            fetch(`${API_URL}/analytics/sales-trend`).then(r => r.json()),
+            fetch(`${API_URL}/analytics/top-customers`).then(r => r.json()),
+            fetch(`${API_URL}/analytics/delivery-performance`).then(r => r.json())
         ]);
 
-        // Mevcut güncellemeler
+        // Mevcut istatistikleri güncelle
         updateSummaryStats(dashboardStats, financeStats);
-        loadLowStockWarnings(dashboardStats.tomorrowNeeds);
-
+        
         // Yeni bölümleri güncelle
         updateTopProducts(topProducts);
         updatePopularAreas(popularAreas);
         updateTimeSlots(timeSlots);
         updateCustomerDistribution(customerDistribution);
+        updateSalesTrend(salesTrend);
+        updateTopCustomers(topCustomers);
+        updateDeliveryPerformance(deliveryPerformance);
 
     } catch (error) {
         console.error('Dashboard veri yükleme hatası:', error);
@@ -171,6 +176,76 @@ function updateCustomerDistribution(distribution) {
             document.getElementById(elementId).textContent = type.count;
         }
     });
+}
+
+// Yeni fonksiyonlar
+function updateSalesTrend(data) {
+    const container = document.getElementById('salesTrendChart');
+    if (!container) return;
+
+    let html = data.map(item => `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <div class="fw-bold">${formatDate(item.date)}</div>
+                <small class="text-muted">${item.total_orders} sipariş</small>
+            </div>
+            <span class="text-success">${formatCurrency(item.revenue)}</span>
+        </div>
+    `).join('');
+
+    container.innerHTML = html;
+}
+
+function updateTopCustomers(data) {
+    const container = document.getElementById('topCustomers');
+    if (!container) return;
+
+    let html = data.map(customer => `
+        <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="fw-bold">${customer.name}</div>
+                    <small class="text-muted">${customer.order_count} sipariş</small>
+                </div>
+                <div class="text-end">
+                    <div class="fw-bold text-success">${formatCurrency(customer.total_spent)}</div>
+                    <small class="text-muted">${formatDate(customer.last_order_date)}</small>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    container.innerHTML = html;
+}
+
+function updateDeliveryPerformance(data) {
+    // Başarı oranını göster
+    const successRate = document.getElementById('deliverySuccessRate');
+    if (successRate) {
+        const rate = data.find(item => item.delivery_status === 'completed')?.success_rate || 0;
+        successRate.textContent = `%${rate}`;
+    }
+
+    // Durumları listele
+    const statsContainer = document.getElementById('deliveryStats');
+    if (!statsContainer) return;
+
+    const statusMap = {
+        'pending': { label: 'Bekleyen', color: 'warning' },
+        'completed': { label: 'Tamamlanan', color: 'success' },
+        'failed': { label: 'Başarısız', color: 'danger' }
+    };
+
+    let html = data.map(stat => `
+        <div class="text-center">
+            <div class="h4 mb-0 text-${statusMap[stat.delivery_status]?.color || 'secondary'}">
+                ${stat.count}
+            </div>
+            <small class="text-muted">${statusMap[stat.delivery_status]?.label || stat.delivery_status}</small>
+        </div>
+    `).join('');
+
+    statsContainer.innerHTML = html;
 }
 
 // Helper fonksiyonlar

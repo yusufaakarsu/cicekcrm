@@ -110,7 +110,7 @@
             </div>
         </div>
 
-        <!-- Yeni Bilgi Kartları -->
+        <!-- Ana İçerik -->
         <div class="row g-3">
             <!-- Sol Bölüm -->
             <div class="col-md-8">
@@ -209,6 +209,59 @@
                     </div>
                     <div class="list-group list-group-flush" id="lowStockList">
                         <!-- JS ile doldurulacak -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ek Analizler -->
+        <div class="row g-3 mt-4">
+            <!-- Aylık Satış Trendi -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Aylık Satış Trendi</h5>
+                        <div class="text-muted">Son 30 gün</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="salesTrendChart"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- En Aktif Müşteriler -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">En Aktif Müşteriler</h5>
+                        <div class="text-muted">Son 90 gün</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="topCustomers" class="list-group list-group-flush">
+                            <!-- JS ile doldurulacak -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teslimat Performansı -->
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Teslimat Performansı</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-4 text-center">
+                                <div class="display-4 text-success" id="deliverySuccessRate">-%</div>
+                                <div class="text-muted">Başarılı Teslimat Oranı</div>
+                            </div>
+                            <div class="col-md-8">
+                                <div id="deliveryStats" class="d-flex justify-content-around">
+                                    <!-- JS ile doldurulacak -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
