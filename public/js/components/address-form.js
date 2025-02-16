@@ -33,5 +33,13 @@ class AddressForm {
         });
     }
 
+    validate() {
+        // Form validasyonları
+    }
+    
+    getData() {
+        // Form verilerini topla
+    }
+
     // ...diğer metodlar
 }

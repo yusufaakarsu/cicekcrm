@@ -152,7 +152,7 @@ wrangler deploy
 4. veritabanı işlemleri:
 ```bash
 
-wrangler d1 execute cicek-crm-db --remote --file=./schema.sql
+wrangler d1 execute cicek-crm-db --remote --file=./migrations/schema.sql
 wrangler d1 execute cicek-crm-db --remote --file=./migrations/data.sql
 
 ```
