@@ -202,74 +202,69 @@ class NewOrderForm {
         form.querySelector('[name="customer_name"]').value = '';
         form.querySelector('[name="customer_email"]').value = '';
     } 
- true; // Mevcut müşteri seçiliyse geç
-    validateStep(step) {
-        switch(step) {merForm');
-            case 1: // Müşteri bilgileri (customerForm.style.display === 'none') return true;
-                return this.customerId || (                
-                    document.querySelector('[name="customer_name"]')?.value &&ctor('[name="customer_name"]')?.value &&
-                    document.querySelector('[name="phone"]')?.value
-                );
 
-            case 2: // Teslimat bilgileriress = window.addressSelect.getSelectedAddress();
-                const selectedAddress = window.addressSelect.getSelectedAddress();f (!selectedAddress) {
-                if (!selectedAddress) {                    showError('Lütfen teslimat adresi seçin');
+    validateStep(step) {
+        switch(step) {
+            case 1: // Müşteri bilgileri
+                if (this.customerId) return true; // Mevcut müşteri varsa geç
+                
+                const customerForm = document.getElementById('customerForm');
+                if (customerForm.style.display === 'none') return true;
+                
+                return document.querySelector('[name="customer_name"]')?.value &&
+                       document.querySelector('[name="phone"]')?.value;
+
+            case 2: // Teslimat bilgileri
+                const selectedAddress = window.addressSelect?.getSelectedAddress();
+                if (!selectedAddress) {
                     showError('Lütfen teslimat adresi seçin');
                     return false;
                 }
 
-                const recipientName = document.querySelector('[name="recipient_name"]')?.value;                const requiredFields = [
+                const recipientName = document.querySelector('[name="recipient_name"]')?.value;
                 const recipientPhone = document.querySelector('[name="recipient_phone"]')?.value;
                 const deliveryDate = document.querySelector('[name="delivery_date"]')?.value;
-                const timeSlot = document.querySelector('[name="delivery_time_slot"]')?.value;e',
-   'delivery_time_slot'
-                if (!recipientName || !recipientPhone || !deliveryDate || !timeSlot) {                ];
+                const timeSlot = document.querySelector('[name="delivery_time_slot"]')?.value;
+
+                if (!recipientName || !recipientPhone || !deliveryDate || !timeSlot) {
                     showError('Lütfen tüm zorunlu alanları doldurun');
-                    return false;                const emptyFields = requiredFields.filter(field => 
-                }ySelector(`[name="${field}"]`)?.value
+                    return false;
+                }
 
                 return true;
 
-            case 3: // Ürün seçimishowError('Lütfen tüm zorunlu alanları doldurun');
-                return true; // Şimdilik geçalse;
-            case 4: // Ödeme       }
+            case 3: // Ürün seçimi
+                return true; // Şimdilik geç
+
+            case 4: // Ödeme
                 return document.querySelector('[name="payment_method"]')?.value;
-            default:                return true;
+
+            default:
                 return true;
         }
     }
- // Ödeme
-    nextStep() {       return document.querySelector('[name="payment_method"]')?.value;
-        if (!this.validateStep(this.currentStep)) {            default:
+
+    nextStep() {
+        if (!this.validateStep(this.currentStep)) {
             showError('Lütfen tüm zorunlu alanları doldurunuz');
             return;
         }
 
-        if (this.currentStep < this.totalSteps) {extStep() {
-            this.currentStep++;        if (!this.validateStep(this.currentStep)) {
-            this.showStep(this.currentStep);Error('Lütfen tüm zorunlu alanları doldurunuz');
+        if (this.currentStep < this.totalSteps) {
+            this.currentStep++;
+            this.showStep(this.currentStep);
         }
     }
 
-    prevStep() {f (this.currentStep < this.totalSteps) {
-        if (this.currentStep > 1) {       this.currentStep++;
-            this.currentStep--;           this.showStep(this.currentStep);
-            this.showStep(this.currentStep);        }
-        }
-    }
-}
-     if (this.currentStep > 1) {
-// Sayfa yüklendiğinde formu başlat            this.currentStep--;
-
-
-
-
-});    window.newOrderForm = new NewOrderForm();document.addEventListener('DOMContentLoaded', () => {            this.showStep(this.currentStep);
+    prevStep() {
+        if (this.currentStep > 1) {
+            this.currentStep--;
+            this.showStep(this.currentStep);
         }
     }
 }
 
-// Sayfa yüklendiğinde formu başlat
+// Global instance
 document.addEventListener('DOMContentLoaded', () => {
     window.newOrderForm = new NewOrderForm();
 });
