@@ -68,7 +68,132 @@ class NewOrderForm {
             if (data && data.customer) {
                 this.customerId = data.customer.id;
                 this.showCustomerDetails(data.customer);
-                this.loadCustomerAddresses(data.customer.id);
+            
+                // Müşteri adreslerini getir
+                const addressResponse = await fetch(`${API_URL}/customers/${data.customer.id}/addresses`);
+                const addresses = await addressResponse.json();
+
+                const container = document.getElementById('addressesContainer');
+                
+                // Önce kayıtlı adresleri göster
+                if (addresses && addresses.length > 0) {
+                    container.innerHTML = `
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Kayıtlı Adresler</label>
+                            ${addresses.map(addr => `
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" 
+                                           name="delivery_address_id" value="${addr.id}" 
+                                           id="addr_${addr.id}" required>
+                                    <label class="form-check-label" for="addr_${addr.id}">
+                                        ${addr.label || 'Adres'}<br>
+                                        <small class="text-muted">
+                                            ${[addr.street, addr.district, addr.city].filter(Boolean).join(', ')}
+                                        </small>
+                                    </label>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <hr>
+                    `;
+                }
+
+                // Adres arama bölümünü ekle
+                container.innerHTML += `
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Yeni Adres Ara</label>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" id="addressSearchInput" 
+                                   placeholder="Adres aramak için yazın...">
+                            <button class="btn btn-primary" type="button" id="addressSearchBtn">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                        <div id="addressSearchResults" class="list-group mt-2" style="display:none"></div>
+                    </div>
+                `;
+
+                // Adres arama işlevselliğini ekle
+                const searchInput = document.getElementById('addressSearchInput');
+                const searchBtn = document.getElementById('addressSearchBtn');
+                const resultsDiv = document.getElementById('addressSearchResults');
+
+                // Adres arama
+                const searchAddress = async (query) => {
+                    try {
+                        const params = new URLSearchParams({
+                            apiKey: CONFIG.HERE_API_KEY,
+                            q: `${query}, İstanbul, Turkey`,
+                            limit: '5',
+                            lang: 'tr'
+                        });
+
+                        const response = await fetch(`https://geocode.search.hereapi.com/v1/geocode?${params}`);
+                        const data = await response.json();
+                        
+                        resultsDiv.style.display = 'block';
+                        
+                        if (!data.items?.length) {
+                            resultsDiv.innerHTML = '<div class="list-group-item">Sonuç bulunamadı</div>';
+                            return;
+                        }
+
+                        resultsDiv.innerHTML = data.items.map(item => `
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>${item.title}</strong><br>
+                                        <small class="text-muted">${item.address.street || ''}, ${item.address.district || ''}</small>
+                                    </div>
+                                    <button class="btn btn-sm btn-primary select-address" 
+                                            data-address='${JSON.stringify(item)}'>
+                                        Seç
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('');
+
+                        // Adres seçme olayını ekle
+                        resultsDiv.querySelectorAll('.select-address').forEach(btn => {
+                            btn.onclick = (e) => {
+                                const item = JSON.parse(e.target.dataset.address);
+                                document.querySelector('[name="delivery_address"]').value = JSON.stringify({
+                                    label: item.title,
+                                    city: 'İstanbul',
+                                    district: item.address.district || '',
+                                    street: item.address.street || '',
+                                    postal_code: item.address.postalCode || '',
+                                    position: item.position
+                                });
+                                resultsDiv.style.display = 'none';
+                                searchInput.value = item.title;
+                            };
+                        });
+
+                    } catch (error) {
+                        console.error('Adres arama hatası:', error);
+                        resultsDiv.innerHTML = '<div class="list-group-item text-danger">Arama sırasında hata oluştu</div>';
+                    }
+                };
+
+                // Input olayını ekle
+                let timeout;
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(timeout);
+                    const query = e.target.value;
+                    if (query.length >= 3) {
+                        timeout = setTimeout(() => searchAddress(query), 500);
+                    }
+                });
+
+                // Buton olayını ekle
+                searchBtn.addEventListener('click', () => {
+                    const query = searchInput.value;
+                    if (query.length >= 3) {
+                        searchAddress(query);
+                    }
+                });
+
             } else {
                 this.showNewCustomerForm();
             }

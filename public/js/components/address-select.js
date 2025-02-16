@@ -1,26 +1,16 @@
 class AddressSelect {
-    constructor(containerId) {
+    constructor() {
         this.searchInput = document.getElementById('addressSearchInput');
         this.searchBtn = document.getElementById('addressSearchBtn');
         this.resultsDiv = document.getElementById('addressSearchResults');
         this.selectedDiv = document.getElementById('selectedAddress');
         this.selectedAddress = null;
         
-        // Kayıtlı adresler için container ekle
-        this.savedAddressesDiv = document.createElement('div');
-        this.savedAddressesDiv.id = 'savedAddressesContainer';
-        this.savedAddressesDiv.className = 'mb-3';
-        
-        // Search input'tan önce ekle
-        this.searchInput.parentNode.parentNode.insertBefore(
-            this.savedAddressesDiv, 
-            this.searchInput.parentNode
-        );
-
         this.setupEventListeners();
     }
 
     setupEventListeners() {
+        // Arama debounce
         let timeout;
         this.searchInput.addEventListener('input', (e) => {
             clearTimeout(timeout);
@@ -30,6 +20,7 @@ class AddressSelect {
             }
         });
 
+        // Arama butonu
         this.searchBtn.addEventListener('click', () => {
             const query = this.searchInput.value;
             if (query.length >= 3) {
@@ -58,7 +49,7 @@ class AddressSelect {
 
     showResults(items) {
         this.resultsDiv.style.display = 'block';
-
+        
         if (!items.length) {
             this.resultsDiv.innerHTML = '<div class="list-group-item">Sonuç bulunamadı</div>';
             return;
@@ -71,7 +62,8 @@ class AddressSelect {
                         <strong>${item.title}</strong><br>
                         <small class="text-muted">${item.address.street || ''}, ${item.address.district || ''}</small>
                     </div>
-                    <button class="btn btn-sm btn-primary" onclick='addressSelect.selectAddress(${JSON.stringify(item)})'>
+                    <button class="btn btn-sm btn-primary" 
+                            onclick='addressSelect.selectAddress(${JSON.stringify(item)})'>
                         Seç
                     </button>
                 </div>
@@ -86,10 +78,7 @@ class AddressSelect {
             district: item.address.district || '',
             street: item.address.street || '',
             postal_code: item.address.postalCode || '',
-            position: {
-                lat: item.position.lat,
-                lng: item.position.lng
-            }
+            position: item.position
         };
 
         this.selectedDiv.style.display = 'block';
@@ -99,10 +88,12 @@ class AddressSelect {
                     <strong>${this.selectedAddress.label}</strong><br>
                     <small>${[this.selectedAddress.street, this.selectedAddress.district, 'İstanbul'].filter(Boolean).join(', ')}</small>
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="addressSelect.clearAddress()">
+                <button type="button" class="btn btn-sm btn-outline-danger" 
+                        onclick="addressSelect.clearAddress()">
                     <i class="bi bi-x"></i>
                 </button>
             </div>
+            <input type="hidden" name="delivery_address" value='${JSON.stringify(this.selectedAddress)}'>
         `;
 
         this.searchInput.value = '';
@@ -117,44 +108,10 @@ class AddressSelect {
     getSelectedAddress() {
         return this.selectedAddress;
     }
-
-    // Kayıtlı adresleri yükle ve göster
-    async loadSavedAddresses(customerId) {
-        try {
-            const response = await fetch(`${API_URL}/customers/${customerId}/addresses`);
-            const addresses = await response.json();
-            
-            if (addresses && addresses.length > 0) {
-                this.savedAddressesDiv.innerHTML = `
-                    <div class="mb-2"><strong>Kayıtlı Adresler</strong></div>
-                    ${addresses.map(addr => `
-                        <div class="form-check mb-2">
-                            <input type="radio" class="form-check-input" 
-                                   name="saved_address_id" value="${addr.id}"
-                                   id="addr_${addr.id}">
-                            <label class="form-check-label" for="addr_${addr.id}">
-                                <strong>${addr.label || 'Adres'}</strong><br>
-                                <small class="text-muted">
-                                    ${[addr.street, addr.district, addr.city].filter(Boolean).join(', ')}
-                                </small>
-                            </label>
-                        </div>
-                    `).join('')}
-                    <hr class="my-3">
-                `;
-            } else {
-                this.savedAddressesDiv.innerHTML = '';
-            }
-        } catch (error) {
-            console.error('Kayıtlı adresler yüklenemedi:', error);
-        }
-    }
 }
 
-// Sayfa yüklendiğinde başlat
-document.addEventListener('DOMContentLoaded', () => {
-    window.addressSelect = new AddressSelect();
-});
+// Global instance
+window.addressSelect = new AddressSelect();
 
 // NewOrderForm class'ında müşteri seçildiğinde adresleri yükle
 async searchCustomer() {
