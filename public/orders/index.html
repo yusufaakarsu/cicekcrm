@@ -117,84 +117,111 @@
     </div>
 
     <!-- Sipariş Detay Modal -->
-    <div class="modal" id="orderDetailModal" role="dialog" aria-modal="true">
-        <div class="modal-dialog modal-lg" role="document">
+    <div class="modal fade" id="orderDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="orderDetailModalLabel">Sipariş #<span id="order-detail-id"></span></h5>
-                    <div class="ms-auto btn-toolbar">
-                        <div class="btn-group me-2" role="group">
-                            <button type="button" class="btn btn-outline-warning status-btn" data-action="updateStatus" data-status="preparing" tabindex="0">
-                                <i class="bi bi-box-seam" aria-hidden="true"></i> Hazırlanıyor
-                            </button>
-                            <button type="button" class="btn btn-outline-info status-btn" data-action="updateStatus" data-status="ready" tabindex="0">
-                                <i class="bi bi-box" aria-hidden="true"></i> Hazır
-                            </button>
-                            <button type="button" class="btn btn-outline-primary status-btn" data-action="updateStatus" data-status="delivering" tabindex="0">
-                                <i class="bi bi-truck" aria-hidden="true"></i> Yolda
-                            </button>
-                            <button type="button" class="btn btn-outline-success status-btn" data-action="updateStatus" data-status="delivered" tabindex="0">
-                                <i class="bi bi-check-circle" aria-hidden="true"></i> Teslim Edildi
-                            </button>
-                        </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                <div class="modal-header border-0">
+                    <div>
+                        <h5 class="modal-title mb-1">Sipariş #<span id="order-detail-id"></span></h5>
+                        <div class="text-muted small" id="order-detail-created_at"></div>
+                    </div>
+                    <div class="ms-auto d-flex align-items-center gap-2">
+                        <!-- Teslimatı Geri Al butonu sadece teslimat aşamasındaki siparişlerde görünür -->
+                        <button type="button" id="revertDeliveryBtn" class="btn btn-warning d-none" onclick="revertDeliveryStatus()">
+                            <i class="bi bi-arrow-counterclockwise"></i> Teslimatı Geri Al
+                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                 </div>
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Sipariş Bilgileri</h6>
-                            <dl>
-                                <dt>Sipariş Tarihi</dt>
-                                <dd id="order-detail-created_at">-</dd>
-                                <dt>Durum</dt>
-                                <dd id="order-detail-status">-</dd>
-                                <dt>Ödeme Durumu</dt>
-                                <dd id="order-detail-payment_status">-</dd>
-                                <dt>Ödeme Yöntemi</dt>
-                                <dd id="order-detail-payment_method">-</dd>
-                                <dt>Tutar</dt>
-                                <dd id="order-detail-total_amount">-</dd>
-                            </dl>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Müşteri Bilgileri</h6>
-                            <dl>
-                                <dt>Müşteri</dt>
-                                <dd id="order-detail-customer_name">-</dd>
-                                <dt>Telefon</dt>
-                                <dd id="order-detail-customer_phone">-</dd>
-                            </dl>
-                        </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <h6>Teslimat Bilgileri</h6>
-                            <dl>
-                                <dt>Teslimat Tarihi</dt>
-                                <dd id="order-detail-delivery_date">-</dd>
-                                <dt>Teslimat Adresi</dt>
-                                <dd id="order-detail-delivery_address">-</dd>
-                            </dl>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Alıcı Bilgileri</h6>
-                            <dl>
-                                <dt>Alıcı</dt>
-                                <dd id="order-detail-recipient_name">-</dd>
-                                <dt>Telefon</dt>
-                                <dd id="order-detail-recipient_phone">-</dd>
-                                <dt>Not</dt>
-                                <dd id="order-detail-recipient_note">-</dd>
-                                <dt>Kart Mesajı</dt>
-                                <dd id="order-detail-card_message">-</dd>
-                            </dl>
-                        </div>
-                    </div>
-                    <div class="row mt-3">
+                    <div class="row g-4">
+                        <!-- Durum Kartı -->
                         <div class="col-12">
-                            <h6>Ürünler</h6>
-                            <div id="order-detail-items" class="list-group">-</div>
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="row align-items-center">
+                                    <div class="col">
+                                        <div class="h6 mb-1">Sipariş Durumu</div>
+                                        <div id="order-detail-status"></div>
+                                    </div>
+                                    <div class="col text-center">
+                                        <div class="h6 mb-1">Ödeme Durumu</div>
+                                        <div id="order-detail-payment_status"></div>
+                                    </div>
+                                    <div class="col text-end">
+                                        <div class="h6 mb-1">Toplam Tutar</div>
+                                        <div class="h4 mb-0" id="order-detail-total_amount"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Müşteri Bilgileri -->
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">
+                                        <i class="bi bi-person text-primary"></i> Müşteri Bilgileri
+                                    </h6>
+                                    <div class="mb-2">
+                                        <div class="fw-bold" id="order-detail-customer_name"></div>
+                                        <div class="text-muted" id="order-detail-customer_phone"></div>
+                                    </div>
+                                    <div>
+                                        <label class="text-muted small d-block">Ödeme Yöntemi</label>
+                                        <div id="order-detail-payment_method"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Teslimat Bilgileri -->
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">
+                                        <i class="bi bi-truck text-primary"></i> Teslimat Bilgileri
+                                    </h6>
+                                    <div class="mb-2">
+                                        <div class="fw-bold" id="order-detail-delivery_date"></div>
+                                        <div class="text-muted" id="order-detail-delivery_address"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Alıcı Bilgileri -->
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">
+                                        <i class="bi bi-person-heart text-primary"></i> Alıcı Bilgileri
+                                    </h6>
+                                    <div class="mb-2">
+                                        <div class="fw-bold" id="order-detail-recipient_name"></div>
+                                        <div class="text-muted" id="order-detail-recipient_phone"></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="text-muted small d-block">Alıcı Notu</label>
+                                        <div id="order-detail-recipient_note">-</div>
+                                    </div>
+                                    <div>
+                                        <label class="text-muted small d-block">Kart Mesajı</label>
+                                        <div class="fst-italic" id="order-detail-card_message">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ürün Listesi -->
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">
+                                        <i class="bi bi-box text-primary"></i> Ürünler
+                                    </h6>
+                                    <div id="order-detail-items" class="list-group list-group-flush"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

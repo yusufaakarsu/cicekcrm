@@ -259,39 +259,61 @@ async function showOrderDetails(orderId) {
         const order = await response.json();
         const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
         
+        // Global değişkene kaydet
+        currentOrderId = order.id;
+        
+        // Teslimatı Geri Al butonunu göster/gizle
+        const revertBtn = document.getElementById('revertDeliveryBtn');
+        revertBtn.classList.toggle('d-none', order.status !== 'delivering');
+        
         // Modal içeriğini doldur
-        document.getElementById('order-detail-id').textContent = order.id;
-        document.getElementById('order-detail-created_at').textContent = formatDate(order.created_at);
-        document.getElementById('order-detail-status').innerHTML = getStatusBadge(order.status);
-        document.getElementById('order-detail-payment_status').innerHTML = getPaymentStatusBadge(order.payment_status);
-        document.getElementById('order-detail-payment_method').textContent = formatPaymentMethod(order.payment_method);
-        document.getElementById('order-detail-total_amount').textContent = formatCurrency(order.total_amount);
-        
-        document.getElementById('order-detail-customer_name').textContent = order.customer_name;
-        document.getElementById('order-detail-customer_phone').textContent = formatPhoneNumber(order.customer_phone);
-        
-        document.getElementById('order-detail-delivery_date').textContent = `${formatDate(order.delivery_date)} - ${formatTimeSlot(order.delivery_time_slot)}`;
-        document.getElementById('order-detail-delivery_address').textContent = order.delivery_address;
-        
-        document.getElementById('order-detail-recipient_name').textContent = order.recipient_name;
-        document.getElementById('order-detail-recipient_phone').textContent = formatPhoneNumber(order.recipient_phone);
-        document.getElementById('order-detail-recipient_note').textContent = order.recipient_note || '-';
-        document.getElementById('order-detail-card_message').textContent = order.card_message || '-';
-        
-        // Ürün listesini doldur
-        const itemsList = document.getElementById('order-detail-items');
-        if (order.items) {
-            itemsList.innerHTML = order.items.split(',').map(item => 
-                `<div class="list-group-item">${item.trim()}</div>`
-            ).join('');
-        } else {
-            itemsList.innerHTML = '<div class="list-group-item text-muted">Ürün bilgisi bulunamadı</div>';
-        }
+        fillOrderDetails(order);
         
         modal.show();
     } catch (error) {
         console.error('Sipariş detayları yüklenirken hata:', error);
         showError('Sipariş detayları yüklenemedi!');
+    }
+}
+
+// Modal içeriğini doldur
+function fillOrderDetails(order) {
+    // Header bilgileri
+    document.getElementById('order-detail-id').textContent = order.id;
+    document.getElementById('order-detail-created_at').textContent = `Oluşturulma: ${formatDate(order.created_at)}`;
+    
+    // Durum kartı
+    document.getElementById('order-detail-status').innerHTML = getStatusBadge(order.status);
+    document.getElementById('order-detail-payment_status').innerHTML = getPaymentStatusBadge(order.payment_status);
+    document.getElementById('order-detail-total_amount').textContent = formatCurrency(order.total_amount);
+    
+    // Müşteri bilgileri
+    document.getElementById('order-detail-customer_name').textContent = order.customer_name;
+    document.getElementById('order-detail-customer_phone').textContent = formatPhoneNumber(order.customer_phone);
+    document.getElementById('order-detail-payment_method').textContent = formatPaymentMethod(order.payment_method);
+    
+    // Teslimat bilgileri
+    document.getElementById('order-detail-delivery_date').textContent = formatDate(order.delivery_date);
+    document.getElementById('order-detail-delivery_address').textContent = order.delivery_address;
+    
+    // Alıcı bilgileri
+    document.getElementById('order-detail-recipient_name').textContent = order.recipient_name;
+    document.getElementById('order-detail-recipient_phone').textContent = formatPhoneNumber(order.recipient_phone);
+    document.getElementById('order-detail-recipient_note').textContent = order.recipient_note || '-';
+    document.getElementById('order-detail-card_message').textContent = order.card_message || '-';
+    
+    // Ürün listesi
+    const itemsList = document.getElementById('order-detail-items');
+    if (order.items) {
+        itemsList.innerHTML = order.items.split(',').map(item => `
+            <div class="list-group-item px-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>${item.trim()}</span>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        itemsList.innerHTML = '<div class="list-group-item px-0 text-muted">Ürün bilgisi bulunamadı</div>';
     }
 }
 
@@ -535,4 +557,47 @@ function formatTimeSlot(slot) {
         'evening': 'Akşam (17:00-21:00)'
     };
     return slots[slot] || slot;
+}
+
+// Teslimatı geri al
+async function revertDeliveryStatus() {
+    if (!currentOrderId) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/orders/${currentOrderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: 'ready' })
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+
+        // Toast mesajı göster
+        const toastHTML = `
+            <div class="toast-container position-fixed bottom-0 end-0 p-3">
+                <div class="toast align-items-center text-bg-success border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-check-circle"></i> Sipariş durumu güncellendi: Hazır
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', toastHTML);
+        const toastEl = document.querySelector('.toast');
+        const bsToast = new bootstrap.Toast(toastEl);
+        bsToast.show();
+
+        // Modalı kapat ve tabloyu yenile
+        bootstrap.Modal.getInstance(document.getElementById('orderDetailModal')).hide();
+        await loadOrders();
+
+    } catch (error) {
+        console.error('Durum güncellenirken hata:', error);
+        showError('Durum güncellenemedi!');
+    }
 }
