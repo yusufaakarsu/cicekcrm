@@ -15,42 +15,28 @@ class AddressSelect {
     render() {
         this.container.innerHTML = `
             <div class="mb-3">
-                <!-- Adres Tipi Seçimi -->
-                <select class="form-select mb-2" name="delivery_type">
-                    <option value="saved">Kayıtlı Adres</option>
-                    <option value="new">Yeni Adres</option>
-                </select>
-
-                <!-- Kayıtlı Adresler -->
-                <div id="saved-addresses-container">
-                    <select class="form-select" name="saved_address_id">
-                        <option value="">Adres Seçin</option>
-                    </select>
+                <div class="input-group mb-3">
+                    <input type="text" 
+                           class="form-control" 
+                           placeholder="Adres aramak için yazın..." 
+                           id="address-search-input">
+                    <button class="btn btn-outline-secondary" 
+                            type="button"
+                            id="address-search-button">
+                        <i class="bi bi-search"></i> Ara
+                    </button>
+                </div>
+                
+                <!-- Arama Sonuçları -->
+                <div id="address-search-results" 
+                     class="list-group shadow-sm" 
+                     style="display:none">
                 </div>
 
-                <!-- Yeni Adres Arama -->
-                <div id="new-address-container" style="display:none">
-                    <div class="input-group mb-2">
-                        <input type="text" 
-                               class="form-control" 
-                               placeholder="Adres aramak için yazın..." 
-                               id="address-search-input">
-                        <button class="btn btn-outline-secondary" 
-                                type="button"
-                                id="address-search-button">
-                            <i class="bi bi-search"></i>
-                        </button>
-                    </div>
-                    
-                    <!-- Arama Sonuçları -->
-                    <div id="address-search-results" 
-                         class="list-group address-results" 
-                         style="display:none">
-                    </div>
-
-                    <!-- Seçilen Adres -->
-                    <div id="selected-address" class="alert alert-info" style="display:none">
-                    </div>
+                <!-- Seçilen Adres -->
+                <div id="selected-address" 
+                     class="alert alert-info mt-2" 
+                     style="display:none">
                 </div>
             </div>
         `;
@@ -177,35 +163,44 @@ class AddressSelect {
         }).join('');
     }
 
-    selectAddress(id, item) {
+    selectAddress(item) { // item parametresi düzeltildi
         try {
+            // HERE API'den gelen veriyi düzgün şekilde kullan
             const addressData = {
-                label: item.address.label,
+                label: item.title, // title kullan
                 city: 'İstanbul',
                 district: item.address.district || '',
-                postal_code: item.address.postalCode,
-                street: item.address.street,
-                position: item.position,
+                street: item.address.street || '',
+                postal_code: item.address.postalCode || '',
+                position: {
+                    lat: item.position.lat,
+                    lng: item.position.lng
+                },
                 source: 'here_api',
-                here_place_id: id
+                here_place_id: item.id
             };
 
-            // Kaydı yap
-            this.saveAddress(addressData);
-            
-            // Seçilen adresi göster
-            this.container.querySelector('[name="delivery_type"]').value = 'saved';
-            const addressLabel = document.createElement('div');
-            addressLabel.className = 'alert alert-success mt-2';
-            addressLabel.textContent = addressData.label;
-            this.container.querySelector('#addressSearchResults').replaceWith(addressLabel);
+            console.log('Seçilen adres:', addressData); // Debug için
 
-            // Callback'i çağır
-            if (this.options.onSelect) {
-                this.options.onSelect(addressData);
-            }
+            // Seçilen adresi göster
+            const selectedAddressDiv = this.container.querySelector('#selected-address');
+            selectedAddressDiv.style.display = 'block';
+            selectedAddressDiv.innerHTML = `
+                <strong>${addressData.label}</strong><br>
+                <small>${[addressData.street, addressData.district, 'İstanbul'].filter(Boolean).join(', ')}</small>
+                <input type="hidden" name="delivery_address" value='${JSON.stringify(addressData)}'>
+            `;
+
+            // Arama sonuçlarını gizle
+            this.container.querySelector('#address-search-results').style.display = 'none';
+            
+            // Input'u temizle
+            this.container.querySelector('#address-search-input').value = '';
+
+            return addressData;
         } catch (error) {
             console.error('Adres seçim hatası:', error);
+            showError('Adres seçilemedi, lütfen tekrar deneyin');
         }
     }
 
