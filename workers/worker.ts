@@ -520,7 +520,8 @@ api.get('/orders/filtered', async (c) => {
           break;
       }
     } else if (start_date && end_date) {
-      baseQuery += ` AND DATE(o.delivery_date) >= DATE(?) AND DATE(o.delivery_date) <= DATE(?)`;
+      // Başlangıç tarihini gün başına, bitiş tarihini gün sonuna ayarla
+      baseQuery += ` AND datetime(o.delivery_date) BETWEEN datetime(?, '00:00:00') AND datetime(?, '23:59:59')`;
       params.push(start_date, end_date);
     }
 
@@ -608,7 +609,7 @@ async function getOrdersCount(db: D1Database, tenant_id: number, status?: string
         break;
     }
   } else if (start_date && end_date) {
-    countQuery += ` AND DATE(o.delivery_date) BETWEEN ? AND ?`;
+    countQuery += ` AND datetime(o.delivery_date) BETWEEN datetime(?, '00:00:00') AND datetime(?, '23:59:59')`;
     params.push(start_date, end_date);
   }
 

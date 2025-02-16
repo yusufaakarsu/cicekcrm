@@ -338,3 +338,21 @@ function formatTimeSlot(slot) {
     };
     return slots[slot] || slot;
 }
+
+// Son olarak değişiklikleri deploy etmek için:
+
+/*
+Git komutları:
+git add .
+git commit -m "fix: Order date filter and sorting issues
+
+- Fix custom date range filtering
+- Update datetime comparison in SQL
+- Add proper time range for dates
+- Fix order sorting"
+git push origin development
+
+Worker deploy:
+cd workers
+wrangler deploy
+*/
