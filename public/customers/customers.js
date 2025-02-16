@@ -45,10 +45,37 @@ async function loadCustomers() {
     }
 }
 
+function toggleCompanyFields(customerType) {
+    const companyFields = document.getElementById('companyFields');
+    companyFields.style.display = customerType === 'corporate' ? 'block' : 'none';
+    
+    // Kurumsal seçildiğinde firma alanlarını zorunlu yap
+    const companyName = document.querySelector('input[name="company_name"]');
+    const taxNumber = document.querySelector('input[name="tax_number"]');
+    
+    if (customerType === 'corporate') {
+        companyName.setAttribute('required', '');
+        taxNumber.setAttribute('required', '');
+    } else {
+        companyName.removeAttribute('required');
+        taxNumber.removeAttribute('required');
+    }
+}
+
 async function saveCustomer() {
-    const form = document.getElementById('customerForm');
+    const form = document.getElementById('addCustomerForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
+    
+    // Boş alanları temizle
+    Object.keys(data).forEach(key => {
+        if (!data[key]) delete data[key];
+    });
 
     try {
         const response = await fetch(`${API_URL}/customers`, {
@@ -57,12 +84,19 @@ async function saveCustomer() {
             body: JSON.stringify(data)
         });
 
-        if (!response.ok) throw new Error('Müşteri kaydedilemedi');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Müşteri kaydedilemedi');
+        }
 
-        customerModal.hide();
-        loadCustomers();
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addCustomerModal'));
+        modal.hide();
+        await loadCustomers();
+        showSuccess('Müşteri başarıyla eklendi');
+        form.reset();
     } catch (error) {
         console.error('Kayıt hatası:', error);
+        showError(error.message);
     }
 }
 
