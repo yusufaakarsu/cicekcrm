@@ -107,20 +107,30 @@ class NewOrderForm {
             const response = await fetch(`${API_URL}/customers/${customerId}/addresses`);
             const addresses = await response.json();
             
-            const container = document.getElementById('savedAddresses');
-            container.innerHTML = addresses.map(addr => `
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="radio" 
-                           name="delivery_address_id" value="${addr.id}" 
-                           id="addr_${addr.id}" required>
-                    <label class="form-check-label" for="addr_${addr.id}">
-                        ${addr.label}<br>
-                        <small class="text-muted">
-                            ${addr.street}, ${addr.district}/${addr.city}
-                        </small>
-                    </label>
-                </div>
-            `).join('');
+            // Container kontrolü ekle
+            const container = document.getElementById('addressesContainer'); // ID'yi HTML ile eşleştir
+            if (!container) {
+                console.warn('Adres container bulunamadı');
+                return;
+            }
+
+            if (addresses && addresses.length > 0) {
+                container.innerHTML = addresses.map(addr => `
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" 
+                               name="delivery_address_id" value="${addr.id}" 
+                               id="addr_${addr.id}" required>
+                        <label class="form-check-label" for="addr_${addr.id}">
+                            ${addr.label || 'Adres'}<br>
+                            <small class="text-muted">
+                                ${[addr.street, addr.district, addr.city].filter(Boolean).join(', ')}
+                            </small>
+                        </label>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="alert alert-info">Kayıtlı adres bulunamadı</div>';
+            }
         } catch (error) {
             console.error('Adresler yüklenemedi:', error);
         }

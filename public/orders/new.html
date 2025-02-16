@@ -243,6 +243,19 @@
                     </div>
                 </div>
             </div>
+
+            <div class="step-navigation d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-secondary" onclick="window.newOrderForm.prevStep()">
+                    <i class="bi bi-arrow-left"></i> Geri
+                </button>
+                <button type="button" class="btn btn-primary" onclick="window.newOrderForm.nextStep()">
+                    İleri <i class="bi bi-arrow-right"></i>
+                </button>
+            </div>
+
+            <div id="addressesContainer" class="mt-3">
+                <!-- Adresler dinamik olarak buraya yüklenecek -->
+            </div>
         </form>
     </div>
 
