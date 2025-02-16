@@ -111,20 +111,24 @@ class AddressSelect {
         if (query.length < 3) return;
         
         try {
-            // API parametrelerini düzenle
-            const params = {
-                apiKey: this.options.apiKey,
-                q: `${query}, Istanbul`,  // Direkt İstanbul ekle
-                in: 'countryCode:TUR,city:Istanbul',  // Sadece İstanbul'da ara
-                limit: 5,
-                lang: 'tr'  // Türkçe sonuçlar için
-            };
+            // API KEY'i düzelt ve parametre formatını güncelle
+            const params = new URLSearchParams({
+                apiKey: '8ga3iUSKvwTytKYkk8PbpnnH5iCFlNDsvFoSyCghhjI',
+                q: query + ', İstanbul, Turkey',  // Şehir bilgisini query'e ekle
+                limit: '5',
+                lang: 'tr'
+            });
 
-            const url = `https://geocode.search.hereapi.com/v1/geocode?${new URLSearchParams(params)}`;
-            const response = await fetch(url);
+            // Debug için
+            console.log('Search query:', query);
+            console.log('API URL:', `https://geocode.search.hereapi.com/v1/geocode?${params}`);
+
+            const response = await fetch(`https://geocode.search.hereapi.com/v1/geocode?${params}`);
             
             if (!response.ok) {
-                throw new Error('API request failed');
+                const error = await response.text();
+                console.error('HERE API error:', error);
+                throw new Error(`API error: ${response.status}`);
             }
 
             const data = await response.json();
@@ -132,8 +136,11 @@ class AddressSelect {
 
             // Sonuçları göster
             this.showResults(data.items || []);
+
         } catch (error) {
             console.error('Adres arama hatası:', error);
+            // Kullanıcıya hata mesajı göster
+            this.showResults([]);
         }
     }
 
@@ -146,23 +153,28 @@ class AddressSelect {
             return;
         }
 
-        resultsContainer.innerHTML = items.map(item => `
-            <div class="list-group-item">
-                <strong>${item.title}</strong>
-                <br>
-                <small class="text-muted">
-                    ${item.address.district || ''} ${item.address.postalCode || ''}
-                </small>
-                <button onclick='window.addressSelect.selectAddress(${JSON.stringify({
-                    id: item.id,
-                    label: item.address.label,
-                    city: "İstanbul",
-                    district: item.address.city || item.address.district || '',
-                    postal_code: item.address.postalCode,
-                    position: item.position
-                })})' class="btn btn-sm btn-primary mt-2 w-100">Seç</button>
-            </div>
-        `).join('');
+        resultsContainer.innerHTML = items.map(item => {
+            // Adres bilgilerini daha detaylı göster
+            const address = item.address;
+            const addressLine = [
+                address.street,
+                address.houseNumber,
+                address.district,
+                'İstanbul'
+            ].filter(Boolean).join(', ');
+
+            return `
+                <div class="list-group-item">
+                    <strong>${item.title}</strong>
+                    <br>
+                    <small class="text-muted">${addressLine}</small>
+                    <button class="btn btn-sm btn-primary mt-2 w-100" 
+                            onclick='addressSelect.selectAddress(${JSON.stringify(item)})'>
+                        Seç
+                    </button>
+                </div>
+            `;
+        }).join('');
     }
 
     selectAddress(id, item) {
@@ -221,7 +233,7 @@ class AddressSelect {
     }
 }
 
-// Global instance
+// Global instance - API KEY'i common.js'den al
 window.addressSelect = new AddressSelect('addressSelect', {
     apiKey: CONFIG.HERE_API_KEY
 });
