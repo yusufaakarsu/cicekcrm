@@ -520,7 +520,7 @@ api.get('/orders/filtered', async (c) => {
           break;
       }
     } else if (start_date && end_date) {
-      baseQuery += ` AND DATE(o.delivery_date) BETWEEN ? AND ?`;
+      baseQuery += ` AND DATE(o.delivery_date) >= DATE(?) AND DATE(o.delivery_date) <= DATE(?)`;
       params.push(start_date, end_date);
     }
 
@@ -529,8 +529,14 @@ api.get('/orders/filtered', async (c) => {
 
     // Sıralama mantığını düzelt
     switch(sort) {
+      case 'id_asc':
+        baseQuery += ` ORDER BY o.id ASC`; // En eski üstte
+        break;
+      case 'id_desc':
+        baseQuery += ` ORDER BY o.id DESC`; // En yeni üstte
+        break;
       case 'date_asc':
-        baseQuery += ` ORDER BY o.delivery_date ASC, o.id DESC`;
+        baseQuery += ` ORDER BY o.delivery_date ASC, o.id ASC`;
         break;
       case 'date_desc':
         baseQuery += ` ORDER BY o.delivery_date DESC, o.id DESC`;
@@ -541,9 +547,8 @@ api.get('/orders/filtered', async (c) => {
       case 'amount_desc':
         baseQuery += ` ORDER BY o.total_amount DESC, o.id DESC`;
         break;
-      case 'id_desc':
       default:
-        baseQuery += ` ORDER BY o.id DESC`; // En son eklenenler üstte
+        baseQuery += ` ORDER BY o.id DESC`;
     }
 
     // Sayfalama
