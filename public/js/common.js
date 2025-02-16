@@ -58,6 +58,19 @@ function formatDateLocale(date) {
     }).format(new Date(date));
 }
 
+// Telefon numarası formatlama
+function formatPhoneNumber(phone) {
+    if (!phone) return '-';
+    // Sadece rakamları al
+    const numbers = phone.replace(/\D/g, '');
+    // Türkiye formatına çevir
+    if (numbers.length === 10) {
+        return `0${numbers.slice(0,3)} ${numbers.slice(3,6)} ${numbers.slice(6,8)} ${numbers.slice(8)}`;
+    }
+    // 10 haneli değilse orijinal numarayı döndür
+    return phone;
+}
+
 // Teslimat saati formatı güncellendi
 function formatDeliveryTime(slot) {
     const slots = {

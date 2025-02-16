@@ -660,3 +660,99 @@ api.get('/orders/:id/details', async (c) => {
 
     return c.json(order);
   } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// Yeni sipariş ekle
+api.post('/orders', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  const body = await c.req.json();
+  
+  try {
+    // Sipariş ana bilgilerini ekle
+    const orderResult = await db.prepare(`
+      INSERT INTO orders (
+        customer_id, delivery_date, delivery_address, 
+        recipient_name, recipient_phone, recipient_note, recipient_address,
+        card_message, status, total_amount, tenant_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?)
+    `).bind(
+      body.customer_id, 
+      body.delivery_date, 
+      body.delivery_address,
+      body.recipient.name,
+      body.recipient.phone,
+      body.recipient.note,
+      body.recipient.address,
+      body.recipient.card_message,
+      body.total_amount,
+      tenant_id
+    ).run();
+
+    // ...existing code for order items...
+
+    return c.json({ success: true, id: orderResult.lastRowId });
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// Sipariş güncelleme endpoint'i
+api.put('/orders/:id', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  const { id } = c.req.param();
+  const body = await c.req.json();
+  
+  try {
+    await db.prepare(`
+      UPDATE orders 
+      SET delivery_date = ?,
+          delivery_address = ?,
+          status = ?,
+          updated_at = DATETIME('now')
+      WHERE id = ?
+      AND tenant_id = ?
+    `).bind(
+      body.delivery_date,
+      body.delivery_address,
+      body.status,
+      id,
+      tenant_id
+    ).run();
+
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// En çok satan ürünleri getir
+api.get('/products/top-selling', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        p.name,
+        SUM(oi.quantity) as total_sold,
+        SUM(oi.quantity * oi.unit_price) as total_revenue
+      FROM products p
+      JOIN order_items oi ON p.id = oi.product_id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.status != 'cancelled'
+      AND p.tenant_id = ?
+      GROUP BY p.id, p.name
+      ORDER BY total_sold DESC
+      LIMIT 5
+    `).bind(tenant_id).all();
+    
+    return c.json(results);
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+export default api

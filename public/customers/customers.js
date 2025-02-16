@@ -18,7 +18,7 @@ async function loadCustomers() {
             tbody.innerHTML = customers.map(customer => `
                 <tr>
                     <td>${customer.name}</td>
-                    <td>${customer.phone}</td>
+                    <td>${formatPhoneNumber(customer.phone)}</td>
                     <td>${customer.email || '-'}</td>
                     <td>${customer.address}</td>
                     <td>${customer.last_order ? formatDate(customer.last_order) : 'Sipariş yok'}</td>
@@ -85,7 +85,7 @@ async function showCustomerDetails(customerId) {
 
         // Müşteri detaylarını doldur
         document.getElementById('detail-name').textContent = customer.name;
-        document.getElementById('detail-phone').textContent = customer.phone;
+        document.getElementById('detail-phone').textContent = formatPhoneNumber(customer.phone);
         document.getElementById('detail-email').textContent = customer.email || '-';
         document.getElementById('detail-address').textContent = customer.address;
         document.getElementById('detail-total-orders').textContent = customer.total_orders || 0;
