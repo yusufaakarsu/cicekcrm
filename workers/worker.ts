@@ -503,25 +503,32 @@ api.get('/orders/filtered', async (c) => {
       params.push(status);
     }
 
-    // Tarih filtresi
+    // Tarih filtresi - UTC'yi dikkate alarak düzeltildi
     if (date_filter) {
       switch (date_filter) {
         case 'today':
-          baseQuery += ` AND DATE(o.delivery_date) = DATE('now')`;
+          baseQuery += ` AND DATE(o.delivery_date) = DATE(?)`;
+          params.push(start_date || new Date().toISOString().split('T')[0]);
           break;
         case 'tomorrow':
-          baseQuery += ` AND DATE(o.delivery_date) = DATE('now', '+1 day')`;
+          baseQuery += ` AND DATE(o.delivery_date) = DATE(?, '+1 day')`;
+          params.push(new Date().toISOString().split('T')[0]);
           break;
         case 'week':
-          baseQuery += ` AND DATE(o.delivery_date) BETWEEN DATE('now') AND DATE('now', '+7 days')`;
+          baseQuery += ` AND DATE(o.delivery_date) BETWEEN DATE(?) AND DATE(?, '+7 days')`;
+          params.push(new Date().toISOString().split('T')[0], new Date().toISOString().split('T')[0]);
           break;
         case 'month':
-          baseQuery += ` AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', 'now')`;
+          baseQuery += ` AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', ?)`;
+          params.push(new Date().toISOString());
           break;
       }
     } else if (start_date && end_date) {
-      // Başlangıç tarihini gün başına, bitiş tarihini gün sonuna ayarla
-      baseQuery += ` AND datetime(o.delivery_date) BETWEEN datetime(?, '00:00:00') AND datetime(?, '23:59:59')`;
+      // Özel tarih aralığı - UTC offset düzeltmesi
+      baseQuery += ` 
+        AND DATE(o.delivery_date) >= DATE(?) 
+        AND DATE(o.delivery_date) <= DATE(?)
+      `;
       params.push(start_date, end_date);
     }
 
@@ -592,24 +599,31 @@ async function getOrdersCount(db: D1Database, tenant_id: number, status?: string
     params.push(status);
   }
 
-  // Tarih filtresi
+  // Tarih filtresi - UTC'yi dikkate alarak düzeltildi
   if (date_filter) {
     switch (date_filter) {
       case 'today':
-        countQuery += ` AND DATE(o.delivery_date) = DATE('now')`;
+        countQuery += ` AND DATE(o.delivery_date) = DATE(?)`;
+        params.push(start_date || new Date().toISOString().split('T')[0]);
         break;
       case 'tomorrow':
-        countQuery += ` AND DATE(o.delivery_date) = DATE('now', '+1 day')`;
+        countQuery += ` AND DATE(o.delivery_date) = DATE(?, '+1 day')`;
+        params.push(new Date().toISOString().split('T')[0]);
         break;
       case 'week':
-        countQuery += ` AND DATE(o.delivery_date) BETWEEN DATE('now') AND DATE('now', '+7 days')`;
+        countQuery += ` AND DATE(o.delivery_date) BETWEEN DATE(?) AND DATE(?, '+7 days')`;
+        params.push(new Date().toISOString().split('T')[0], new Date().toISOString().split('T')[0]);
         break;
       case 'month':
-        countQuery += ` AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', 'now')`;
+        countQuery += ` AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', ?)`;
+        params.push(new Date().toISOString());
         break;
     }
   } else if (start_date && end_date) {
-    countQuery += ` AND datetime(o.delivery_date) BETWEEN datetime(?, '00:00:00') AND datetime(?, '23:59:59')`;
+    countQuery += ` 
+      AND DATE(o.delivery_date) >= DATE(?) 
+      AND DATE(o.delivery_date) <= DATE(?)
+    `;
     params.push(start_date, end_date);
   }
 
