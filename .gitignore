@@ -5,7 +5,9 @@ workers/api/node_modules/
 package-lock.json
 yarn.lock
 
-compare
+
+docs/
+migrations/
 # Build
 dist/
 build/
