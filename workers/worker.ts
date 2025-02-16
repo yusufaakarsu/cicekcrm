@@ -388,6 +388,28 @@ api.get('/customers/:id/orders', async (c) => {
   }
 });
 
+// Müşterinin kayıtlı adreslerini getir
+api.get('/customers/:id/addresses', async (c) => {
+    const db = c.env.DB;
+    const tenant_id = c.get('tenant_id');
+    const { id } = c.req.param();
+    
+    try {
+        const { results } = await db.prepare(`
+            SELECT * FROM addresses 
+            WHERE customer_id = ?
+            AND tenant_id = ?
+            AND is_deleted = 0
+            ORDER BY is_default DESC, created_at DESC
+        `).bind(id, tenant_id).all();
+        
+        return c.json(results || []);
+    } catch (error) {
+        console.error('Addresses error:', error);
+        return c.json({ error: 'Database error' }, 500);
+    }
+});
+
 // Bugünün teslimatları
 api.get('/orders/today', async (c) => {
   const db = c.env.DB
@@ -975,43 +997,21 @@ function cleanPhoneNumber(phone: string): string {
     return clean;
 }
 
-// Update the customer search endpoint
-api.get('/customers/phone/:phone', async (req) => {
-    let phone = req.params.phone;
-    
-    // Clean the phone number
-    phone = cleanPhoneNumber(phone);
-    
-    try {
-        const customer = await DB
-            .prepare('SELECT * FROM customers WHERE phone = ? AND is_deleted = 0 LIMIT 1')
-            .bind(phone)
-            .first();
-            
-        return Response.json({
-            success: true,
-            customer: customer || null
-        });
-    } catch (error) {
-        return Response.json({
-            success: false,
-            error: error.message
-        }, { status: 500 });
-    }
-});
-
-// Telefon ile müşteri arama endpoint'i
+// Telefon ile müşteri arama endpoint'i - Düzeltilmiş versiyon
 api.get('/customers/phone/:phone', async (c) => {
-    const phone = c.req.param('phone').replace(/\D/g, '').replace(/^0+/, '');
-    const tenant_id = c.get('tenant_id');
-    
-    console.log('Aranan telefon:', phone); // Debug için
-    
     try {
-        const customer = await c.env.DB
-            .prepare('SELECT * FROM customers WHERE phone = ? AND tenant_id = ? AND is_deleted = 0')
-            .bind(phone, tenant_id)
-            .first();
+        const phone = c.req.param('phone').replace(/\D/g, '').replace(/^0+/, '');
+        const tenant_id = c.get('tenant_id');
+        const db = c.env.DB;
+
+        console.log('Debug:', { phone, tenant_id }); // Debug için
+        
+        const customer = await db.prepare(`
+            SELECT * FROM customers 
+            WHERE phone = ? 
+            AND tenant_id = ? 
+            AND is_deleted = 0
+        `).bind(phone, tenant_id).first();
         
         console.log('Bulunan müşteri:', customer); // Debug için
 
@@ -1019,12 +1019,15 @@ api.get('/customers/phone/:phone', async (c) => {
             success: true,
             customer: customer || null
         });
+
     } catch (error) {
         console.error('Müşteri arama hatası:', error);
+        
         return c.json({
             success: false,
+            message: 'Müşteri araması başarısız',
             error: error.message
-        }, 500);
+        });
     }
 });
 

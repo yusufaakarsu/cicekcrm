@@ -28,11 +28,11 @@ class NewOrderForm {
             }
         });
 
-        // Form adımları için butonlar
-        document.querySelectorAll('[data-action="next"]').forEach(btn => 
+        // Form adımları için butonlar - data-action yerine onclick kullan
+        document.querySelectorAll('[onclick="nextStep()"]').forEach(btn => 
             btn.addEventListener('click', () => this.nextStep())
         );
-        document.querySelectorAll('[data-action="prev"]').forEach(btn => 
+        document.querySelectorAll('[onclick="prevStep()"]').forEach(btn => 
             btn.addEventListener('click', () => this.prevStep())
         );
 
@@ -161,7 +161,44 @@ class NewOrderForm {
         form.querySelector('[name="customer_email"]').value = '';
     }
 
-    // ...devamı gelecek (validateStep, handleSubmit vb. metodlar)
+    validateStep(step) {
+        switch(step) {
+            case 1: // Müşteri bilgileri
+                return this.customerId || (
+                    document.querySelector('[name="customer_name"]')?.value &&
+                    document.querySelector('[name="phone"]')?.value
+                );
+            case 2: // Teslimat bilgileri
+                return document.querySelector('[name="delivery_address_id"]')?.value &&
+                       document.querySelector('[name="recipient_name"]')?.value &&
+                       document.querySelector('[name="recipient_phone"]')?.value;
+            case 3: // Ürün seçimi
+                return true; // Şimdilik geç
+            case 4: // Ödeme
+                return document.querySelector('[name="payment_method"]')?.value;
+            default:
+                return true;
+        }
+    }
+
+    nextStep() {
+        if (!this.validateStep(this.currentStep)) {
+            showError('Lütfen tüm zorunlu alanları doldurunuz');
+            return;
+        }
+
+        if (this.currentStep < this.totalSteps) {
+            this.currentStep++;
+            this.showStep(this.currentStep);
+        }
+    }
+
+    prevStep() {
+        if (this.currentStep > 1) {
+            this.currentStep--;
+            this.showStep(this.currentStep);
+        }
+    }
 }
 
 // Sayfa yüklendiğinde formu başlat
