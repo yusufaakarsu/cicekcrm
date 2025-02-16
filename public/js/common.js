@@ -1,10 +1,10 @@
 // API URL'ini global olarak tanımla
 const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev';
 
-// Config objesi
+// Environment variables'ı doğrudan tanımla
 const CONFIG = {
-    HERE_API_KEY: process.env.HERE_API_KEY,
-    HERE_APP_ID: process.env.HERE_APP_ID
+    HERE_API_KEY: '8ga3iUSKvwTytKYkk8PbpnnH5iCFlNDsvFoSyCghhjI',
+    HERE_APP_ID: 'PEgK6D8KQB4eTUenSG1D'
 };
 
 // Address service örneği
