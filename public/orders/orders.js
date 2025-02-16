@@ -53,7 +53,7 @@ function resetToDefaultFilters() {
     loadOrders(true); // true = ilk yükleme
 }
 
-// Temel veri yükleme fonksiyonu
+// Temel veri yükleme fonksiyonu güncellendi
 async function loadOrders(isInitialLoad = false) {
     try {
         const params = new URLSearchParams({
@@ -62,25 +62,24 @@ async function loadOrders(isInitialLoad = false) {
             sort: document.getElementById('sortFilter').value
         });
 
-        // İlk yüklemede veya bugün filtresi seçiliyse tarih filtresini ekle
-        const dateFilter = document.getElementById('dateFilter').value;
-        if (isInitialLoad || dateFilter !== 'all') {
-            params.append('date_filter', dateFilter);
-        }
-
         // Durum filtresi
         const status = document.getElementById('statusFilter').value;
         if (status) {
             params.append('status', status);
         }
 
-        // Özel tarih aralığı
-        if (dateFilter === 'custom') {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            if (startDate && endDate) {
-                params.append('start_date', startDate);
-                params.append('end_date', endDate);
+        // Tarih filtresi
+        const dateFilter = document.getElementById('dateFilter').value;
+        if (dateFilter && dateFilter !== 'all') {
+            if (dateFilter === 'custom') {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                if (startDate && endDate) {
+                    params.append('start_date', startDate);
+                    params.append('end_date', endDate);
+                }
+            } else {
+                params.append('date_filter', dateFilter);
             }
         }
 
@@ -108,15 +107,17 @@ function setupFilterListeners() {
     // Tarih filtresi
     document.getElementById('dateFilter').addEventListener('change', (e) => {
         const customDateRange = document.getElementById('customDateRange');
-        customDateRange.style.display = e.target.value === 'custom' ? 'block' : 'none';
+        const isCustomDate = e.target.value === 'custom';
+        customDateRange.style.display = isCustomDate ? 'block' : 'none';
         
-        document.querySelector('[name="page"]').value = '1';
-        if (e.target.value !== 'custom') {
+        // Eğer özel tarih değilse hemen yükle
+        if (!isCustomDate) {
+            document.querySelector('[name="page"]').value = '1';
             loadOrders();
         }
     });
     
-    // Özel tarih aralığı
+    // Özel tarih aralığı butonu
     document.getElementById('applyDateFilter').addEventListener('click', () => {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
@@ -304,7 +305,7 @@ function updatePagination(data) {
     pagination.innerHTML = html;
 }
 
-// Sayfaya git
+// Sayfaya git fonksiyonu güncellendi
 function goToPage(page) {
     // Toplam sayfa sayısını kontrol et
     const totalPages = parseInt(document.querySelector('[data-total-pages]')?.dataset.totalPages || '1');
@@ -315,8 +316,8 @@ function goToPage(page) {
     // Page input'u güncelle
     document.querySelector('[name="page"]').value = page;
     
-    // Filtreleri uygula
-    applyFilters();
+    // Siparişleri yükle
+    loadOrders();
 }
 
 // Helper fonksiyonlar
