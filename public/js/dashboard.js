@@ -8,7 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadDashboardData() {
     try {
         const response = await fetch(`${API_URL}/api/dashboard`);
-        if (!response.ok) throw new Error('API Hatası');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'API Hatası');
+        }
         const data = await response.json();
 
         // 1. Teslimat Durumu Kartı
@@ -34,6 +37,7 @@ async function loadDashboardData() {
 }
 
 function updateDeliveryCard(stats) {
+    if (!stats) return;
     document.getElementById('totalDeliveries').textContent = stats.total_orders;
     document.getElementById('preparingOrders').textContent = stats.preparing_orders;
     document.getElementById('deliveringOrders').textContent = stats.pending_orders;
@@ -48,6 +52,7 @@ function updateDeliveryCard(stats) {
 }
 
 function updateFinanceCard(finance) {
+    if (!finance) return;
     document.getElementById('dailyRevenue').textContent = 
         formatCurrency(finance.daily_revenue);
     document.getElementById('avgOrderValue').textContent = 
@@ -58,9 +63,10 @@ function updateFinanceCard(finance) {
 }
 
 function updateCriticalCard(stats) {
+    if (!stats) return;
     document.getElementById('delayedDeliveries').textContent = stats.delayed_deliveries;
     document.getElementById('complaints').textContent = stats.complaints;
-    document.getElementById('potentialCancellations').textContent = stats.potential_cancellations;
+    document.getElementById('potentialCancellations').textContent = stats.cancellations;
     
     // Zaman çizelgesini güncelle
     updateCriticalTimeline(stats.timeline);
@@ -90,7 +96,22 @@ function updateCriticalTimeline(data) {
 }
 
 function showError(message) {
-    // Bootstrap toast ile hata göster
+    const toast = `
+        <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div class="toast align-items-center text-bg-danger border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi bi-x-circle"></i> ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', toast);
+    const toastEl = document.querySelector('.toast');
+    const bsToast = new bootstrap.Toast(toastEl);
+    bsToast.show();
 }
 
 function updateSummaryCards(data) {

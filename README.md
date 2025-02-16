@@ -44,7 +44,7 @@ git push origin development
 
 5. Worker Değişiklikleri
 ```bash
-cd workers/api
+cd workers
 wrangler deploy
 ```
 

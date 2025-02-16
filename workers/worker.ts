@@ -25,7 +25,7 @@ api.get('/api/dashboard', async (c) => {
   const tenant_id = c.get('tenant_id');
 
   try {
-    // 1. Teslimat İstatistikleri - değişiklik yok
+    // 1. Teslimat İstatistikleri
     const deliveryStats = await db.prepare(`
       SELECT 
         COUNT(*) as total_orders,
@@ -37,7 +37,7 @@ api.get('/api/dashboard', async (c) => {
       AND tenant_id = ?
     `).bind(tenant_id).first();
 
-    // 2. Finansal İstatistikler - sadece seçilen veriler
+    // 2. Finansal İstatistikler
     const finance = await db.prepare(`
       SELECT 
         COALESCE(SUM(CASE WHEN DATE(created_at) = DATE('now') THEN total_amount ELSE 0 END), 0) as daily_revenue,
@@ -46,11 +46,11 @@ api.get('/api/dashboard', async (c) => {
       WHERE tenant_id = ? AND status != 'cancelled'
     `).bind(tenant_id).first();
 
-    // 3. Kritik Durumlar (yeni eklenen)
+    // 3. Kritik Durumlar
     const criticalStats = await db.prepare(`
       SELECT 
         COUNT(CASE WHEN status = 'delivering' AND 
-            DATETIME(delivery_date) < DATETIME('now') THEN 1 END) as delayed_deliveries,
+          DATETIME(delivery_date) < DATETIME('now') THEN 1 END) as delayed_deliveries,
         COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancellations,
         COUNT(CASE WHEN has_complaint = 1 THEN 1 END) as complaints
       FROM orders
@@ -58,19 +58,6 @@ api.get('/api/dashboard', async (c) => {
       AND DATE(delivery_date) = DATE('now')
     `).bind(tenant_id).first();
 
-    // 4. Günlük Hedefler (yeni eklenen)
-    const targets = await db.prepare(`
-      SELECT
-          (daily_target_revenue) as revenue_target,
-          (daily_target_deliveries) as delivery_target,
-          ROUND(AVG(satisfaction_rating), 1) as satisfaction_rate
-      FROM daily_targets dt
-      LEFT JOIN orders o ON DATE(o.delivery_date) = DATE('now')
-      WHERE dt.tenant_id = ?
-      AND dt.target_date = DATE('now')
-    `).bind(tenant_id).first();
-
-    // 5. Özet veriyi döndür
     return c.json({
       deliveryStats: deliveryStats || {
         total_orders: 0,
@@ -86,21 +73,12 @@ api.get('/api/dashboard', async (c) => {
         delayed_deliveries: 0,
         cancellations: 0,
         complaints: 0
-      },
-      targets: targets || {
-        revenue_target: 0,
-        delivery_target: 0,
-        satisfaction_rate: 0
       }
     });
 
   } catch (error) {
     console.error('Dashboard error:', error);
-    console.error('Error details:', error.message); // Daha detaylı hata mesajı
-    return c.json({ 
-      error: 'Internal Server Error',
-      details: error.message 
-    }, 500);
+    return c.json({ error: 'Internal Server Error' }, 500);
   }
 });
 
