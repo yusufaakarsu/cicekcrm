@@ -186,6 +186,31 @@ body {
     object-fit: contain;
 }
 
+/* Adres arama sonuçları */
+.address-results {
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.address-results .list-group-item {
+    cursor: pointer;
+}
+
+.address-results .list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Seçilen adres */
+#selected-address {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+}
+
 /* Responsive düzenlemeler */
 @media (max-width: 1200px) {
     .calendar-grid { 

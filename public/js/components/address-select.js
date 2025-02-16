@@ -1,20 +1,110 @@
 class AddressSelect {
-    // Basit implementasyon
-    constructor(containerId) {
+    constructor(containerId, options = {}) {
         this.container = document.getElementById(containerId);
+        this.options = options;
+        this.apiKey = options.apiKey;
+        this.init();
+    }
+
+    async init() {
         this.render();
+        this.setupEventListeners();
+        await this.loadSavedAddresses();
     }
 
     render() {
         this.container.innerHTML = `
-            <select class="form-select mb-2" name="delivery_type">
-                <option value="customer">Müşteri Adresi</option>
-                <option value="new">Yeni Adres</option>
-            </select>
-            <div id="newAddressInput" style="display:none">
-                <input type="text" class="form-control" placeholder="Adres ara...">
+            <div class="mb-3">
+                <!-- Adres Tipi Seçimi -->
+                <select class="form-select mb-2" name="delivery_type">
+                    <option value="saved">Kayıtlı Adres</option>
+                    <option value="new">Yeni Adres</option>
+                </select>
+
+                <!-- Kayıtlı Adresler -->
+                <div id="saved-addresses-container">
+                    <select class="form-select" name="saved_address_id">
+                        <option value="">Adres Seçin</option>
+                    </select>
+                </div>
+
+                <!-- Yeni Adres Arama -->
+                <div id="new-address-container" style="display:none">
+                    <div class="input-group mb-2">
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Adres aramak için yazın..." 
+                               id="address-search-input">
+                        <button class="btn btn-outline-secondary" 
+                                type="button"
+                                id="address-search-button">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Arama Sonuçları -->
+                    <div id="address-search-results" 
+                         class="list-group address-results" 
+                         style="display:none">
+                    </div>
+
+                    <!-- Seçilen Adres -->
+                    <div id="selected-address" class="alert alert-info" style="display:none">
+                    </div>
+                </div>
             </div>
         `;
+    }
+
+    setupEventListeners() {
+        const deliveryType = this.container.querySelector('[name="delivery_type"]');
+        const searchInput = this.container.querySelector('#address-search-input');
+        const searchButton = this.container.querySelector('#address-search-button');
+        const savedAddressesContainer = this.container.querySelector('#saved-addresses-container');
+        const newAddressContainer = this.container.querySelector('#new-address-container');
+
+        // Adres tipi değişince
+        deliveryType.addEventListener('change', (e) => {
+            const isNew = e.target.value === 'new';
+            savedAddressesContainer.style.display = isNew ? 'none' : 'block';
+            newAddressContainer.style.display = isNew ? 'block' : 'none';
+        });
+
+        // Arama input için debounce
+        let timeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(timeout);
+            const query = e.target.value;
+            
+            if (query.length >= 3) {
+                timeout = setTimeout(() => this.searchAddress(query), 500);
+            }
+        });
+
+        // Arama butonu
+        searchButton.addEventListener('click', () => {
+            const query = searchInput.value;
+            if (query.length >= 3) {
+                this.searchAddress(query);
+            }
+        });
+    }
+
+    async loadSavedAddresses() {
+        try {
+            const response = await fetch(`${API_URL}/addresses`);
+            const addresses = await response.json();
+            
+            const select = this.container.querySelector('[name="saved_address_id"]');
+            select.innerHTML = addresses.map(addr => `
+                <option value="${addr.id}">
+                    ${addr.label} (${addr.district})
+                </option>
+            `).join('');
+
+        } catch (error) {
+            console.error('Kayıtlı adresler yüklenemedi:', error);
+        }
     }
 
     async searchAddress(query) {
