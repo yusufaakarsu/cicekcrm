@@ -13,20 +13,31 @@ class AddressSelect {
     render() {
         this.container.innerHTML = `
             <div class="mb-3">
-                <div class="input-group">
+                <!-- Adres Arama -->
+                <div class="input-group mb-2">
                     <input type="text" 
-                           class="form-control form-control-lg" 
-                           placeholder="Adres aramak için yazın..." 
+                           class="form-control" 
+                           placeholder="Adres aramak için yazın (ör: Beşiktaş, İstiklal Caddesi)..." 
                            id="addressSearchInput">
-                    <button class="btn btn-primary" type="button" id="addressSearchBtn">
-                        <i class="bi bi-search"></i> Ara
+                    <button class="btn btn-outline-primary" type="button" id="addressSearchBtn">
+                        <i class="bi bi-search"></i>
                     </button>
                 </div>
 
-                <div id="addressSearchResults" class="list-group shadow-sm mt-2" style="display:none"></div>
+                <!-- Arama Sonuçları -->
+                <div id="addressSearchResults" class="list-group shadow-sm" style="display:none"></div>
+
+                <!-- Seçili Adres -->
                 <div id="selectedAddress" class="alert alert-success mt-3" style="display:none"></div>
             </div>
         `;
+
+        // Here API scripti
+        if (!window.H) {
+            const script = document.createElement('script');
+            script.src = `https://js.api.here.com/v3/3.1/mapsjs-core.js`;
+            document.head.appendChild(script);
+        }
     }
 
     setupEventListeners() {
@@ -112,12 +123,16 @@ class AddressSelect {
 
         selectedDiv.style.display = 'block';
         selectedDiv.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <strong>${this.selectedAddress.label}</strong><br>
-                    <small>${[this.selectedAddress.street, this.selectedAddress.district, 'İstanbul'].filter(Boolean).join(', ')}</small>
+                    <h6 class="mb-1">${this.selectedAddress.label}</h6>
+                    <p class="mb-0 text-muted">
+                        ${[this.selectedAddress.street, this.selectedAddress.district, 'İstanbul']
+                            .filter(Boolean).join(', ')}
+                    </p>
                 </div>
-                <button class="btn btn-sm btn-outline-danger" onclick="addressSelect.clearAddress()">
+                <button type="button" class="btn btn-sm btn-outline-danger ms-3" 
+                        onclick="addressSelect.clearAddress()">
                     <i class="bi bi-x"></i>
                 </button>
             </div>
@@ -125,6 +140,20 @@ class AddressSelect {
 
         searchInput.value = '';
         resultsDiv.style.display = 'none';
+
+        // Koordinatları forma ekle
+        const latInput = document.createElement('input');
+        latInput.type = 'hidden';
+        latInput.name = 'delivery_lat';
+        latInput.value = this.selectedAddress.position.lat;
+        
+        const lngInput = document.createElement('input');
+        lngInput.type = 'hidden';
+        lngInput.name = 'delivery_lng';
+        lngInput.value = this.selectedAddress.position.lng;
+
+        selectedDiv.appendChild(latInput);
+        selectedDiv.appendChild(lngInput);
     }
 
     clearAddress() {
@@ -137,4 +166,5 @@ class AddressSelect {
     }
 }
 
+// Global instance oluştur
 window.addressSelect = new AddressSelect('addressesContainer');

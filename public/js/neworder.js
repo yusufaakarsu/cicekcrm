@@ -184,23 +184,30 @@ class NewOrderForm {
     validateStep(step) {
         switch(step) {
             case 1: // Müşteri bilgileri
-                // Eğer müşteri zaten seçilmişse veya yeni müşteri bilgileri girilmişse true döndür
-                if (this.customerId) {
-                    return true; // Mevcut müşteri seçilmiş
-                }
-                // Yeni müşteri formu kontrolü
-                const customerForm = document.getElementById('customerForm');
-                if (customerForm.style.display !== 'none') {
-                    const name = document.querySelector('[name="customer_name"]')?.value;
-                    const phone = document.querySelector('[name="phone"]')?.value;
-                    return name && phone;
-                }
-                return false;
+                return this.customerId || (
+                    document.querySelector('[name="customer_name"]')?.value &&
+                    document.querySelector('[name="phone"]')?.value
+                );
 
             case 2: // Teslimat bilgileri
-                return document.querySelector('[name="delivery_address_id"]')?.value &&
-                       document.querySelector('[name="recipient_name"]')?.value &&
-                       document.querySelector('[name="recipient_phone"]')?.value;
+                const addressSelect = window.addressSelect;
+                if (!addressSelect?.getSelectedAddress()) {
+                    showError('Lütfen teslimat adresi seçin');
+                    return false;
+                }
+
+                const recipientName = document.querySelector('[name="recipient_name"]')?.value;
+                const recipientPhone = document.querySelector('[name="recipient_phone"]')?.value;
+                const deliveryDate = document.querySelector('[name="delivery_date"]')?.value;
+                const timeSlot = document.querySelector('[name="delivery_time_slot"]')?.value;
+
+                if (!recipientName || !recipientPhone || !deliveryDate || !timeSlot) {
+                    showError('Lütfen tüm zorunlu alanları doldurun');
+                    return false;
+                }
+
+                return true;
+
             case 3: // Ürün seçimi
                 return true; // Şimdilik geç
             case 4: // Ödeme
