@@ -39,13 +39,33 @@
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">Alıcı Adı</label>
-                                            <input type="text" class="form-control" name="recipient_name">
+                                            <input type="text" class="form-control" name="recipient_name" required>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">Alıcı Telefon</label>
-                                            <input type="tel" class="form-control" name="recipient_phone">
+                                            <input type="tel" class="form-control" name="recipient_phone" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Teslimat Tarihi</label>
+                                            <input type="date" class="form-control" name="delivery_date" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Teslimat Saati</label>
+                                            <select class="form-select" name="delivery_time_slot" required>
+                                                <option value="">Zaman Dilimi Seçin</option>
+                                                <option value="morning">Sabah (09:00-12:00)</option>
+                                                <option value="afternoon">Öğlen (12:00-17:00)</option>
+                                                <option value="evening">Akşam (17:00-21:00)</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -130,7 +150,17 @@
     <script src="/js/orders.js"></script>
     <script src="/js/components/address-select.js"></script>
     <script>
-        new AddressSelect('addressSelect');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Adres seçici başlat
+            const addressSelect = new AddressSelect('addressSelect', {
+                apiKey: '8ga3iUSKvwTytKYkk8PbpnnH5iCFlNDsvFoSyCghhjI',
+                onSelect: (address) => {
+                    console.log('Seçilen adres:', address);
+                    // Form verilerini güncelle
+                    document.querySelector('[name="delivery_address_id"]').value = address.id;
+                }
+            });
+        });
     </script>
 </body>
 </html>
