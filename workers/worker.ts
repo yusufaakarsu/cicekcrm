@@ -480,9 +480,10 @@ api.get('/orders/filtered', async (c) => {
   const tenant_id = c.get('tenant_id');
   const { status, date_filter, start_date, end_date, sort = 'id_desc', page = '1', per_page = '10' } = c.req.query();
   
-  console.log('Query Params:', { status, date_filter, start_date, end_date, sort, page, per_page }); // Debug log
-  
   try {
+    // Debug
+    console.log('Received dates:', { start_date, end_date });
+
     let baseQuery = `
       SELECT 
         o.*,
@@ -499,45 +500,98 @@ api.get('/orders/filtered', async (c) => {
     
     const params: any[] = [tenant_id];
 
-    // Filtre koşulları düzeltildi
-    if (date_filter === 'today') {
-      baseQuery += ` AND date(delivery_date) = date('now')`;
+    // Status filtresi
+    if (status) {
+      baseQuery += ` AND o.status = ?`;
+      params.push(status);
     }
-    
-    // ...rest of the filtering code...
 
-    // Debug log
-    console.log('Final Query:', baseQuery);
-    console.log('Query Params:', params);
-
-    // Execute query
-    const { results: orders } = await db.prepare(baseQuery).bind(...params).all();
-
-    if (!orders) {
-      return c.json({ 
-        orders: [],
-        total: 0,
-        page: parseInt(page),
-        per_page: parseInt(per_page),
-        total_pages: 0
+    // Tarih filtresi
+    if (date_filter) {
+      switch (date_filter) {
+        case 'today':
+          baseQuery += ` AND DATE(o.delivery_date) = DATE('now')`;
+          break;
+        case 'tomorrow':
+          baseQuery += ` AND DATE(o.delivery_date) = DATE('now', '+1 day')`;
+          break;
+        case 'week':
+          baseQuery += ` AND DATE(o.delivery_date) BETWEEN DATE('now') AND DATE('now', '+7 days')`;
+          break;
+        case 'month':
+          baseQuery += ` AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', 'now')`;
+          break;
+      }
+    } else if (start_date && end_date) {
+      // Özel tarih aralığı için kesin zaman kontrolü
+      baseQuery += ` 
+        AND DATETIME(o.delivery_date) >= DATETIME(?)
+        AND DATETIME(o.delivery_date) <= DATETIME(?)
+      `;
+      params.push(start_date, end_date);
+      
+      // Debug
+      console.log('SQL Query with dates:', {
+        query: baseQuery,
+        params: params
       });
     }
 
+    // Grup ve sıralama
+    baseQuery += ` GROUP BY o.id`;
+
+    // Sıralama
+    switch(sort) {
+      case 'id_asc':
+        baseQuery += ` ORDER BY o.id ASC`;
+        break;
+      case 'id_desc':
+        baseQuery += ` ORDER BY o.id DESC`;
+        break;
+      case 'date_asc':
+        baseQuery += ` ORDER BY o.delivery_date ASC, o.id ASC`;
+        break;
+      case 'date_desc':
+        baseQuery += ` ORDER BY o.delivery_date DESC, o.id DESC`;
+        break;
+      case 'amount_asc':
+        baseQuery += ` ORDER BY o.total_amount ASC, o.id DESC`;
+        break;
+      case 'amount_desc':
+        baseQuery += ` ORDER BY o.total_amount DESC, o.id DESC`;
+        break;
+      default:
+        baseQuery += ` ORDER BY o.id DESC`;
+    }
+
+    // Sayfalama
+    baseQuery += ` LIMIT ? OFFSET ?`;
+    const pageNum = parseInt(page);
+    const perPage = parseInt(per_page);
+    const offset = (pageNum - 1) * perPage;
+    params.push(perPage, offset);
+
+    // Debug için
+    console.log('Query:', baseQuery);
+    console.log('Params:', params);
+
+    const { results: orders } = await db.prepare(baseQuery).bind(...params).all();
     const total = await getOrdersCount(db, tenant_id, status, date_filter, start_date, end_date);
 
     return c.json({
-      orders,
+      orders: orders || [],
       total,
-      page: parseInt(page),
-      per_page: parseInt(per_page),
-      total_pages: Math.ceil(total / parseInt(per_page))
+      page: pageNum,
+      per_page: perPage,
+      total_pages: Math.ceil(total / perPage)
     });
 
   } catch (error) {
-    console.error('Orders filter error:', error); // Error log
+    console.error('Orders filter error:', error);
     return c.json({ 
-      error: 'Database error',
-      details: error.message 
+      error: 'Database error', 
+      details: error.message,
+      query_params: { status, date_filter, start_date, end_date } // Debug için
     }, 500);
   }
 });
@@ -558,31 +612,23 @@ async function getOrdersCount(db: D1Database, tenant_id: number, status?: string
     params.push(status);
   }
 
-  // Tarih filtresi - UTC'yi dikkate alarak düzeltildi
   if (date_filter) {
     switch (date_filter) {
       case 'today':
-        countQuery += ` AND date(o.delivery_date) = date('now', 'localtime')`;
-        params.push(start_date || new Date().toISOString().split('T')[0]);
+        countQuery += ` AND date(o.delivery_date) = date('now')`;
         break;
       case 'tomorrow':
-        countQuery += ` AND date(o.delivery_date) = date('now', 'localtime', '+1 day')`;
-        params.push(new Date().toISOString().split('T')[0]);
+        countQuery += ` AND date(o.delivery_date) = date('now', '+1 day')`;
         break;
       case 'week':
-        countQuery += ` AND date(o.delivery_date) BETWEEN date('now', 'localtime') AND date('now', 'localtime', '+7 days')`;
-        params.push(new Date().toISOString().split('T')[0], new Date().toISOString().split('T')[0]);
+        countQuery += ` AND date(o.delivery_date) BETWEEN date('now') AND date('now', '+7 days')`;
         break;
       case 'month':
-        countQuery += ` AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', 'now', 'localtime')`;
-        params.push(new Date().toISOString());
+        countQuery += ` AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', 'now')`;
         break;
     }
   } else if (start_date && end_date) {
-    countQuery += ` 
-      AND DATE(o.delivery_date) >= DATE(?) 
-      AND DATE(o.delivery_date) <= DATE(?)
-    `;
+    countQuery += ` AND date(o.delivery_date) BETWEEN date(?) AND date(?)`;
     params.push(start_date, end_date);
   }
 

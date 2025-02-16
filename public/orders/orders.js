@@ -74,19 +74,19 @@ async function loadOrders(isInitialLoad = false) {
             if (dateFilter === 'custom') {
                 const startDate = document.getElementById('startDate').value;
                 const endDate = document.getElementById('endDate').value;
+                
                 if (startDate && endDate) {
-                    // Tarihleri UTC'ye çevir
-                    const startUTC = new Date(startDate);
-                    const endUTC = new Date(endDate);
-                    endUTC.setHours(23, 59, 59); // Günün sonuna ayarla
-
-                    params.append('start_date', startUTC.toISOString().split('T')[0]);
-                    params.append('end_date', endUTC.toISOString().split('T')[0]);
+                    // Tarihleri biçimlendir ve son tarihi günün sonuna ayarla
+                    const formattedStartDate = startDate + ' 00:00:00';
+                    const formattedEndDate = endDate + ' 23:59:59';
                     
-                    // Debug için
+                    params.append('start_date', formattedStartDate);
+                    params.append('end_date', formattedEndDate);
+                    
+                    // Debug
                     console.log('Tarih Aralığı:', {
-                        start: params.get('start_date'),
-                        end: params.get('end_date')
+                        start: formattedStartDate,
+                        end: formattedEndDate
                     });
                 }
             } else {
