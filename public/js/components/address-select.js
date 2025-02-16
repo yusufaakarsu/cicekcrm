@@ -111,60 +111,58 @@ class AddressSelect {
         if (query.length < 3) return;
         
         try {
-            // Query parametrelerini düzelt
-            const params = new URLSearchParams({
-                apiKey: this.options.apiKey, 
-                q: `${query}, Istanbul, Turkey`,
-                in: 'countryCode:TUR',
-                limit: 5
-            }).toString();
+            // API parametrelerini düzenle
+            const params = {
+                apiKey: this.options.apiKey,
+                q: `${query}, Istanbul`,  // Direkt İstanbul ekle
+                in: 'countryCode:TUR,city:Istanbul',  // Sadece İstanbul'da ara
+                limit: 5,
+                lang: 'tr'  // Türkçe sonuçlar için
+            };
 
-            const url = `https://geocode.search.hereapi.com/v1/geocode?${params}`;
-            console.log('Search URL:', url); // Debug için
-
+            const url = `https://geocode.search.hereapi.com/v1/geocode?${new URLSearchParams(params)}`;
             const response = await fetch(url);
             
             if (!response.ok) {
-                const error = await response.text();
-                console.error('API Error:', error); // Debug için
                 throw new Error('API request failed');
             }
 
             const data = await response.json();
-            const resultsContainer = this.container.querySelector('#address-search-results');
-            resultsContainer.style.display = 'block';
+            console.log('HERE API response:', data); // Debug için
 
-            if (!data.items || data.items.length === 0) {
-                resultsContainer.innerHTML = '<div class="list-group-item">Sonuç bulunamadı</div>';
-                return;
-            }
-
-            // Sadece İstanbul'daki sonuçları filtrele
-            const istanbulResults = data.items.filter(item => 
-                item.address?.city?.toLowerCase().includes('istanbul')
-            );
-
-            resultsContainer.innerHTML = istanbulResults.length > 0 
-                ? istanbulResults.map(item => `
-                    <div class="list-group-item">
-                        <div class="d-flex w-100 justify-content-between">
-                            <strong>${item.address.street || item.address.label}</strong>
-                            <small>${item.address.postalCode || ''}</small>
-                        </div>
-                        <p class="mb-1">${item.address.district || ''} / ${item.address.city}</p>
-                        <button class="btn btn-sm btn-outline-primary mt-2" 
-                                onclick="addressSelect.selectAddress(${JSON.stringify(item)})">
-                            Bu Adresi Seç
-                        </button>
-                    </div>
-                `).join('')
-                : '<div class="list-group-item">İstanbul\'da sonuç bulunamadı</div>';
-
+            // Sonuçları göster
+            this.showResults(data.items || []);
         } catch (error) {
             console.error('Adres arama hatası:', error);
-            this.container.querySelector('#address-search-results').innerHTML = 
-                '<div class="list-group-item text-danger">Arama sırasında bir hata oluştu</div>';
         }
+    }
+
+    showResults(items) {
+        const resultsContainer = this.container.querySelector('#address-search-results');
+        resultsContainer.style.display = 'block';
+
+        if (items.length === 0) {
+            resultsContainer.innerHTML = '<div class="list-group-item">Sonuç bulunamadı</div>';
+            return;
+        }
+
+        resultsContainer.innerHTML = items.map(item => `
+            <div class="list-group-item">
+                <strong>${item.title}</strong>
+                <br>
+                <small class="text-muted">
+                    ${item.address.district || ''} ${item.address.postalCode || ''}
+                </small>
+                <button onclick='window.addressSelect.selectAddress(${JSON.stringify({
+                    id: item.id,
+                    label: item.address.label,
+                    city: "İstanbul",
+                    district: item.address.city || item.address.district || '',
+                    postal_code: item.address.postalCode,
+                    position: item.position
+                })})' class="btn btn-sm btn-primary mt-2 w-100">Seç</button>
+            </div>
+        `).join('');
     }
 
     selectAddress(id, item) {
