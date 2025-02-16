@@ -6,6 +6,17 @@ class AddressSelect {
         this.selectedDiv = document.getElementById('selectedAddress');
         this.selectedAddress = null;
         
+        // Kayıtlı adresler için container ekle
+        this.savedAddressesDiv = document.createElement('div');
+        this.savedAddressesDiv.id = 'savedAddressesContainer';
+        this.savedAddressesDiv.className = 'mb-3';
+        
+        // Search input'tan önce ekle
+        this.searchInput.parentNode.parentNode.insertBefore(
+            this.savedAddressesDiv, 
+            this.searchInput.parentNode
+        );
+
         this.setupEventListeners();
     }
 
@@ -106,9 +117,53 @@ class AddressSelect {
     getSelectedAddress() {
         return this.selectedAddress;
     }
+
+    // Kayıtlı adresleri yükle ve göster
+    async loadSavedAddresses(customerId) {
+        try {
+            const response = await fetch(`${API_URL}/customers/${customerId}/addresses`);
+            const addresses = await response.json();
+            
+            if (addresses && addresses.length > 0) {
+                this.savedAddressesDiv.innerHTML = `
+                    <div class="mb-2"><strong>Kayıtlı Adresler</strong></div>
+                    ${addresses.map(addr => `
+                        <div class="form-check mb-2">
+                            <input type="radio" class="form-check-input" 
+                                   name="saved_address_id" value="${addr.id}"
+                                   id="addr_${addr.id}">
+                            <label class="form-check-label" for="addr_${addr.id}">
+                                <strong>${addr.label || 'Adres'}</strong><br>
+                                <small class="text-muted">
+                                    ${[addr.street, addr.district, addr.city].filter(Boolean).join(', ')}
+                                </small>
+                            </label>
+                        </div>
+                    `).join('')}
+                    <hr class="my-3">
+                `;
+            } else {
+                this.savedAddressesDiv.innerHTML = '';
+            }
+        } catch (error) {
+            console.error('Kayıtlı adresler yüklenemedi:', error);
+        }
+    }
 }
 
 // Sayfa yüklendiğinde başlat
 document.addEventListener('DOMContentLoaded', () => {
     window.addressSelect = new AddressSelect();
 });
+
+// NewOrderForm class'ında müşteri seçildiğinde adresleri yükle
+async searchCustomer() {
+    // ...existing code...
+    if (data && data.customer) {
+        this.customerId = data.customer.id;
+        this.showCustomerDetails(data.customer);
+        // Adresleri yükle
+        window.addressSelect.loadSavedAddresses(data.customer.id);
+    }
+    // ...existing code...
+}

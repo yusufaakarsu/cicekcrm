@@ -136,7 +136,54 @@ class NewOrderForm {
         }
     }
 
-    showStep(step) {
+    async loadProducts() {
+        try {
+            const response = await fetch(`${API_URL}/products`);
+            const products = await response.json();
+            
+            const productList = document.getElementById('productList');
+            productList.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ürün</th>
+                                <th>Stok</th>
+                                <th>Fiyat</th>
+                                <th>Adet</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${products.map(product => `
+                                <tr>
+                                    <td>${product.name}</td>
+                                    <td>${product.stock}</td>
+                                    <td>${formatCurrency(product.retail_price)}</td>
+                                    <td style="width: 100px">
+                                        <input type="number" class="form-control form-control-sm"
+                                               min="1" max="${product.stock}" value="1"
+                                               id="qty_${product.id}">
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary"
+                                                onclick="window.newOrderForm.addToCart(${product.id})">
+                                            <i class="bi bi-plus"></i> Ekle
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Ürünler yüklenemedi:', error);
+            showError('Ürünler yüklenemedi');
+        }
+    }
+
+    async showStep(step) {
         // Progress bar ve badge'leri güncelle
         const progress = ((step - 1) / (this.totalSteps - 1)) * 100;
         this.progressBar.style.width = `${progress}%`;
@@ -165,6 +212,11 @@ class NewOrderForm {
             console.log(`Adım ${step} gösteriliyor`); // Debug için
         } else {
             console.warn(`Adım ${step} bulunamadı`); // Debug için
+        }
+
+        // Ürün adımında ürünleri yükle
+        if (step === 3) {
+            await this.loadProducts();
         }
     }
 
