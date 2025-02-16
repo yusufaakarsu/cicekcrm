@@ -962,4 +962,25 @@ api.get('/addresses', async (c) => {
   }
 });
 
+api.get('/customers/phone/:phone', async (req) => {
+  const phone = req.params.phone;
+  
+  try {
+      const customer = await DB
+          .prepare('SELECT * FROM customers WHERE phone = ? AND is_deleted = 0 LIMIT 1')
+          .bind(phone)
+          .first();
+          
+      return Response.json({
+          success: true,
+          customer: customer || null
+      });
+  } catch (error) {
+      return Response.json({
+          success: false,
+          error: error.message
+      }, { status: 500 });
+  }
+});
+
 export default api

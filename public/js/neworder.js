@@ -36,6 +36,20 @@ class NewOrderForm {
         this.showStep(1);
     }
 
+    // Format phone number
+    formatPhoneNumber(input) {
+        let value = input.value.replace(/\D/g, '');
+        if (value.length > 10) value = value.slice(0, 10);
+        
+        // Format as 0XXX XXX XX XX
+        if (value.length >= 1) value = '0' + value;
+        if (value.length >= 5) value = value.slice(0,4) + ' ' + value.slice(4);
+        if (value.length >= 8) value = value.slice(0,8) + ' ' + value.slice(8);
+        if (value.length >= 10) value = value.slice(0,10) + ' ' + value.slice(10);
+        
+        input.value = value;
+    }
+
     async searchCustomer() {
         const phone = document.querySelector('input[name="phone"]').value.replace(/\D/g, '');
         if (phone.length !== 10) {
@@ -44,7 +58,7 @@ class NewOrderForm {
         }
 
         try {
-            const response = await fetch(`${API_URL}/customers/search?phone=${phone}`);
+            const response = await fetch(`${API_URL}/customers/phone/${phone}`);
             const data = await response.json();
 
             if (data.success) {
@@ -59,7 +73,7 @@ class NewOrderForm {
             }
         } catch (error) {
             console.error('Müşteri arama hatası:', error);
-            showError('Müşteri aranamadı');
+            this.showNewCustomerForm(); // Bulunamadıysa yeni form göster
         }
     }
 
@@ -131,6 +145,19 @@ class NewOrderForm {
         document.querySelectorAll('.step-content').forEach(content => {
             content.style.display = content.dataset.step == step ? 'block' : 'none';
         });
+    }
+
+    // Yeni müşteri formu göster
+    showNewCustomerForm() {
+        const form = document.getElementById('customerForm');
+        const details = document.getElementById('customerDetails');
+        
+        form.style.display = 'block';
+        details.style.display = 'none';
+        
+        // Form alanlarını temizle
+        form.querySelector('[name="customer_name"]').value = '';
+        form.querySelector('[name="customer_email"]').value = '';
     }
 
     // ...devamı gelecek (validateStep, handleSubmit vb. metodlar)
