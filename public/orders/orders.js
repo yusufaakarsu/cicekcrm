@@ -4,6 +4,30 @@ document.addEventListener('DOMContentLoaded', () => {
     loadOrders();
 });
 
+// Temel veri yükleme fonksiyonu
+async function loadOrders() {
+    try {
+        // Sayfa yüklenirken default filtreler
+        const params = new URLSearchParams({
+            date_filter: 'today',
+            sort: 'date_desc',
+            page: '1',
+            per_page: '20'
+        });
+
+        const response = await fetch(`${API_URL}/orders/filtered?${params.toString()}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        renderOrders(data.orders);
+        updatePagination(data);
+
+    } catch (error) {
+        console.error('Siparişler yüklenirken hata:', error);
+        showError('Siparişler yüklenemedi!');
+    }
+}
+
 // Filtre dinleyicilerini ayarla
 function setupFilterListeners() {
     // Durum filtresi
@@ -106,6 +130,51 @@ function renderOrders(orders) {
     `).join('');
 }
 
+// Sipariş detaylarını göster
+async function showOrderDetails(orderId) {
+    try {
+        const response = await fetch(`${API_URL}/orders/${orderId}/details`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const order = await response.json();
+        const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+        
+        // Modal içeriğini doldur
+        document.getElementById('order-detail-id').textContent = order.id;
+        document.getElementById('order-detail-created_at').textContent = formatDate(order.created_at);
+        document.getElementById('order-detail-status').innerHTML = getStatusBadge(order.status);
+        document.getElementById('order-detail-payment_status').innerHTML = getPaymentStatusBadge(order.payment_status);
+        document.getElementById('order-detail-payment_method').textContent = formatPaymentMethod(order.payment_method);
+        document.getElementById('order-detail-total_amount').textContent = formatCurrency(order.total_amount);
+        
+        document.getElementById('order-detail-customer_name').textContent = order.customer_name;
+        document.getElementById('order-detail-customer_phone').textContent = formatPhoneNumber(order.customer_phone);
+        
+        document.getElementById('order-detail-delivery_date').textContent = `${formatDate(order.delivery_date)} - ${formatTimeSlot(order.delivery_time_slot)}`;
+        document.getElementById('order-detail-delivery_address').textContent = order.delivery_address;
+        
+        document.getElementById('order-detail-recipient_name').textContent = order.recipient_name;
+        document.getElementById('order-detail-recipient_phone').textContent = formatPhoneNumber(order.recipient_phone);
+        document.getElementById('order-detail-recipient_note').textContent = order.recipient_note || '-';
+        document.getElementById('order-detail-card_message').textContent = order.card_message || '-';
+        
+        // Ürün listesini doldur
+        const itemsList = document.getElementById('order-detail-items');
+        if (order.items) {
+            itemsList.innerHTML = order.items.split(',').map(item => 
+                `<div class="list-group-item">${item.trim()}</div>`
+            ).join('');
+        } else {
+            itemsList.innerHTML = '<div class="list-group-item text-muted">Ürün bilgisi bulunamadı</div>';
+        }
+        
+        modal.show();
+    } catch (error) {
+        console.error('Sipariş detayları yüklenirken hata:', error);
+        showError('Sipariş detayları yüklenemedi!');
+    }
+}
+
 // Sayfalama güncelleme
 function updatePagination(data) {
     const pagination = document.getElementById('pagination');
@@ -147,4 +216,21 @@ function goToPage(page) {
     applyFilters();
 }
 
-// ...existing helper functions (showError, formatTimeSlot, etc.)...
+// Helper fonksiyonlar
+function getPaymentStatusBadge(status) {
+    const badges = {
+        'paid': '<span class="badge bg-success">Ödendi</span>',
+        'pending': '<span class="badge bg-warning">Bekliyor</span>',
+        'cancelled': '<span class="badge bg-danger">İptal</span>'
+    };
+    return badges[status] || `<span class="badge bg-secondary">${status}</span>`;
+}
+
+function formatTimeSlot(slot) {
+    const slots = {
+        'morning': 'Sabah (09:00-12:00)',
+        'afternoon': 'Öğlen (12:00-17:00)',
+        'evening': 'Akşam (17:00-21:00)'
+    };
+    return slots[slot] || slot;
+}
