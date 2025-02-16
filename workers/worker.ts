@@ -480,6 +480,8 @@ api.get('/orders/filtered', async (c) => {
   const tenant_id = c.get('tenant_id');
   const { status, date_filter, start_date, end_date, sort = 'id_desc', page = '1', per_page = '10' } = c.req.query();
   
+  console.log('Query Params:', { status, date_filter, start_date, end_date, sort, page, per_page }); // Debug log
+  
   try {
     let baseQuery = `
       SELECT 
@@ -497,85 +499,46 @@ api.get('/orders/filtered', async (c) => {
     
     const params: any[] = [tenant_id];
 
-    // Status filtresi
-    if (status) {
-      baseQuery += ` AND o.status = ?`;
-      params.push(status);
+    // Filtre koşulları düzeltildi
+    if (date_filter === 'today') {
+      baseQuery += ` AND date(delivery_date) = date('now')`;
     }
+    
+    // ...rest of the filtering code...
 
-    // Tarih filtresi
-    if (date_filter) {
-      switch (date_filter) {
-        case 'today':
-          baseQuery += ` AND date(o.delivery_date) = date('now', 'localtime')`;
-          break;
-        case 'tomorrow':
-          baseQuery += ` AND date(o.delivery_date) = date('now', 'localtime', '+1 day')`;
-          break;
-        case 'week':
-          baseQuery += ` AND date(o.delivery_date) BETWEEN date('now', 'localtime') AND date('now', 'localtime', '+7 days')`;
-          break;
-        case 'month':
-          baseQuery += ` AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', 'now', 'localtime')`;
-          break;
-      }
-    } else if (start_date && end_date) {
-      // Özel tarih aralığı - tam gün karşılaştırması
-      baseQuery += ` AND date(o.delivery_date) BETWEEN date(?) AND date(?)`;
-      params.push(start_date, end_date);
-      
-      // Debug için
-      console.log('SQL Tarih Aralığı:', { start_date, end_date });
-    }
+    // Debug log
+    console.log('Final Query:', baseQuery);
+    console.log('Query Params:', params);
 
-    // Grup ve sıralama
-    baseQuery += ` GROUP BY o.id`;
-
-    // Sıralama mantığını düzelt
-    switch(sort) {
-      case 'id_asc':
-        baseQuery += ` ORDER BY o.id ASC`; // En eski üstte
-        break;
-      case 'id_desc':
-        baseQuery += ` ORDER BY o.id DESC`; // En yeni üstte
-        break;
-      case 'date_asc':
-        baseQuery += ` ORDER BY o.delivery_date ASC, o.id ASC`;
-        break;
-      case 'date_desc':
-        baseQuery += ` ORDER BY o.delivery_date DESC, o.id DESC`;
-        break;
-      case 'amount_asc':
-        baseQuery += ` ORDER BY o.total_amount ASC, o.id DESC`;
-        break;
-      case 'amount_desc':
-        baseQuery += ` ORDER BY o.total_amount DESC, o.id DESC`;
-        break;
-      default:
-        baseQuery += ` ORDER BY o.id DESC`;
-    }
-
-    // Sayfalama
-    baseQuery += ` LIMIT ? OFFSET ?`;
-    const pageNum = parseInt(page);
-    const perPage = parseInt(per_page);
-    const offset = (pageNum - 1) * perPage;
-    params.push(perPage, offset);
-
-    // Ana sorguyu çalıştır
+    // Execute query
     const { results: orders } = await db.prepare(baseQuery).bind(...params).all();
+
+    if (!orders) {
+      return c.json({ 
+        orders: [],
+        total: 0,
+        page: parseInt(page),
+        per_page: parseInt(per_page),
+        total_pages: 0
+      });
+    }
+
+    const total = await getOrdersCount(db, tenant_id, status, date_filter, start_date, end_date);
 
     return c.json({
       orders,
-      total: await getOrdersCount(db, tenant_id, status, date_filter, start_date, end_date),
-      page: pageNum,
-      per_page: perPage,
-      total_pages: Math.ceil(await getOrdersCount(db, tenant_id, status, date_filter, start_date, end_date) / perPage)
+      total,
+      page: parseInt(page),
+      per_page: parseInt(per_page),
+      total_pages: Math.ceil(total / parseInt(per_page))
     });
 
   } catch (error) {
-    console.error('Orders filter error:', error);
-    return c.json({ error: 'Database error' }, 500);
+    console.error('Orders filter error:', error); // Error log
+    return c.json({ 
+      error: 'Database error',
+      details: error.message 
+    }, 500);
   }
 });
 

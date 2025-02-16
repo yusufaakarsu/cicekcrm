@@ -106,6 +106,42 @@ function formatPaymentMethod(method) {
     return methodMap[method] || method;
 }
 
+// Hata gösterme fonksiyonu
+function showError(message) {
+    // Bootstrap toast kullanarak hata göster
+    const toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    toastContainer.style.zIndex = '1050';
+
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+
+    toast.innerHTML = `
+        <div class="toast-header bg-danger text-white">
+            <i class="bi bi-exclamation-circle me-2"></i>
+            <strong class="me-auto">Hata</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
+    `;
+
+    toastContainer.appendChild(toast);
+    document.body.appendChild(toastContainer);
+
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+
+    // 5 saniye sonra container'ı kaldır
+    toast.addEventListener('hidden.bs.toast', () => {
+        document.body.removeChild(toastContainer);
+    });
+}
+
 async function loadDashboardData() {
     try {
         const response = await fetch(`${API_URL}/api/dashboard`);
