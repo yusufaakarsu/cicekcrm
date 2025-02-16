@@ -37,33 +37,37 @@ api.get('/api/dashboard', async (c) => {
       AND tenant_id = ?
     `).bind(tenant_id).first();
 
-    // 2. Finansal İstatistikler - total_price -> total_amount düzeltildi
+    // 2. Finansal İstatistikler - sadece seçilen veriler
     const finance = await db.prepare(`
       SELECT 
         COALESCE(SUM(CASE WHEN DATE(created_at) = DATE('now') THEN total_amount ELSE 0 END), 0) as daily_revenue,
-        COALESCE(SUM(CASE WHEN strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now') THEN total_amount ELSE 0 END), 0) as monthly_income,
-        COALESCE(SUM(CASE WHEN payment_status = 'pending' THEN total_amount ELSE 0 END), 0) as pending_payments,
-        ROUND(AVG(profit_margin), 1) as profit_margin
+        ROUND(AVG(total_amount), 2) as avg_order_value
       FROM orders
       WHERE tenant_id = ? AND status != 'cancelled'
     `).bind(tenant_id).first();
 
-    // 3. Müşteri İstatistikleri
-    const customers = await db.prepare(`
+    // 3. Kritik Durumlar (yeni eklenen)
+    const criticalStats = await db.prepare(`
       SELECT 
-        COUNT(DISTINCT CASE WHEN DATE(created_at) >= DATE('now', '-30 days') THEN o.id END) as new_count,
-        COUNT(DISTINCT o.customer_id) as repeat_count,
-        ROUND(AVG(o.total_amount), 0) as avg_basket
-      FROM orders o
-      WHERE o.tenant_id = ?
-      AND o.status != 'cancelled'
+        COUNT(CASE WHEN status = 'delivering' AND 
+            DATETIME(delivery_date) < DATETIME('now') THEN 1 END) as delayed_deliveries,
+        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancellations,
+        COUNT(CASE WHEN has_complaint = 1 THEN 1 END) as complaints
+      FROM orders
+      WHERE tenant_id = ? 
+      AND DATE(delivery_date) = DATE('now')
     `).bind(tenant_id).first();
 
-    // 4. Stok Uyarıları
-    const stockStats = await db.prepare(`
-      SELECT COUNT(*) as low_stock
-      FROM products
-      WHERE stock <= min_stock AND tenant_id = ?
+    // 4. Günlük Hedefler (yeni eklenen)
+    const targets = await db.prepare(`
+      SELECT
+          (daily_target_revenue) as revenue_target,
+          (daily_target_deliveries) as delivery_target,
+          ROUND(AVG(satisfaction_rating), 1) as satisfaction_rate
+      FROM daily_targets dt
+      LEFT JOIN orders o ON DATE(o.delivery_date) = DATE('now')
+      WHERE dt.tenant_id = ?
+      AND dt.target_date = DATE('now')
     `).bind(tenant_id).first();
 
     // 5. Özet veriyi döndür
@@ -76,16 +80,18 @@ api.get('/api/dashboard', async (c) => {
       },
       finance: finance || {
         daily_revenue: 0,
-        monthly_income: 0,
-        pending_payments: 0,
-        profit_margin: 0
+        avg_order_value: 0
       },
-      customers: customers || {
-        new_count: 0,
-        repeat_count: 0,
-        avg_basket: 0
+      criticalStats: criticalStats || {
+        delayed_deliveries: 0,
+        cancellations: 0,
+        complaints: 0
       },
-      lowStock: stockStats?.low_stock || 0
+      targets: targets || {
+        revenue_target: 0,
+        delivery_target: 0,
+        satisfaction_rate: 0
+      }
     });
 
   } catch (error) {
