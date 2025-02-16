@@ -850,30 +850,61 @@ api.post('/addresses', async (c) => {
   const body = await c.req.json();
   
   try {
-      const result = await db.prepare(`
-          INSERT INTO addresses (
-              tenant_id, label, city, district, 
-              postal_code, lat, lng, source, here_place_id
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-          tenant_id,
-          body.label,
-          body.city,
-          body.district,
-          body.postalCode,
-          body.position.lat,
-          body.position.lng,
-          body.source,
-          body.id
-      ).run();
+    console.log('Gelen veri:', body); // Debug için
 
-      return c.json({ 
-          success: true, 
-          id: result.lastRowId 
-      });
-      
+    // Veri dönüşümü
+    const addressData = {
+      tenant_id,
+      label: body.label,
+      country_code: 'TUR',
+      country_name: 'Türkiye',
+      city: body.city || 'İstanbul',
+      district: body.district,
+      postal_code: body.postal_code,
+      street: body.street || null,
+      building_no: null,
+      lat: body.position?.lat,
+      lng: body.position?.lng,
+      source: body.source || 'here_api',
+      here_place_id: body.here_place_id
+    };
+
+    console.log('Kaydedilecek veri:', addressData); // Debug için
+
+    const result = await db.prepare(`
+      INSERT INTO addresses (
+        tenant_id, label, country_code, country_name,
+        city, district, postal_code, street, building_no,
+        lat, lng, source, here_place_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      addressData.tenant_id,
+      addressData.label,
+      addressData.country_code,
+      addressData.country_name,
+      addressData.city,
+      addressData.district,
+      addressData.postal_code,
+      addressData.street,
+      addressData.building_no,
+      addressData.lat,
+      addressData.lng,
+      addressData.source,
+      addressData.here_place_id
+    ).run();
+
+    return c.json({ 
+      success: true, 
+      id: result.lastRowId,
+      data: addressData
+    });
   } catch (error) {
-      return c.json({ error: 'Database error' }, 500);
+    console.error('Address save error:', error); // Debug için
+    return c.json({ 
+      error: 'Database error',
+      details: error.message,
+      data: body 
+    }, 500);
   }
 });
 
