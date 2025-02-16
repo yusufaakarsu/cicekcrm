@@ -323,6 +323,13 @@ api.put('/customers/:id', async (c) => {
         phone = ?,
         email = ?,
         address = ?,
+        city = ?,
+        district = ?,
+        customer_type = ?,
+        company_name = ?,
+        tax_number = ?,
+        special_dates = ?,
+        notes = ?,
         updated_at = DATETIME('now')
       WHERE id = ?
       AND tenant_id = ?
@@ -332,6 +339,13 @@ api.put('/customers/:id', async (c) => {
       body.phone,
       body.email,
       body.address,
+      body.city,
+      body.district,
+      body.customer_type,
+      body.company_name,
+      body.tax_number, 
+      body.special_dates,
+      body.notes,
       id,
       tenant_id
     ).run();

@@ -331,6 +331,90 @@ function goToPage(page) {
     loadOrders();
 }
 
+// Hızlı durum güncelleme
+async function quickUpdateStatus(orderId, newStatus) {
+    try {
+        const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+
+        // Başarılı güncelleme
+        showSuccess(`Sipariş durumu güncellendi: ${getStatusText(newStatus)}`);
+        await loadOrders(); // Tabloyu yenile
+
+    } catch (error) {
+        console.error('Durum güncellenirken hata:', error);
+        showError('Durum güncellenemedi!');
+    }
+}
+
+// İptal onayı
+function confirmCancelOrder(orderId) {
+    const modal = new bootstrap.Modal(document.createElement('div'));
+    modal.element.innerHTML = `
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sipariş İptal Onayı</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bu siparişi iptal etmek istediğinizden emin misiniz?</p>
+                    <p class="text-danger"><small>Bu işlem geri alınamaz!</small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="button" class="btn btn-danger" onclick="cancelOrder(${orderId})">
+                        Siparişi İptal Et
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal.element);
+    modal.show();
+}
+
+// Sipariş iptal
+async function cancelOrder(orderId) {
+    try {
+        const response = await fetch(`${API_URL}/orders/${orderId}/cancel`, {
+            method: 'PUT'
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+
+        showSuccess('Sipariş iptal edildi');
+        await loadOrders(); // Tabloyu yenile
+        
+        // Modalı kapat
+        const modal = bootstrap.Modal.getInstance(document.querySelector('.modal'));
+        modal.hide();
+
+    } catch (error) {
+        console.error('Sipariş iptal edilirken hata:', error);
+        showError('Sipariş iptal edilemedi!');
+    }
+}
+
+// Durum metinleri
+function getStatusText(status) {
+    const statusMap = {
+        'new': 'Yeni',
+        'preparing': 'Hazırlanıyor',
+        'delivering': 'Yolda',
+        'delivered': 'Teslim Edildi',
+        'cancelled': 'İptal'
+    };
+    return statusMap[status] || status;
+}
+
 // Helper fonksiyonlar
 function getPaymentStatusBadge(status) {
     const badges = {

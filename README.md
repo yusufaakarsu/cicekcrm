@@ -1,16 +1,21 @@
 # Çiçek CRM Projesi
 
 ## Amaç
-Çiçekçiler için kapsamlı yönetim sistemi
+Çiçekçiler için kapsamlı yönetim sistemi:
+- Müşteri yönetimi
+- Sipariş takibi
+- Teslimat planlaması
+- Stok kontrolü
+- Finans takibi
 
 ## Teknik Stack
 
 ### Frontend
-- HTML + Vanilla JavaScript  
-- Bootstrap 5.3.2
-- Bootstrap Icons
+- HTML + Vanilla JavaScript
+- Bootstrap 5.3.2 + Bootstrap Icons
+- Modüler yapı (her modül kendi JS/HTML dosyaları)
 
-### Backend & Database 
+### Backend 
 - Cloudflare Workers (Edge Functions)
 - Cloudflare D1 (SQLite tabanlı)
 - REST API
@@ -340,7 +345,7 @@ npm run build
 ### Schema güncelleme
 ```bash
 cd workers/api
-wrangler d1 execute cicek-crm-db --remote --file=./schema.sql
+wrangler d1 execute cicek-crm-db --remote --file=./migrations/schema.sql
 ```
 
 ### Test datası yükleme

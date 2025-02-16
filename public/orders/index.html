@@ -277,7 +277,52 @@
                         <div class="text-sm">${order.payment_method}</div>
                     </td>
                     <td class="px-4 py-2">
-                        <!-- ...existing actions... -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                İşlemler
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <!-- Detay -->
+                                <li>
+                                    <button class="dropdown-item" onclick="showOrderDetails(${order.id})">
+                                        <i class="bi bi-eye"></i> Detay Görüntüle
+                                    </button>
+                                </li>
+                                
+                                <!-- Durum Güncelleme -->
+                                <li>
+                                    <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'preparing')">
+                                        <i class="bi bi-box-seam"></i> Hazırlanıyor
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivering')">
+                                        <i class="bi bi-truck"></i> Yolda
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivered')">
+                                        <i class="bi bi-check-circle"></i> Teslim Edildi
+                                    </button>
+                                </li>
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                
+                                <!-- Düzenleme -->
+                                <li>
+                                    <button class="dropdown-item" onclick="editOrder(${order.id})">
+                                        <i class="bi bi-pencil"></i> Düzenle
+                                    </button>
+                                </li>
+                                
+                                <!-- İptal -->
+                                <li>
+                                    <button class="dropdown-item text-danger" onclick="confirmCancelOrder(${order.id})">
+                                        <i class="bi bi-x-circle"></i> İptal Et
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
                     </td>
                 </tr>
             `;
