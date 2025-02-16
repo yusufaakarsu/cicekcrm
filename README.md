@@ -63,15 +63,12 @@ wrangler deploy
 
 ```
 /Users/yusuf/Downloads/kod/CCRM/
-├── compare/                            # API ve Dökümantasyon Karşılaştırma Klasörü
-│   ├── endpoints.md                    # Tüm API endpointlerinin listesi ve açıklamaları
-│   ├── frontend-api-usage.md          # Frontend'de kullanılan API endpoint'lerinin dökümantasyonu
-│   └── unused-endpoints.md            # Kullanılmayan/kaldırılan API endpoint'lerinin listesi
 ├── migrations/                         # Veritabanı Migrasyon Klasörü
 │   ├── data.sql                       # Test verileri ve örnek kayıtlar
 │   └── schema.sql                     # Veritabanı tablo yapıları ve ilişkileri
 ├── public/                            # Frontend Ana Klasörü
 │   ├── calendar/                      # Takvim Modülü
+│   │   ├── calendar.js             # Takvim işlevleri ve teslimat planlaması
 │   │   └── index.html                 # Teslimat takvimi görünümü
 │   ├── common/                        # Ortak UI Bileşenleri
 │   │   ├── header.html               # Site üst menü ve navigasyon
@@ -79,26 +76,24 @@ wrangler deploy
 │   ├── css/                          # Stil Dosyaları
 │   │   └── style.css                 # Özel CSS tanımlamaları
 │   ├── customers/                     # Müşteri Yönetimi Modülü
-│   │   ├── customers.js             # Müşteri sayfası özel JS kodları
+│   │   ├── customers.js            # Müşteri işlemleri mantığı
 │   │   └── index.html               # Müşteri listeleme sayfası
 │   ├── delivery/                     # Teslimat Yönetimi Modülü
+│   │   ├── delivery.js            # Teslimat takip ve güncelleme işlevleri
 │   │   └── index.html               # Teslimat takip ve yönetim sayfası
 │   ├── finance/                      # Finans Modülü
+│   │   ├── finance.js             # Finansal hesaplama ve raporlama
 │   │   └── index.html               # Finansal raporlar ve analizler
 │   ├── js/                          # JavaScript Ana Klasörü
-│   │   ├── calendar.js             # Takvim işlevleri ve teslimat planlaması
-│   │   ├── common.js               # Ortak yardımcı fonksiyonlar
-│   │   ├── customers.js            # Müşteri işlemleri mantığı
-│   │   ├── dashboard.js            # Panel ve istatistik işlemleri
-│   │   ├── delivery.js            # Teslimat takip ve güncelleme işlevleri
-│   │   ├── finance.js             # Finansal hesaplama ve raporlama
-│   │   └── orders.js              # Sipariş yönetimi işlevleri
+│   │   └──common.js               # Ortak yardımcı fonksiyonlar
 │   ├── orders/                     # Sipariş Yönetimi Modülü
 │   │   ├── index.html             # Sipariş listeleme sayfası
 │   │   ├── new.html              # Yeni sipariş oluşturma formu
-│   │   └── orders.js             # Sipariş sayfası özel JS kodları
+│   │   └── orders.js              # Sipariş yönetimi işlevleri
+│   ├── dashboard.js            # Panel ve istatistik işlemleri
 │   └── index.html                 # Ana sayfa (Dashboard)
 ├── workers/                        # Cloudflare Workers Backend
+│   ├── node_modules/               #
 │   ├── package-lock.json          # NPM bağımlılık kilitleri
 │   ├── package.json               # Backend bağımlılıkları
 │   ├── worker.ts                  # Ana API endpoint kodları
