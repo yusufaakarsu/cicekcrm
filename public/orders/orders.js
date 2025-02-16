@@ -250,6 +250,9 @@ function renderOrders(orders) {
     `).join('');
 }
 
+// Global değişken tanımı ekle
+let currentOrderId = null;
+
 // Sipariş detaylarını göster
 async function showOrderDetails(orderId) {
     try {
@@ -264,7 +267,14 @@ async function showOrderDetails(orderId) {
         
         // Teslimatı Geri Al butonunu göster/gizle
         const revertBtn = document.getElementById('revertDeliveryBtn');
-        revertBtn.classList.toggle('d-none', order.status !== 'delivering');
+        revertBtn.classList.toggle('d-none', order.status !== 'delivering' && order.status !== 'delivered');
+        
+        // Buton metnini duruma göre güncelle
+        if (order.status === 'delivering') {
+            revertBtn.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> Teslimatı Geri Al';
+        } else if (order.status === 'delivered') {
+            revertBtn.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> Teslimattan Geri Al';
+        }
         
         // Modal içeriğini doldur
         fillOrderDetails(order);
@@ -288,17 +298,17 @@ function fillOrderDetails(order) {
     document.getElementById('order-detail-total_amount').textContent = formatCurrency(order.total_amount);
     
     // Müşteri bilgileri
-    document.getElementById('order-detail-customer_name').textContent = order.customer_name;
-    document.getElementById('order-detail-customer_phone').textContent = formatPhoneNumber(order.customer_phone);
-    document.getElementById('order-detail-payment_method').textContent = formatPaymentMethod(order.payment_method);
+    document.getElementById('order-detail-customer_name').textContent = order.customer_name || '-';
+    document.getElementById('order-detail-customer_phone').textContent = formatPhoneNumber(order.customer_phone) || '-';
+    document.getElementById('order-detail-payment_method').textContent = formatPaymentMethod(order.payment_method) || '-';
     
     // Teslimat bilgileri
-    document.getElementById('order-detail-delivery_date').textContent = formatDate(order.delivery_date);
-    document.getElementById('order-detail-delivery_address').textContent = order.delivery_address;
+    document.getElementById('order-detail-delivery_date').textContent = formatDate(order.delivery_date) || '-';
+    document.getElementById('order-detail-delivery_address').textContent = order.delivery_address || '-';
     
     // Alıcı bilgileri
-    document.getElementById('order-detail-recipient_name').textContent = order.recipient_name;
-    document.getElementById('order-detail-recipient_phone').textContent = formatPhoneNumber(order.recipient_phone);
+    document.getElementById('order-detail-recipient_name').textContent = order.recipient_name || '-';
+    document.getElementById('order-detail-recipient_phone').textContent = formatPhoneNumber(order.recipient_phone) || '-';
     document.getElementById('order-detail-recipient_note').textContent = order.recipient_note || '-';
     document.getElementById('order-detail-card_message').textContent = order.card_message || '-';
     
@@ -580,7 +590,7 @@ async function revertDeliveryStatus() {
                 <div class="toast align-items-center text-bg-success border-0" role="alert">
                     <div class="d-flex">
                         <div class="toast-body">
-                            <i class="bi bi-check-circle"></i> Sipariş durumu güncellendi: Hazır
+                            <i class="bi bi-check-circle"></i> Sipariş durumu: Hazır'a alındı
                         </div>
                         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
                     </div>
