@@ -134,5 +134,15 @@
         // Sayfa yüklendiğinde kayıtlı adresleri getir
         loadSavedAddresses();
     </script>
+    <script>
+        const addressSelect = new AddressSelect('addressList', {
+            apiKey: '8ga3iUSKvwTytKYkk8PbpnnH5iCFlNDsvFoSyCghhjI',
+            onSelect: (address) => {
+                console.log('Seçilen adres:', address);
+                const resultDiv = document.getElementById('results');
+                resultDiv.innerHTML += '\n\nSeçilen Adres:\n' + JSON.stringify(address, null, 2);
+            }
+        });
+    </script>
 </body>
 </html>
