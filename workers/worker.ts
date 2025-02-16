@@ -478,13 +478,14 @@ api.get('/products/low-stock', async (c) => {
 api.get('/orders/filtered', async (c) => {
   const db = c.env.DB;
   const tenant_id = c.get('tenant_id');
-  const { status, date_filter, start_date, end_date, sort, page = '1', per_page = '10' } = c.req.query();
+  const { status, date_filter, start_date, end_date, sort = 'id_desc', page = '1', per_page = '10' } = c.req.query();
   
   try {
     let baseQuery = `
       SELECT 
         o.*,
         c.name as customer_name,
+        c.phone as customer_phone,
         GROUP_CONCAT(oi.quantity || 'x ' || p.name) as items
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
@@ -523,45 +524,33 @@ api.get('/orders/filtered', async (c) => {
       params.push(start_date, end_date);
     }
 
-    // Önce toplam kayıt sayısını al
-    const countQuery = `
-      SELECT COUNT(DISTINCT o.id) as total 
-      FROM orders o 
-      LEFT JOIN customers c ON o.customer_id = c.id
-      WHERE o.tenant_id = ?
-      AND o.is_deleted = 0
-      ${status ? 'AND o.status = ?' : ''}
-      ${date_filter === 'today' ? "AND DATE(o.delivery_date) = DATE('now')" : ''}
-      ${date_filter === 'tomorrow' ? "AND DATE(o.delivery_date) = DATE('now', '+1 day')" : ''}
-      ${date_filter === 'week' ? "AND DATE(o.delivery_date) BETWEEN DATE('now') AND DATE('now', '+7 days')" : ''}
-      ${date_filter === 'month' ? "AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', 'now')" : ''}
-      ${(start_date && end_date) ? 'AND DATE(o.delivery_date) BETWEEN ? AND ?' : ''}
-    `;
-    
-    const countParams = [tenant_id];
-    if (status) countParams.push(status);
-    if (start_date && end_date) countParams.push(start_date, end_date);
-    
-    const { total } = await db.prepare(countQuery).bind(...countParams).first() as { total: number };
-
     // Grup ve sıralama
     baseQuery += ` GROUP BY o.id`;
 
-    // Sıralama
-    if (sort) {
-      const [field, direction] = sort.split('_');
-      const sortField = field === 'date' ? 'o.delivery_date' : 'o.total_amount';
-      baseQuery += ` ORDER BY ${sortField} ${direction.toUpperCase()}`;
-    } else {
-      baseQuery += ` ORDER BY o.delivery_date DESC`;
+    // Sıralama mantığını düzelt
+    switch(sort) {
+      case 'date_asc':
+        baseQuery += ` ORDER BY o.delivery_date ASC, o.id DESC`;
+        break;
+      case 'date_desc':
+        baseQuery += ` ORDER BY o.delivery_date DESC, o.id DESC`;
+        break;
+      case 'amount_asc':
+        baseQuery += ` ORDER BY o.total_amount ASC, o.id DESC`;
+        break;
+      case 'amount_desc':
+        baseQuery += ` ORDER BY o.total_amount DESC, o.id DESC`;
+        break;
+      case 'id_desc':
+      default:
+        baseQuery += ` ORDER BY o.id DESC`; // En son eklenenler üstte
     }
 
     // Sayfalama
+    baseQuery += ` LIMIT ? OFFSET ?`;
     const pageNum = parseInt(page);
     const perPage = parseInt(per_page);
     const offset = (pageNum - 1) * perPage;
-    
-    baseQuery += ` LIMIT ? OFFSET ?`;
     params.push(perPage, offset);
 
     // Ana sorguyu çalıştır
@@ -569,10 +558,10 @@ api.get('/orders/filtered', async (c) => {
 
     return c.json({
       orders,
-      total,
+      total: await getOrdersCount(db, tenant_id, status, date_filter, start_date, end_date),
       page: pageNum,
       per_page: perPage,
-      total_pages: Math.ceil(total / perPage)
+      total_pages: Math.ceil(await getOrdersCount(db, tenant_id, status, date_filter, start_date, end_date) / perPage)
     });
 
   } catch (error) {
@@ -580,6 +569,47 @@ api.get('/orders/filtered', async (c) => {
     return c.json({ error: 'Database error' }, 500);
   }
 });
+
+// Toplam kayıt sayısını almak için yardımcı fonksiyon
+async function getOrdersCount(db: D1Database, tenant_id: number, status?: string, date_filter?: string, start_date?: string, end_date?: string) {
+  let countQuery = `
+    SELECT COUNT(DISTINCT o.id) as total 
+    FROM orders o 
+    WHERE o.tenant_id = ?
+    AND o.is_deleted = 0
+  `;
+  
+  const params: any[] = [tenant_id];
+
+  if (status) {
+    countQuery += ` AND o.status = ?`;
+    params.push(status);
+  }
+
+  // Tarih filtresi
+  if (date_filter) {
+    switch (date_filter) {
+      case 'today':
+        countQuery += ` AND DATE(o.delivery_date) = DATE('now')`;
+        break;
+      case 'tomorrow':
+        countQuery += ` AND DATE(o.delivery_date) = DATE('now', '+1 day')`;
+        break;
+      case 'week':
+        countQuery += ` AND DATE(o.delivery_date) BETWEEN DATE('now') AND DATE('now', '+7 days')`;
+        break;
+      case 'month':
+        countQuery += ` AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', 'now')`;
+        break;
+    }
+  } else if (start_date && end_date) {
+    countQuery += ` AND DATE(o.delivery_date) BETWEEN ? AND ?`;
+    params.push(start_date, end_date);
+  }
+
+  const result = await db.prepare(countQuery).bind(...params).first();
+  return (result as any).total;
+}
 
 // Sipariş iptal et
 api.put('/orders/:id/cancel', async (c) => {

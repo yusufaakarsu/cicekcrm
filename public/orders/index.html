@@ -23,41 +23,41 @@
         <div class="card mb-4">
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Durum</label>
-                        <select class="form-select" id="statusFilter">
+                        <select class="form-select form-select-sm" id="statusFilter">
                             <option value="">Tümü</option>
                             <option value="new">Yeni</option>
                             <option value="preparing">Hazırlanıyor</option>
+                            <option value="ready">Hazır</option>
                             <option value="delivering">Yolda</option>
                             <option value="delivered">Teslim Edildi</option>
                             <option value="cancelled">İptal</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Tarih Aralığı</label>
-                        <select class="form-select" id="dateFilter">
+                        <select class="form-select form-select-sm" id="dateFilter">
                             <option value="all">Tümü</option>
-                            <option value="today">Bugün</option>
+                            <option value="today" selected>Bugün</option>
                             <option value="tomorrow">Yarın</option>
                             <option value="week">Bu Hafta</option>
                             <option value="month">Bu Ay</option>
                             <option value="custom">Özel Aralık</option>
                         </select>
                     </div>
-                    <div class="col-md-4" id="customDateRange" style="display:none;">
-                        <div class="row g-2">
+                    <div class="col-md-5" id="customDateRange" style="display:none;">
+                        <div class="row g-2 align-items-end">
                             <div class="col-5">
-                                <label class="form-label">Başlangıç</label>
-                                <input type="date" class="form-control" id="startDate">
+                                <label class="form-label small">Başlangıç</label>
+                                <input type="date" class="form-control form-control-sm" id="startDate">
                             </div>
                             <div class="col-5">
-                                <label class="form-label">Bitiş</label>
-                                <input type="date" class="form-control" id="endDate">
+                                <label class="form-label small">Bitiş</label>
+                                <input type="date" class="form-control form-control-sm" id="endDate">
                             </div>
                             <div class="col-2">
-                                <label class="form-label">&nbsp;</label>
-                                <button class="btn btn-primary w-100" id="applyDateFilter">
+                                <button class="btn btn-primary btn-sm w-100" id="applyDateFilter">
                                     <i class="bi bi-check-lg"></i>
                                 </button>
                             </div>
@@ -65,12 +65,18 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Sıralama</label>
-                        <select class="form-select" id="sortFilter">
-                            <option value="date_desc">Tarih ↓</option>
-                            <option value="date_asc">Tarih ↑</option>
+                        <select class="form-select form-select-sm" id="sortFilter">
+                            <option value="id_desc">En Yeni</option>
+                            <option value="id_asc">En Eski</option>
                             <option value="amount_desc">Tutar ↓</option>
                             <option value="amount_asc">Tutar ↑</option>
                         </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label d-block">&nbsp;</label>
+                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetFilters()">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
                     </div>
                 </div>
             </div>

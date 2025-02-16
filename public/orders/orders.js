@@ -43,21 +43,58 @@ async function loadOrders() {
 
 // Filtre dinleyicilerini ayarla
 function setupFilterListeners() {
+    // Sayfa yüklendiğinde varsayılan filtreleri uygula
+    document.getElementById('dateFilter').value = 'today';
+    document.getElementById('sortFilter').value = 'id_desc';
+    
     // Durum filtresi
-    document.getElementById('statusFilter').addEventListener('change', applyFilters);
+    document.getElementById('statusFilter').addEventListener('change', () => {
+        document.querySelector('[name="page"]').value = '1'; // Sayfa 1'e dön
+        applyFilters();
+    });
     
     // Tarih filtresi
     document.getElementById('dateFilter').addEventListener('change', (e) => {
         const customDateRange = document.getElementById('customDateRange');
         customDateRange.style.display = e.target.value === 'custom' ? 'block' : 'none';
-        applyFilters();
+        
+        if (e.target.value !== 'custom') {
+            document.querySelector('[name="page"]').value = '1';
+            applyFilters();
+        }
     });
     
     // Özel tarih aralığı
-    document.getElementById('applyDateFilter').addEventListener('click', applyFilters);
+    document.getElementById('applyDateFilter').addEventListener('click', () => {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        if (!startDate || !endDate) {
+            showError('Lütfen tarih aralığı seçin');
+            return;
+        }
+        
+        document.querySelector('[name="page"]').value = '1';
+        applyFilters();
+    });
     
     // Sıralama
-    document.getElementById('sortFilter').addEventListener('change', applyFilters);
+    document.getElementById('sortFilter').addEventListener('change', () => {
+        document.querySelector('[name="page"]').value = '1';
+        applyFilters();
+    });
+}
+
+// Filtreleri sıfırla
+function resetFilters() {
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('dateFilter').value = 'today';
+    document.getElementById('sortFilter').value = 'id_desc';
+    document.getElementById('customDateRange').style.display = 'none';
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    document.querySelector('[name="page"]').value = '1';
+    applyFilters();
 }
 
 // Filtreleri uygula
@@ -67,20 +104,24 @@ async function applyFilters() {
     const sort = document.getElementById('sortFilter').value;
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
-    const currentPage = document.querySelector('[name="page"]')?.value || 1;
+    const page = document.querySelector('[name="page"]').value;
+    const perPage = document.querySelector('[name="per_page"]').value;
 
     try {
         const params = new URLSearchParams({
-            page: document.querySelector('[name="page"]').value,
-            per_page: document.querySelector('[name="per_page"]').value,
-            sort: sort || 'date_desc'
+            page,
+            per_page: perPage,
+            sort: sort || 'id_desc'
         });
 
         if (status) params.append('status', status);
-        if (dateFilter !== 'custom') params.append('date_filter', dateFilter);
-        if (dateFilter === 'custom' && startDate && endDate) {
-            params.append('start_date', startDate);
-            params.append('end_date', endDate);
+        if (dateFilter !== 'all') {
+            if (dateFilter === 'custom' && startDate && endDate) {
+                params.append('start_date', startDate);
+                params.append('end_date', endDate);
+            } else {
+                params.append('date_filter', dateFilter);
+            }
         }
 
         const response = await fetch(`${API_URL}/orders/filtered?${params.toString()}`);
