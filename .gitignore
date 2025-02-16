@@ -4,7 +4,7 @@ node_modules/
 workers/api/node_modules/
 package-lock.json
 yarn.lock
-
+compare/
 # Build
 dist/
 build/
@@ -43,3 +43,5 @@ coverage/
 # Cache
 .cache/
 .temp/
+dashboard-cards.md
+dashboard-main-cards.md

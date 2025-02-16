@@ -1,48 +1,96 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadHeader();
     loadDashboardData();
+    // Her 5 dakikada bir güncelle
+    setInterval(loadDashboardData, 300000);
 });
 
 async function loadDashboardData() {
     try {
-        console.log('Dashboard verisi yükleniyor...');
         const response = await fetch(`${API_URL}/api/dashboard`);
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.details || 'API yanıt vermedi');
-        }
-        
+        if (!response.ok) throw new Error('API Hatası');
         const data = await response.json();
-        console.log('Gelen veri:', data);
 
-        // Teslimat İstatistikleri
-        document.getElementById('todayDeliveries').textContent = data.deliveryStats.total_orders;
-        document.getElementById('completedDeliveries').textContent = `${data.deliveryStats.delivered_orders} tamamlandı`;
-        document.getElementById('onRouteCount').textContent = data.deliveryStats.pending_orders;
-        document.getElementById('preparingCount').textContent = data.deliveryStats.preparing_orders;
+        // 1. Teslimat Durumu Kartı
+        updateDeliveryCard(data.deliveryStats);
         
-        // Finansal İstatistikler
-        document.getElementById('dailyRevenue').textContent = formatCurrency(data.finance.daily_revenue);
-        document.getElementById('monthlyIncome').textContent = formatCurrency(data.finance.monthly_income);
-        document.getElementById('pendingPayments').textContent = formatCurrency(data.finance.pending_payments);
-        document.getElementById('profitMargin').textContent = `${data.finance.profit_margin}%`;
+        // 2. Finansal Durum Kartı
+        updateFinanceCard(data.finance);
         
-        // Müşteri İstatistikleri
-        document.getElementById('newCustomers').textContent = data.customers.new_count;
-        document.getElementById('repeatCustomers').textContent = data.customers.repeat_count;
-        document.getElementById('avgBasket').textContent = formatCurrency(data.customers.avg_basket);
+        // 3. Kritik Durumlar Kartı
+        updateCriticalCard(data.criticalStats);
         
-        // Stok İstatistikleri
-        document.getElementById('lowStock').textContent = data.lowStock;
-        document.getElementById('stockAlert').textContent = `${data.lowStock} ürün kritik`;
+        // 4. Günlük Hedefler Kartı
+        updateTargetsCard(data.targets);
+
+        // Son güncelleme zamanını göster
+        document.getElementById('lastUpdate').textContent = 
+            `Son güncelleme: ${new Date().toLocaleTimeString()}`;
 
     } catch (error) {
-        console.error('Dashboard veri yükleme hatası:', error);
-        // Hata mesajını göster
-        document.querySelectorAll('[id$="Count"],[id$="Revenue"],[id$="Income"],[id$="Margin"],[id$="Stock"]')
-            .forEach(el => el.textContent = '-');
+        console.error('Dashboard hatası:', error);
+        showError('Veriler yüklenemedi!');
     }
+}
+
+function updateDeliveryCard(stats) {
+    document.getElementById('totalDeliveries').textContent = stats.total_orders;
+    document.getElementById('preparingOrders').textContent = stats.preparing_orders;
+    document.getElementById('deliveringOrders').textContent = stats.pending_orders;
+    document.getElementById('deliveredOrders').textContent = stats.delivered_orders;
+    
+    // Dağılım grafiğini güncelle
+    updateDeliveryChart([
+        stats.preparing_orders,
+        stats.pending_orders,
+        stats.delivered_orders
+    ]);
+}
+
+function updateFinanceCard(finance) {
+    document.getElementById('dailyRevenue').textContent = 
+        formatCurrency(finance.daily_revenue);
+    document.getElementById('avgOrderValue').textContent = 
+        formatCurrency(finance.avg_order_value);
+    
+    // Ödeme dağılımı grafiğini güncelle
+    updatePaymentChart(finance.payment_distribution);
+}
+
+function updateCriticalCard(stats) {
+    document.getElementById('delayedDeliveries').textContent = stats.delayed_deliveries;
+    document.getElementById('complaints').textContent = stats.complaints;
+    document.getElementById('potentialCancellations').textContent = stats.potential_cancellations;
+    
+    // Zaman çizelgesini güncelle
+    updateCriticalTimeline(stats.timeline);
+}
+
+function updateTargetsCard(targets) {
+    const deliveryProgress = (targets.delivered_orders / targets.delivery_target) * 100;
+    const revenueProgress = (targets.daily_revenue / targets.revenue_target) * 100;
+    
+    document.getElementById('deliveryProgress').style.width = `${deliveryProgress}%`;
+    document.getElementById('revenueProgress').style.width = `${revenueProgress}%`;
+    document.getElementById('satisfactionRate').textContent = 
+        `${targets.satisfaction_rate.toFixed(1)}/5.0`;
+}
+
+// Yardımcı fonksiyonlar
+function updateDeliveryChart(data) {
+    // Chart.js ile teslimat dağılım grafiği
+}
+
+function updatePaymentChart(data) {
+    // Chart.js ile ödeme dağılım grafiği
+}
+
+function updateCriticalTimeline(data) {
+    // Timeline grafiği
+}
+
+function showError(message) {
+    // Bootstrap toast ile hata göster
 }
 
 function updateSummaryCards(data) {
