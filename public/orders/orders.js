@@ -1,4 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Hidden page input'u ekle
+    const pageInput = document.createElement('input');
+    pageInput.type = 'hidden';
+    pageInput.name = 'page';
+    pageInput.value = '1';
+    document.body.appendChild(pageInput);
+
+    // Per page input'u ekle
+    const perPageInput = document.createElement('input');
+    perPageInput.type = 'hidden';
+    perPageInput.name = 'per_page';
+    perPageInput.value = '10'; // Sayfa başına 10 kayıt
+    document.body.appendChild(perPageInput);
+
     loadHeader();
     setupFilterListeners();
     loadOrders();
@@ -11,8 +25,8 @@ async function loadOrders() {
         const params = new URLSearchParams({
             date_filter: 'today',
             sort: 'date_desc',
-            page: '1',
-            per_page: '20'
+            page: document.querySelector('[name="page"]').value,
+            per_page: document.querySelector('[name="per_page"]').value
         });
 
         const response = await fetch(`${API_URL}/orders/filtered?${params.toString()}`);
@@ -58,8 +72,8 @@ async function applyFilters() {
 
     try {
         const params = new URLSearchParams({
-            page: currentPage.toString(),
-            per_page: '10',  // Sayfa başına gösterilecek sipariş sayısı
+            page: document.querySelector('[name="page"]').value,
+            per_page: document.querySelector('[name="per_page"]').value,
             sort: sort || 'date_desc'
         });
 
@@ -181,8 +195,11 @@ async function showOrderDetails(orderId) {
 // Sayfalama güncelleme
 function updatePagination(data) {
     const pagination = document.getElementById('pagination');
-    const totalPages = data.total_pages;
+    const totalPages = Math.ceil(data.total / parseInt(document.querySelector('[name="per_page"]').value));
     const currentPage = parseInt(data.page);
+
+    // Toplam sayfa sayısını sakla
+    pagination.dataset.totalPages = totalPages;
 
     let html = '';
     
@@ -222,19 +239,16 @@ function updatePagination(data) {
 
 // Sayfaya git
 function goToPage(page) {
-    const totalPages = parseInt(document.querySelector('.pagination').lastElementChild.previousElementSibling.textContent);
+    // Toplam sayfa sayısını kontrol et
+    const totalPages = parseInt(document.querySelector('[data-total-pages]')?.dataset.totalPages || '1');
+    
+    // Geçerli sayfa kontrolü
     if (page < 1 || page > totalPages) return;
     
-    // Gizli input oluştur veya güncelle
-    let pageInput = document.querySelector('[name="page"]');
-    if (!pageInput) {
-        pageInput = document.createElement('input');
-        pageInput.type = 'hidden';
-        pageInput.name = 'page';
-        document.body.appendChild(pageInput);
-    }
-    pageInput.value = page;
+    // Page input'u güncelle
+    document.querySelector('[name="page"]').value = page;
     
+    // Filtreleri uygula
     applyFilters();
 }
 
