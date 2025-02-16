@@ -212,6 +212,11 @@ function renderOrders(orders) {
                                 </button>
                             </li>
                             <li>
+                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'ready')">
+                                    <i class="bi bi-box"></i> Hazır
+                                </button>
+                            </li>
+                            <li>
                                 <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivering')">
                                     <i class="bi bi-truck"></i> Yolda
                                 </button>
@@ -385,9 +390,79 @@ async function quickUpdateStatus(orderId, newStatus) {
 
         if (!response.ok) throw new Error('API Hatası');
 
-        // Başarılı güncelleme
-        showSuccess(`Sipariş durumu güncellendi: ${getStatusText(newStatus)}`);
-        await loadOrders(); // Tabloyu yenile
+        // Toast mesajı göster
+        const toastHTML = `
+            <div class="toast-container position-fixed bottom-0 end-0 p-3">
+                <div class="toast align-items-center text-bg-success border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-check-circle"></i> Sipariş durumu güncellendi: ${getStatusText(newStatus)}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', toastHTML);
+        const toastEl = document.querySelector('.toast');
+        const bsToast = new bootstrap.Toast(toastEl);
+        bsToast.show();
+
+        // Tabloyu yenile
+        await loadOrders();
+
+    } catch (error) {
+        console.error('Durum güncellenirken hata:', error);
+        showError('Durum güncellenemedi!');
+    }
+}
+
+// Durum metinleri
+function getStatusText(status) {
+    const statusMap = {
+        'new': 'Yeni',
+        'preparing': 'Hazırlanıyor',
+        'ready': 'Hazır',
+        'delivering': 'Yolda',
+        'delivered': 'Teslim Edildi',
+        'cancelled': 'İptal'
+    };
+    return statusMap[status] || status;
+}
+
+// Hızlı durum güncelleme
+async function quickUpdateStatus(orderId, newStatus) {
+    try {
+        const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+
+        // Toast mesajı göster
+        const toastHTML = `
+            <div class="toast-container position-fixed bottom-0 end-0 p-3">
+                <div class="toast align-items-center text-bg-success border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-check-circle"></i> Sipariş durumu güncellendi: ${getStatusText(newStatus)}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', toastHTML);
+        const toastEl = document.querySelector('.toast');
+        const bsToast = new bootstrap.Toast(toastEl);
+        bsToast.show();
+
+        // Tabloyu yenile
+        await loadOrders();
 
     } catch (error) {
         console.error('Durum güncellenirken hata:', error);
@@ -437,30 +512,27 @@ async function cancelOrder(orderId) {
         // Modalı kapat
         const modal = bootstrap.Modal.getInstance(document.querySelector('.modal'));
         modal.hide();
-
     } catch (error) {
         console.error('Sipariş iptal edilirken hata:', error);
         showError('Sipariş iptal edilemedi!');
     }
 }
 
-// Durum metinleri
-function getStatusText(status) {
-    const statusMap = {
-        'new': 'Yeni',
-        'preparing': 'Hazırlanıyor',
-        'delivering': 'Yolda',
-        'delivered': 'Teslim Edildi',
-        'cancelled': 'İptal'
-    };
-    return statusMap[status] || status;
-}
-
 // Helper fonksiyonlar
 function getPaymentStatusBadge(status) {
     const badges = {
-        'paid': '<span class="badge bg-success">Ödendi</span>',
         'pending': '<span class="badge bg-warning">Bekliyor</span>',
+        'paid': '<span class="badge bg-success">Ödendi</span>',
         'cancelled': '<span class="badge bg-danger">İptal</span>'
     };
-    return badges[status] || `<span class="badge bg-secondary">${status}</span>`;}function formatTimeSlot(slot) {    const slots = {        'morning': 'Sabah (09:00-12:00)',        'afternoon': 'Öğlen (12:00-17:00)',        'evening': 'Akşam (17:00-21:00)'    };    return slots[slot] || slot;}
+    return badges[status] || `<span class="badge bg-secondary">${status}</span>`;
+}
+
+function formatTimeSlot(slot) {
+    const slots = {
+        'morning': 'Sabah (09:00-12:00)',
+        'afternoon': 'Öğlen (12:00-17:00)',
+        'evening': 'Akşam (17:00-21:00)'
+    };
+    return slots[slot] || slot;
+}
