@@ -338,14 +338,4 @@ function getPaymentStatusBadge(status) {
         'pending': '<span class="badge bg-warning">Bekliyor</span>',
         'cancelled': '<span class="badge bg-danger">İptal</span>'
     };
-    return badges[status] || `<span class="badge bg-secondary">${status}</span>`;}function formatTimeSlot(slot) {    const slots = {        'morning': 'Sabah (09:00-12:00)',        'afternoon': 'Öğlen (12:00-17:00)',        'evening': 'Akşam (17:00-21:00)'    };    return slots[slot] || slot;}// Son olarak değişiklikleri deploy etmek için:/*Git komutları:git add .git commit -m "fix: Order date filter and sorting issues
-- Fix custom date range filtering
-- Update datetime comparison in SQL
-- Add proper time range for dates
-- Fix order sorting"
-git push origin development
-
-Worker deploy:
-cd workers
-wrangler deploy
-*/
+    return badges[status] || `<span class="badge bg-secondary">${status}</span>`;}function formatTimeSlot(slot) {    const slots = {        'morning': 'Sabah (09:00-12:00)',        'afternoon': 'Öğlen (12:00-17:00)',        'evening': 'Akşam (17:00-21:00)'    };    return slots[slot] || slot;}
