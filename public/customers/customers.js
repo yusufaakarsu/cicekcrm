@@ -72,25 +72,32 @@ async function showCustomerDetails(customerId) {
         
         // Müşteri ve sipariş verilerini paralel yükle
         const [customerResponse, ordersResponse] = await Promise.all([
-            fetch(`${API_URL}/customers/${customerId}`).then(res => res.json()),
-            fetch(`${API_URL}/orders/filtered?customer=${customerId}&per_page=5`).then(res => res.json())
+            fetch(`${API_URL}/customers/${customerId}`),
+            fetch(`${API_URL}/customers/${customerId}/orders`)
         ]);
 
+        if (!customerResponse.ok || !ordersResponse.ok) {
+            throw new Error('API Hatası');
+        }
+
+        const customer = await customerResponse.json();
+        const orders = await ordersResponse.json();
+
         // Müşteri detaylarını doldur
-        document.getElementById('detail-name').textContent = customerResponse.name;
-        document.getElementById('detail-phone').textContent = customerResponse.phone;
-        document.getElementById('detail-email').textContent = customerResponse.email || '-';
-        document.getElementById('detail-address').textContent = customerResponse.address;
-        document.getElementById('detail-total-orders').textContent = customerResponse.total_orders || 0;
+        document.getElementById('detail-name').textContent = customer.name;
+        document.getElementById('detail-phone').textContent = customer.phone;
+        document.getElementById('detail-email').textContent = customer.email || '-';
+        document.getElementById('detail-address').textContent = customer.address;
+        document.getElementById('detail-total-orders').textContent = customer.total_orders || 0;
         document.getElementById('detail-last-order').textContent = 
-            customerResponse.last_order ? formatDate(customerResponse.last_order) : '-';
+            customer.last_order ? formatDate(customer.last_order) : '-';
         document.getElementById('detail-total-spent').textContent = 
-            formatCurrency(customerResponse.total_spent || 0);
+            formatCurrency(customer.total_spent || 0);
 
         // Sipariş listesini doldur
         const ordersTable = document.getElementById('customerOrdersTable');
-        if (ordersResponse.orders?.length > 0) {
-            ordersTable.innerHTML = ordersResponse.orders.map(order => `
+        if (orders && orders.length > 0) {
+            ordersTable.innerHTML = orders.map(order => `
                 <tr>
                     <td>${formatDate(order.created_at)}</td>
                     <td>${order.items || '-'}</td>

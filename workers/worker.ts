@@ -276,6 +276,104 @@ api.get('/customers/recent', async (c) => {
   }
 })
 
+// Müşteri detaylarını getir
+api.get('/customers/:id', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  const { id } = c.req.param();
+  
+  try {
+    // Müşteri bilgileri + özet istatistikler
+    const customer = await db.prepare(`
+      SELECT 
+        c.*,
+        COUNT(o.id) as total_orders,
+        MAX(o.created_at) as last_order,
+        SUM(o.total_amount) as total_spent
+      FROM customers c
+      LEFT JOIN orders o ON c.id = o.customer_id AND o.is_deleted = 0
+      WHERE c.id = ?
+      AND c.tenant_id = ?
+      AND c.is_deleted = 0
+      GROUP BY c.id
+    `).bind(id, tenant_id).first();
+
+    if (!customer) {
+      return c.json({ error: 'Customer not found' }, 404);
+    }
+
+    return c.json(customer);
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// Müşteri güncelle
+api.put('/customers/:id', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  const { id } = c.req.param();
+  const body = await c.req.json();
+  
+  try {
+    const result = await db.prepare(`
+      UPDATE customers 
+      SET 
+        name = ?,
+        phone = ?,
+        email = ?,
+        address = ?,
+        updated_at = DATETIME('now')
+      WHERE id = ?
+      AND tenant_id = ?
+      AND is_deleted = 0
+    `).bind(
+      body.name,
+      body.phone,
+      body.email,
+      body.address,
+      id,
+      tenant_id
+    ).run();
+
+    if (result.changes === 0) {
+      return c.json({ error: 'Customer not found or no changes made' }, 404);
+    }
+
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// Müşterinin siparişlerini getir
+api.get('/customers/:id/orders', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  const { id } = c.req.param();
+  
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        o.*,
+        GROUP_CONCAT(oi.quantity || 'x ' || p.name) as items
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN products p ON oi.product_id = p.id
+      WHERE o.customer_id = ?
+      AND o.tenant_id = ?
+      AND o.is_deleted = 0
+      GROUP BY o.id
+      ORDER BY o.created_at DESC
+      LIMIT 10
+    `).bind(id, tenant_id).all();
+
+    return c.json(results || []);
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
 // Bugünün teslimatları
 api.get('/orders/today', async (c) => {
   const db = c.env.DB
@@ -562,99 +660,3 @@ api.get('/orders/:id/details', async (c) => {
 
     return c.json(order);
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500);
-  }
-});
-
-// Yeni sipariş ekle
-api.post('/orders', async (c) => {
-  const db = c.env.DB;
-  const tenant_id = c.get('tenant_id');
-  const body = await c.req.json();
-  
-  try {
-    // Sipariş ana bilgilerini ekle
-    const orderResult = await db.prepare(`
-      INSERT INTO orders (
-        customer_id, delivery_date, delivery_address, 
-        recipient_name, recipient_phone, recipient_note, recipient_address,
-        card_message, status, total_amount, tenant_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?)
-    `).bind(
-      body.customer_id, 
-      body.delivery_date, 
-      body.delivery_address,
-      body.recipient.name,
-      body.recipient.phone,
-      body.recipient.note,
-      body.recipient.address,
-      body.recipient.card_message,
-      body.total_amount,
-      tenant_id
-    ).run();
-
-    // ...existing code for order items...
-
-    return c.json({ success: true, id: orderResult.lastRowId });
-  } catch (error) {
-    return c.json({ error: 'Database error' }, 500);
-  }
-});
-
-// Sipariş güncelleme endpoint'i
-api.put('/orders/:id', async (c) => {
-  const db = c.env.DB;
-  const tenant_id = c.get('tenant_id');
-  const { id } = c.req.param();
-  const body = await c.req.json();
-  
-  try {
-    await db.prepare(`
-      UPDATE orders 
-      SET delivery_date = ?,
-          delivery_address = ?,
-          status = ?,
-          updated_at = DATETIME('now')
-      WHERE id = ?
-      AND tenant_id = ?
-    `).bind(
-      body.delivery_date,
-      body.delivery_address,
-      body.status,
-      id,
-      tenant_id
-    ).run();
-
-    return c.json({ success: true });
-  } catch (error) {
-    return c.json({ error: 'Database error' }, 500);
-  }
-});
-
-// En çok satan ürünleri getir
-api.get('/products/top-selling', async (c) => {
-  const db = c.env.DB;
-  const tenant_id = c.get('tenant_id');
-  try {
-    const { results } = await db.prepare(`
-      SELECT 
-        p.name,
-        SUM(oi.quantity) as total_sold,
-        SUM(oi.quantity * oi.unit_price) as total_revenue
-      FROM products p
-      JOIN order_items oi ON p.id = oi.product_id
-      JOIN orders o ON oi.order_id = o.id
-      WHERE o.status != 'cancelled'
-      AND p.tenant_id = ?
-      GROUP BY p.id, p.name
-      ORDER BY total_sold DESC
-      LIMIT 5
-    `).bind(tenant_id).all();
-    
-    return c.json(results);
-  } catch (error) {
-    return c.json({ error: 'Database error' }, 500);
-  }
-});
-
-export default api
