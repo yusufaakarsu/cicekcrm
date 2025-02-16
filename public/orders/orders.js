@@ -21,10 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // Temel veri yükleme fonksiyonu
 async function loadOrders() {
     try {
-        // Sayfa yüklenirken default filtreler
+        // Default filtreler güncellendi
         const params = new URLSearchParams({
-            date_filter: 'today',
-            sort: 'date_desc',
+            sort: 'id_desc', // id'ye göre azalan sıralama
             page: document.querySelector('[name="page"]').value,
             per_page: document.querySelector('[name="per_page"]').value
         });
@@ -210,21 +209,43 @@ function updatePagination(data) {
         </li>
     `;
 
-    // Sayfa numaraları
-    for (let i = 1; i <= totalPages; i++) {
-        if (
-            i === 1 || // İlk sayfa
-            i === totalPages || // Son sayfa
-            (i >= currentPage - 2 && i <= currentPage + 2) // Aktif sayfanın ±2 komşusu
-        ) {
-            html += `
-                <li class="page-item ${i === currentPage ? 'active' : ''}">
-                    <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${i})">${i}</a>
-                </li>
-            `;
-        } else if (i === currentPage - 3 || i === currentPage + 3) {
-            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-        }
+    // İlk sayfa her zaman göster
+    html += `
+        <li class="page-item ${currentPage === 1 ? 'active' : ''}">
+            <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(1)">1</a>
+        </li>
+    `;
+
+    // Sayfa numaraları için aralık hesapla
+    let startPage = Math.max(2, currentPage - 2);
+    let endPage = Math.min(totalPages - 1, currentPage + 2);
+
+    // Başlangıçta üç nokta
+    if (startPage > 2) {
+        html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+    }
+
+    // Orta sayfalar
+    for (let i = startPage; i <= endPage; i++) {
+        html += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${i})">${i}</a>
+            </li>
+        `;
+    }
+
+    // Sonda üç nokta
+    if (endPage < totalPages - 1) {
+        html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+    }
+
+    // Son sayfa (1'den farklıysa)
+    if (totalPages > 1) {
+        html += `
+            <li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${totalPages})">${totalPages}</a>
+            </li>
+        `;
     }
 
     // Sonraki sayfa
