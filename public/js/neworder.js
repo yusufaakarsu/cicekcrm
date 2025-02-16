@@ -141,6 +141,7 @@ class NewOrderForm {
         const progress = ((step - 1) / (this.totalSteps - 1)) * 100;
         this.progressBar.style.width = `${progress}%`;
         
+        // Badge'leri güncelle
         document.querySelectorAll('.step-badge').forEach((badge, index) => {
             badge.classList.remove('bg-primary', 'bg-success', 'bg-secondary');
             if (index + 1 === step) {
@@ -152,10 +153,19 @@ class NewOrderForm {
             }
         });
 
-        // Adımı göster/gizle
+        // Tüm adımları gizle
         document.querySelectorAll('.step-content').forEach(content => {
-            content.style.display = content.dataset.step == step ? 'block' : 'none';
+            content.style.display = 'none';
         });
+
+        // Aktif adımı göster
+        const activeStep = document.querySelector(`.step-content[data-step="${step}"]`);
+        if (activeStep) {
+            activeStep.style.display = 'block';
+            console.log(`Adım ${step} gösteriliyor`); // Debug için
+        } else {
+            console.warn(`Adım ${step} bulunamadı`); // Debug için
+        }
     }
 
     // Yeni müşteri formu göster

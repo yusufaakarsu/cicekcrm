@@ -38,73 +38,75 @@
             </div>
 
             <!-- Step 1: Müşteri Bilgileri -->
-            <div class="row justify-content-center mb-4" id="step1">
-                <div class="col-lg-8">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white py-3">
-                            <h5 class="card-title mb-0">
-                                <i class="bi bi-person text-primary"></i> Müşteri Bilgileri
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <!-- Telefon ile müşteri arama -->
-                            <div class="mb-4">
-                                <label class="form-label">Telefon Numarası</label>
-                                <div class="input-group">
-                                    <input type="tel" class="form-control form-control-lg" 
-                                           name="phone" placeholder="5XX XXX XX XX"
-                                           required pattern="[0-9]{10}">
-                                    <button class="btn btn-primary" type="button" id="searchCustomer">
-                                        <i class="bi bi-search"></i> Ara
-                                    </button>
-                                </div>
-                                <div class="form-text">Müşteri aramak için telefon numarası girin</div>
+            <div class="step-content" data-step="1">
+                <div class="row justify-content-center mb-4" id="step1">
+                    <div class="col-lg-8">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white py-3">
+                                <h5 class="card-title mb-0">
+                                    <i class="bi bi-person text-primary"></i> Müşteri Bilgileri
+                                </h5>
                             </div>
-
-                            <!-- Müşteri formu -->
-                            <div id="customerForm" style="display:none">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Ad Soyad</label>
-                                        <input type="text" class="form-control" name="customer_name" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">E-posta</label>
-                                        <input type="email" class="form-control" name="customer_email">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Müşteri detayları -->
-                            <div id="customerDetails" style="display:none">
-                                <div class="alert alert-success mb-4">
-                                    <div class="d-flex align-items-center">
-                                        <div class="flex-grow-1">
-                                            <h6 class="alert-heading mb-1">Mevcut Müşteri</h6>
-                                            <p class="mb-0" id="customerInfo"></p>
-                                        </div>
-                                        <button type="button" class="btn btn-sm btn-outline-success" id="changeCustomer">
-                                            <i class="bi bi-pencil"></i> Değiştir
+                            <div class="card-body">
+                                <!-- Telefon ile müşteri arama -->
+                                <div class="mb-4">
+                                    <label class="form-label">Telefon Numarası</label>
+                                    <div class="input-group">
+                                        <input type="tel" class="form-control form-control-lg" 
+                                               name="phone" placeholder="5XX XXX XX XX"
+                                               required pattern="[0-9]{10}">
+                                        <button class="btn btn-primary" type="button" id="searchCustomer">
+                                            <i class="bi bi-search"></i> Ara
                                         </button>
                                     </div>
+                                    <div class="form-text">Müşteri aramak için telefon numarası girin</div>
+                                </div>
+
+                                <!-- Müşteri formu -->
+                                <div id="customerForm" style="display:none">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Ad Soyad</label>
+                                            <input type="text" class="form-control" name="customer_name" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">E-posta</label>
+                                            <input type="email" class="form-control" name="customer_email">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Müşteri detayları -->
+                                <div id="customerDetails" style="display:none">
+                                    <div class="alert alert-success mb-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1">
+                                                <h6 class="alert-heading mb-1">Mevcut Müşteri</h6>
+                                                <p class="mb-0" id="customerInfo"></p>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-success" id="changeCustomer">
+                                                <i class="bi bi-pencil"></i> Değiştir
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="card-footer bg-white d-flex justify-content-between py-3">
-                            <button type="button" class="btn btn-secondary" onclick="window.newOrderForm.prevStep()">
-                                <i class="bi bi-arrow-left"></i> Geri
-                            </button>
-                            <button type="button" class="btn btn-primary" onclick="window.newOrderForm.nextStep()">
-                                İleri <i class="bi bi-arrow-right"></i>
-                            </button>
+                            <div class="card-footer bg-white d-flex justify-content-between py-3">
+                                <button type="button" class="btn btn-secondary" onclick="window.newOrderForm.prevStep()">
+                                    <i class="bi bi-arrow-left"></i> Geri
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="window.newOrderForm.nextStep()">
+                                    İleri <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Step 2: Teslimat Bilgileri -->
-            <div id="step2" style="display:none">
-                <div class="row justify-content-center mb-4">
+            <div class="step-content" data-step="2" style="display:none">
+                <div class="row justify-content-center mb-4" id="step2">
                     <div class="col-lg-8">
                         <div class="card border-0 shadow-sm">
                             <div class="card-header bg-white py-3">
@@ -170,8 +172,8 @@
             </div>
 
             <!-- Step 3: Ürün Seçimi -->
-            <div id="step3" style="display:none">
-                <div class="row justify-content-center mb-4">
+            <div class="step-content" data-step="3" style="display:none">
+                <div class="row justify-content-center mb-4" id="step3">
                     <div class="col-lg-8">
                         <div class="card border-0 shadow-sm">
                             <div class="card-header bg-white py-3">
@@ -201,8 +203,8 @@
             </div>
 
             <!-- Step 4: Ödeme Bilgileri -->
-            <div id="step4" style="display:none">
-                <div class="row justify-content-center mb-4">
+            <div class="step-content" data-step="4" style="display:none">
+                <div class="row justify-content-center mb-4" id="step4">
                     <div class="col-lg-8">
                         <div class="card border-0 shadow-sm">
                             <div class="card-header bg-white py-3">
