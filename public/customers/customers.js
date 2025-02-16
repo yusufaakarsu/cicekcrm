@@ -66,6 +66,104 @@ async function saveCustomer() {
     }
 }
 
+async function showCustomerDetails(customerId) {
+    try {
+        detailsModal = new bootstrap.Modal(document.getElementById('customerDetailsModal'));
+        
+        // Müşteri ve sipariş verilerini paralel yükle
+        const [customerResponse, ordersResponse] = await Promise.all([
+            fetch(`${API_URL}/customers/${customerId}`).then(res => res.json()),
+            fetch(`${API_URL}/orders/filtered?customer=${customerId}&per_page=5`).then(res => res.json())
+        ]);
+
+        // Müşteri detaylarını doldur
+        document.getElementById('detail-name').textContent = customerResponse.name;
+        document.getElementById('detail-phone').textContent = customerResponse.phone;
+        document.getElementById('detail-email').textContent = customerResponse.email || '-';
+        document.getElementById('detail-address').textContent = customerResponse.address;
+        document.getElementById('detail-total-orders').textContent = customerResponse.total_orders || 0;
+        document.getElementById('detail-last-order').textContent = 
+            customerResponse.last_order ? formatDate(customerResponse.last_order) : '-';
+        document.getElementById('detail-total-spent').textContent = 
+            formatCurrency(customerResponse.total_spent || 0);
+
+        // Sipariş listesini doldur
+        const ordersTable = document.getElementById('customerOrdersTable');
+        if (ordersResponse.orders?.length > 0) {
+            ordersTable.innerHTML = ordersResponse.orders.map(order => `
+                <tr>
+                    <td>${formatDate(order.created_at)}</td>
+                    <td>${order.items || '-'}</td>
+                    <td>${formatCurrency(order.total_amount)}</td>
+                    <td>${getStatusBadge(order.status)}</td>
+                </tr>
+            `).join('');
+        } else {
+            ordersTable.innerHTML = '<tr><td colspan="4" class="text-center">Sipariş bulunamadı</td></tr>';
+        }
+
+        detailsModal.show();
+    } catch (error) {
+        console.error('Müşteri detayları yüklenirken hata:', error);
+        showError('Müşteri detayları yüklenemedi!');
+    }
+}
+
+async function editCustomer(customerId) {
+    try {
+        editModal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
+        
+        const response = await fetch(`${API_URL}/customers/${customerId}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const customer = await response.json();
+        const form = document.getElementById('editCustomerForm');
+        
+        // Form alanlarını doldur
+        form.elements['id'].value = customer.id;
+        form.elements['name'].value = customer.name;
+        form.elements['phone'].value = customer.phone;
+        form.elements['email'].value = customer.email || '';
+        form.elements['address'].value = customer.address;
+
+        editModal.show();
+    } catch (error) {
+        console.error('Müşteri bilgileri yüklenirken hata:', error);
+        showError('Müşteri bilgileri yüklenemedi!');
+    }
+}
+
+async function updateCustomer() {
+    const form = document.getElementById('editCustomerForm');
+    const formData = new FormData(form);
+    const customerId = formData.get('id');
+    
+    try {
+        const response = await fetch(`${API_URL}/customers/${customerId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(Object.fromEntries(formData))
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+
+        editModal.hide();
+        loadCustomers();
+        showSuccess('Müşteri başarıyla güncellendi!');
+    } catch (error) {
+        console.error('Müşteri güncellenirken hata:', error);
+        showError('Müşteri güncellenemedi!');
+    }
+}
+
+function showAddCustomerModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addCustomerModal'));
+    document.getElementById('addCustomerForm').reset();
+    modal.show();
+}
+
 // Helper fonksiyonlar
 function showError(message) {
     const toast = `
