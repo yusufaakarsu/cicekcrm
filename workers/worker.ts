@@ -962,25 +962,42 @@ api.get('/addresses', async (c) => {
   }
 });
 
+// Helper function for phone number cleaning
+function cleanPhoneNumber(phone: string): string {
+    // Remove all non-digits
+    let clean = phone.replace(/\D/g, '');
+    
+    // Remove leading 0 if exists
+    if (clean.startsWith('0')) {
+        clean = clean.substring(1);
+    }
+    
+    return clean;
+}
+
+// Update the customer search endpoint
 api.get('/customers/phone/:phone', async (req) => {
-  const phone = req.params.phone;
-  
-  try {
-      const customer = await DB
-          .prepare('SELECT * FROM customers WHERE phone = ? AND is_deleted = 0 LIMIT 1')
-          .bind(phone)
-          .first();
-          
-      return Response.json({
-          success: true,
-          customer: customer || null
-      });
-  } catch (error) {
-      return Response.json({
-          success: false,
-          error: error.message
-      }, { status: 500 });
-  }
+    let phone = req.params.phone;
+    
+    // Clean the phone number
+    phone = cleanPhoneNumber(phone);
+    
+    try {
+        const customer = await DB
+            .prepare('SELECT * FROM customers WHERE phone = ? AND is_deleted = 0 LIMIT 1')
+            .bind(phone)
+            .first();
+            
+        return Response.json({
+            success: true,
+            customer: customer || null
+        });
+    } catch (error) {
+        return Response.json({
+            success: false,
+            error: error.message
+        }, { status: 500 });
+    }
 });
 
 export default api

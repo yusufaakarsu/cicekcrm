@@ -19,7 +19,15 @@ class NewOrderForm {
         const phoneInput = document.querySelector('input[name="phone"]');
         
         searchButton.addEventListener('click', () => this.searchCustomer());
-        phoneInput.addEventListener('input', (e) => this.formatPhoneNumber(e.target));
+        phoneInput.addEventListener('input', (e) => this.formatPhoneDisplay(e.target));
+        
+        // Enter tuşu ile arama
+        phoneInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.searchCustomer();
+            }
+        });
 
         // Form adımları için butonlar
         document.querySelectorAll('[data-action="next"]').forEach(btn => 
@@ -36,29 +44,46 @@ class NewOrderForm {
         this.showStep(1);
     }
 
-    // Format phone number
-    formatPhoneNumber(input) {
-        let value = input.value.replace(/\D/g, '');
-        if (value.length > 10) value = value.slice(0, 10);
+    // Telefon numarasını temizle ve formatla
+    cleanPhoneNumber(phone) {
+        // Tüm boşlukları ve özel karakterleri kaldır
+        let clean = phone.replace(/\D/g, '');
         
-        // Format as 0XXX XXX XX XX
-        if (value.length >= 1) value = '0' + value;
-        if (value.length >= 5) value = value.slice(0,4) + ' ' + value.slice(4);
-        if (value.length >= 8) value = value.slice(0,8) + ' ' + value.slice(8);
-        if (value.length >= 10) value = value.slice(0,10) + ' ' + value.slice(10);
+        // Baştaki 0'ı kaldır
+        if (clean.startsWith('0')) {
+            clean = clean.substring(1);
+        }
         
-        input.value = value;
+        return clean;
+    }
+
+    // Input formatlaması (görsel amaçlı)
+    formatPhoneDisplay(input) {
+        let clean = this.cleanPhoneNumber(input.value);
+        
+        // Uzunluk kontrolü
+        if (clean.length > 10) clean = clean.slice(0, 10);
+        
+        // XXX XXX XX XX formatı
+        if (clean.length >= 3) clean = clean.slice(0,3) + ' ' + clean.slice(3);
+        if (clean.length >= 7) clean = clean.slice(0,7) + ' ' + clean.slice(7);
+        if (clean.length >= 9) clean = clean.slice(0,9) + ' ' + clean.slice(9);
+        
+        input.value = clean;
     }
 
     async searchCustomer() {
-        const phone = document.querySelector('input[name="phone"]').value.replace(/\D/g, '');
-        if (phone.length !== 10) {
+        // Telefon numarasını formatla
+        const rawPhone = document.querySelector('input[name="phone"]').value;
+        const cleanPhone = this.cleanPhoneNumber(rawPhone);
+        
+        if (cleanPhone.length !== 10) {
             showError('Geçerli bir telefon numarası girin');
             return;
         }
 
         try {
-            const response = await fetch(`${API_URL}/customers/phone/${phone}`);
+            const response = await fetch(`${API_URL}/customers/phone/${cleanPhone}`);
             const data = await response.json();
 
             if (data.success) {
