@@ -54,10 +54,14 @@ async function applyFilters() {
     const sort = document.getElementById('sortFilter').value;
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
+    const currentPage = document.querySelector('[name="page"]')?.value || 1;
 
     try {
-        let url = `${API_URL}/orders/filtered?`;
-        const params = new URLSearchParams();
+        const params = new URLSearchParams({
+            page: currentPage.toString(),
+            per_page: '10',  // Sayfa başına gösterilecek sipariş sayısı
+            sort: sort || 'date_desc'
+        });
 
         if (status) params.append('status', status);
         if (dateFilter !== 'custom') params.append('date_filter', dateFilter);
@@ -65,9 +69,8 @@ async function applyFilters() {
             params.append('start_date', startDate);
             params.append('end_date', endDate);
         }
-        if (sort) params.append('sort', sort);
 
-        const response = await fetch(`${url}${params.toString()}`);
+        const response = await fetch(`${API_URL}/orders/filtered?${params.toString()}`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
@@ -179,30 +182,38 @@ async function showOrderDetails(orderId) {
 function updatePagination(data) {
     const pagination = document.getElementById('pagination');
     const totalPages = data.total_pages;
-    const currentPage = data.page;
+    const currentPage = parseInt(data.page);
 
     let html = '';
     
     // Önceki sayfa
     html += `
         <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="goToPage(${currentPage - 1})">Önceki</a>
+            <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${currentPage - 1})" ${currentPage === 1 ? 'tabindex="-1"' : ''}>Önceki</a>
         </li>
     `;
 
     // Sayfa numaraları
     for (let i = 1; i <= totalPages; i++) {
-        html += `
-            <li class="page-item ${i === currentPage ? 'active' : ''}">
-                <a class="page-link" href="#" onclick="goToPage(${i})">${i}</a>
-            </li>
-        `;
+        if (
+            i === 1 || // İlk sayfa
+            i === totalPages || // Son sayfa
+            (i >= currentPage - 2 && i <= currentPage + 2) // Aktif sayfanın ±2 komşusu
+        ) {
+            html += `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${i})">${i}</a>
+                </li>
+            `;
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
     }
 
     // Sonraki sayfa
     html += `
         <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="goToPage(${currentPage + 1})">Sonraki</a>
+            <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'tabindex="-1"' : ''}>Sonraki</a>
         </li>
     `;
 
@@ -211,8 +222,19 @@ function updatePagination(data) {
 
 // Sayfaya git
 function goToPage(page) {
-    if (page < 1) return;
-    document.querySelector('[name="page"]').value = page;
+    const totalPages = parseInt(document.querySelector('.pagination').lastElementChild.previousElementSibling.textContent);
+    if (page < 1 || page > totalPages) return;
+    
+    // Gizli input oluştur veya güncelle
+    let pageInput = document.querySelector('[name="page"]');
+    if (!pageInput) {
+        pageInput = document.createElement('input');
+        pageInput.type = 'hidden';
+        pageInput.name = 'page';
+        document.body.appendChild(pageInput);
+    }
+    pageInput.value = page;
+    
     applyFilters();
 }
 
