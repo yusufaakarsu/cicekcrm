@@ -1000,4 +1000,32 @@ api.get('/customers/phone/:phone', async (req) => {
     }
 });
 
+// Telefon ile müşteri arama endpoint'i
+api.get('/customers/phone/:phone', async (c) => {
+    const phone = c.req.param('phone').replace(/\D/g, '').replace(/^0+/, '');
+    const tenant_id = c.get('tenant_id');
+    
+    console.log('Aranan telefon:', phone); // Debug için
+    
+    try {
+        const customer = await c.env.DB
+            .prepare('SELECT * FROM customers WHERE phone = ? AND tenant_id = ? AND is_deleted = 0')
+            .bind(phone, tenant_id)
+            .first();
+        
+        console.log('Bulunan müşteri:', customer); // Debug için
+
+        return c.json({
+            success: true,
+            customer: customer || null
+        });
+    } catch (error) {
+        console.error('Müşteri arama hatası:', error);
+        return c.json({
+            success: false,
+            error: error.message
+        }, 500);
+    }
+});
+
 export default api

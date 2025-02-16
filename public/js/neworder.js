@@ -19,7 +19,6 @@ class NewOrderForm {
         const phoneInput = document.querySelector('input[name="phone"]');
         
         searchButton.addEventListener('click', () => this.searchCustomer());
-        phoneInput.addEventListener('input', (e) => this.formatPhoneDisplay(e.target));
         
         // Enter tuşu ile arama
         phoneInput.addEventListener('keypress', (e) => {
@@ -44,36 +43,12 @@ class NewOrderForm {
         this.showStep(1);
     }
 
-    // Telefon numarasını temizle ve formatla
+    // Sadece API çağrısı öncesi temizleme yap
     cleanPhoneNumber(phone) {
-        // Tüm boşlukları ve özel karakterleri kaldır
-        let clean = phone.replace(/\D/g, '');
-        
-        // Baştaki 0'ı kaldır
-        if (clean.startsWith('0')) {
-            clean = clean.substring(1);
-        }
-        
-        return clean;
-    }
-
-    // Input formatlaması (görsel amaçlı)
-    formatPhoneDisplay(input) {
-        let clean = this.cleanPhoneNumber(input.value);
-        
-        // Uzunluk kontrolü
-        if (clean.length > 10) clean = clean.slice(0, 10);
-        
-        // XXX XXX XX XX formatı
-        if (clean.length >= 3) clean = clean.slice(0,3) + ' ' + clean.slice(3);
-        if (clean.length >= 7) clean = clean.slice(0,7) + ' ' + clean.slice(7);
-        if (clean.length >= 9) clean = clean.slice(0,9) + ' ' + clean.slice(9);
-        
-        input.value = clean;
+        return phone.replace(/\D/g, '').replace(/^0+/, '');
     }
 
     async searchCustomer() {
-        // Telefon numarasını formatla
         const rawPhone = document.querySelector('input[name="phone"]').value;
         const cleanPhone = this.cleanPhoneNumber(rawPhone);
         
@@ -82,23 +57,24 @@ class NewOrderForm {
             return;
         }
 
+        console.log('Aranan numara:', cleanPhone); // Debug için
+
         try {
             const response = await fetch(`${API_URL}/customers/phone/${cleanPhone}`);
             const data = await response.json();
+            
+            console.log('API yanıtı:', data); // Debug için
 
-            if (data.success) {
-                // Mevcut müşteri
+            if (data && data.customer) {
                 this.customerId = data.customer.id;
                 this.showCustomerDetails(data.customer);
-                // Kayıtlı adresleri yükle
                 this.loadCustomerAddresses(data.customer.id);
             } else {
-                // Yeni müşteri formu
                 this.showNewCustomerForm();
             }
         } catch (error) {
             console.error('Müşteri arama hatası:', error);
-            this.showNewCustomerForm(); // Bulunamadıysa yeni form göster
+            this.showNewCustomerForm();
         }
     }
 

@@ -145,7 +145,7 @@ git push origin development
 3. Worker değişikliklerinde deploy:
 ```bash
 
-cd workers/api
+cd workers
 wrangler deploy
 
 ```
