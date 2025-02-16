@@ -25,7 +25,7 @@ api.get('/api/dashboard', async (c) => {
   const tenant_id = c.get('tenant_id');
 
   try {
-    // 1. Teslimat İstatistikleri
+    // 1. Teslimat İstatistikleri 
     const deliveryStats = await db.prepare(`
       SELECT 
         COUNT(*) as total_orders,
@@ -35,15 +35,18 @@ api.get('/api/dashboard', async (c) => {
       FROM orders 
       WHERE DATE(delivery_date) = DATE('now')
       AND tenant_id = ?
+      AND is_deleted = 0
     `).bind(tenant_id).first();
 
     // 2. Finansal İstatistikler
     const finance = await db.prepare(`
       SELECT 
         COALESCE(SUM(CASE WHEN DATE(created_at) = DATE('now') THEN total_amount ELSE 0 END), 0) as daily_revenue,
-        ROUND(AVG(total_amount), 2) as avg_order_value
+        COALESCE(ROUND(AVG(total_amount), 2), 0) as avg_order_value
       FROM orders
-      WHERE tenant_id = ? AND status != 'cancelled'
+      WHERE tenant_id = ? 
+      AND status != 'cancelled'
+      AND is_deleted = 0
     `).bind(tenant_id).first();
 
     // 3. Kritik Durumlar
@@ -52,27 +55,28 @@ api.get('/api/dashboard', async (c) => {
         COUNT(CASE WHEN status = 'delivering' AND 
           DATETIME(delivery_date) < DATETIME('now') THEN 1 END) as delayed_deliveries,
         COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancellations,
-        COUNT(CASE WHEN has_complaint = 1 THEN 1 END) as complaints
+        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as complaints
       FROM orders
       WHERE tenant_id = ? 
       AND DATE(delivery_date) = DATE('now')
+      AND is_deleted = 0
     `).bind(tenant_id).first();
 
     return c.json({
-      deliveryStats: deliveryStats || {
-        total_orders: 0,
-        delivered_orders: 0,
-        pending_orders: 0,
-        preparing_orders: 0
+      deliveryStats: {
+        total_orders: deliveryStats?.total_orders || 0,
+        delivered_orders: deliveryStats?.delivered_orders || 0,
+        pending_orders: deliveryStats?.pending_orders || 0,
+        preparing_orders: deliveryStats?.preparing_orders || 0
       },
-      finance: finance || {
-        daily_revenue: 0,
-        avg_order_value: 0
+      finance: {
+        daily_revenue: finance?.daily_revenue || 0,
+        avg_order_value: finance?.avg_order_value || 0
       },
-      criticalStats: criticalStats || {
-        delayed_deliveries: 0,
-        cancellations: 0,
-        complaints: 0
+      criticalStats: {
+        delayed_deliveries: criticalStats?.delayed_deliveries || 0,
+        cancellations: criticalStats?.cancellations || 0,
+        complaints: criticalStats?.complaints || 0
       }
     });
 

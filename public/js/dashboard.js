@@ -73,13 +73,32 @@ function updateCriticalCard(stats) {
 }
 
 function updateTargetsCard(targets) {
-    const deliveryProgress = (targets.delivered_orders / targets.delivery_target) * 100;
-    const revenueProgress = (targets.daily_revenue / targets.revenue_target) * 100;
+    // targets verisi undefined ise default değerler kullan
+    const defaultTargets = {
+        delivered_orders: 0,
+        delivery_target: 1,  // 0'a bölme hatasını önlemek için 1
+        daily_revenue: 0,
+        revenue_target: 1,   // 0'a bölme hatasını önlemek için 1
+        satisfaction_rate: 0
+    };
+
+    targets = targets || defaultTargets;
+
+    // Güvenli hesaplama
+    const deliveryProgress = Math.min(100, Math.round((targets.delivered_orders || 0) / (targets.delivery_target || 1) * 100));
+    const revenueProgress = Math.min(100, Math.round((targets.daily_revenue || 0) / (targets.revenue_target || 1) * 100));
     
+    // Güvenli güncelleme
     document.getElementById('deliveryProgress').style.width = `${deliveryProgress}%`;
     document.getElementById('revenueProgress').style.width = `${revenueProgress}%`;
+    
+    // Hedef değerleri göster
+    document.getElementById('deliveryTarget').textContent = 
+        `${targets.delivered_orders || 0}/${targets.delivery_target || 0}`;
+    document.getElementById('revenueTarget').textContent = 
+        `${formatCurrency(targets.daily_revenue || 0)}/${formatCurrency(targets.revenue_target || 0)}`;
     document.getElementById('satisfactionRate').textContent = 
-        `${targets.satisfaction_rate.toFixed(1)}/5.0`;
+        `${(targets.satisfaction_rate || 0).toFixed(1)}/5.0`;
 }
 
 // Yardımcı fonksiyonlar
