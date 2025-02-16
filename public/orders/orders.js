@@ -191,13 +191,54 @@ function renderOrders(orders) {
                 ${getPaymentStatusBadge(order.payment_status)}
             </td>
             <td>
-                <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-info" onclick="showOrderDetails(${order.id})" title="Detay">
-                        <i class="bi bi-eye"></i>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-gear"></i>
                     </button>
-                    <button class="btn btn-outline-primary" onclick="editOrder(${order.id})" title="Düzenle">
-                        <i class="bi bi-pencil"></i>
-                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <button class="dropdown-item" onclick="showOrderDetails(${order.id})">
+                                <i class="bi bi-eye"></i> Detay
+                            </button>
+                        </li>
+                        
+                        <li><hr class="dropdown-divider"></li>
+                        
+                        <!-- Hızlı Durum Değiştirme -->
+                        ${order.status !== 'delivered' && order.status !== 'cancelled' ? `
+                            <li>
+                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'preparing')">
+                                    <i class="bi bi-box-seam"></i> Hazırlanıyor
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivering')">
+                                    <i class="bi bi-truck"></i> Yolda
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivered')">
+                                    <i class="bi bi-check-circle"></i> Teslim Edildi
+                                </button>
+                            </li>
+                            
+                            <li><hr class="dropdown-divider"></li>
+                        ` : ''}
+                        
+                        <!-- Düzenleme ve İptal -->
+                        <li>
+                            <button class="dropdown-item" onclick="editOrder(${order.id})">
+                                <i class="bi bi-pencil"></i> Düzenle
+                            </button>
+                        </li>
+                        ${order.status !== 'delivered' && order.status !== 'cancelled' ? `
+                            <li>
+                                <button class="dropdown-item text-danger" onclick="confirmCancelOrder(${order.id})">
+                                    <i class="bi bi-x-circle"></i> İptal Et
+                                </button>
+                            </li>
+                        ` : ''}
+                    </ul>
                 </div>
             </td>
         </tr>
