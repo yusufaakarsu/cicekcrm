@@ -174,10 +174,19 @@ class NewOrderForm {
     validateStep(step) {
         switch(step) {
             case 1: // Müşteri bilgileri
-                return this.customerId || (
-                    document.querySelector('[name="customer_name"]')?.value &&
-                    document.querySelector('[name="phone"]')?.value
-                );
+                // Eğer müşteri zaten seçilmişse veya yeni müşteri bilgileri girilmişse true döndür
+                if (this.customerId) {
+                    return true; // Mevcut müşteri seçilmiş
+                }
+                // Yeni müşteri formu kontrolü
+                const customerForm = document.getElementById('customerForm');
+                if (customerForm.style.display !== 'none') {
+                    const name = document.querySelector('[name="customer_name"]')?.value;
+                    const phone = document.querySelector('[name="phone"]')?.value;
+                    return name && phone;
+                }
+                return false;
+
             case 2: // Teslimat bilgileri
                 return document.querySelector('[name="delivery_address_id"]')?.value &&
                        document.querySelector('[name="recipient_name"]')?.value &&
