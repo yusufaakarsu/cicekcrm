@@ -1,41 +1,34 @@
 class AddressSelect {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
-        if (!this.container) throw new Error('Container bulunamadı');
-        
         this.selectedAddress = null;
+        this.init();
+    }
+
+    init() {
         this.render();
-        this.setupEventListeners();
+        this.setupEventListeners(); 
     }
 
     render() {
+        // Basit adres arama formu
         this.container.innerHTML = `
-            <!-- Kayıtlı Adresler -->
-            <div id="savedAddresses" class="mb-3"></div>
-
-            <!-- Adres Arama -->
-            <div class="input-group mb-2">
-                <input type="text" class="form-control" 
-                       id="addressSearchInput" 
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="addressSearchInput" 
                        placeholder="Adres aramak için yazın...">
                 <button class="btn btn-primary" type="button" id="addressSearchBtn">
-                    <i class="bi bi-search"></i> Ara
+                    <i class="bi bi-search"></i>
                 </button>
             </div>
-
-            <!-- Arama Sonuçları -->
-            <div id="addressSearchResults" class="list-group mt-2" style="display:none"></div>
-            
-            <!-- Seçilen Adres -->
+            <div id="addressSearchResults" class="list-group" style="display:none"></div>
             <div id="selectedAddress" class="alert alert-success mt-2" style="display:none"></div>
         `;
 
-        // Elementlere kolay erişim için referansları sakla
+        // Elementleri sakla
         this.searchInput = this.container.querySelector('#addressSearchInput');
         this.searchBtn = this.container.querySelector('#addressSearchBtn');
         this.resultsDiv = this.container.querySelector('#addressSearchResults');
         this.selectedDiv = this.container.querySelector('#selectedAddress');
-        this.savedAddressesDiv = this.container.querySelector('#savedAddresses');
     }
 
     setupEventListeners() {
@@ -169,7 +162,5 @@ class AddressSelect {
     }
 }
 
-// Global instance oluşturma - sadece bu kalsın
-document.addEventListener('DOMContentLoaded', () => {
-    window.addressSelect = new AddressSelect('addressSelectContainer');
-});
+// Global instance
+window.addressSelect = new AddressSelect('addressSelectContainer');

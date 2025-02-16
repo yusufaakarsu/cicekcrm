@@ -104,9 +104,13 @@ class NewOrderForm {
 
     async loadProducts() {
         try {
-            const response = await fetch(`${API_URL}/products`);
-            const products = await response.json();
-            
+            // API çalışana kadar test data kullan
+            const testProducts = [
+                {id: 1, name: 'Kırmızı Güller', stock: 50, retail_price: 199.90},
+                {id: 2, name: 'Beyaz Orkide', stock: 25, retail_price: 299.90},
+                {id: 3, name: 'Renkli Papatya', stock: 75, retail_price: 149.90}
+            ];
+
             const productList = document.getElementById('productList');
             productList.innerHTML = `
                 <div class="table-responsive">
@@ -121,7 +125,7 @@ class NewOrderForm {
                             </tr>
                         </thead>
                         <tbody>
-                            ${products.map(product => `
+                            ${testProducts.map(product => `
                                 <tr>
                                     <td>${product.name}</td>
                                     <td>${product.stock}</td>
@@ -197,60 +201,70 @@ class NewOrderForm {
         // Form alanlarını temizle
         form.querySelector('[name="customer_name"]').value = '';
         form.querySelector('[name="customer_email"]').value = '';
-    }
-
+    } 
+ true; // Mevcut müşteri seçiliyse geç
     validateStep(step) {
-        switch(step) {
-            case 1: // Müşteri bilgileri
-                return this.customerId || (
-                    document.querySelector('[name="customer_name"]')?.value &&
+        switch(step) {merForm');
+            case 1: // Müşteri bilgileri (customerForm.style.display === 'none') return true;
+                return this.customerId || (                
+                    document.querySelector('[name="customer_name"]')?.value &&ctor('[name="customer_name"]')?.value &&
                     document.querySelector('[name="phone"]')?.value
                 );
 
-            case 2: // Teslimat bilgileri
-                const selectedAddress = window.addressSelect.getSelectedAddress();
-                if (!selectedAddress) {
+            case 2: // Teslimat bilgileriress = window.addressSelect.getSelectedAddress();
+                const selectedAddress = window.addressSelect.getSelectedAddress();f (!selectedAddress) {
+                if (!selectedAddress) {                    showError('Lütfen teslimat adresi seçin');
                     showError('Lütfen teslimat adresi seçin');
                     return false;
                 }
 
-                const recipientName = document.querySelector('[name="recipient_name"]')?.value;
+                const recipientName = document.querySelector('[name="recipient_name"]')?.value;                const requiredFields = [
                 const recipientPhone = document.querySelector('[name="recipient_phone"]')?.value;
                 const deliveryDate = document.querySelector('[name="delivery_date"]')?.value;
-                const timeSlot = document.querySelector('[name="delivery_time_slot"]')?.value;
-
-                if (!recipientName || !recipientPhone || !deliveryDate || !timeSlot) {
+                const timeSlot = document.querySelector('[name="delivery_time_slot"]')?.value;e',
+   'delivery_time_slot'
+                if (!recipientName || !recipientPhone || !deliveryDate || !timeSlot) {                ];
                     showError('Lütfen tüm zorunlu alanları doldurun');
-                    return false;
-                }
+                    return false;                const emptyFields = requiredFields.filter(field => 
+                }ySelector(`[name="${field}"]`)?.value
 
                 return true;
 
-            case 3: // Ürün seçimi
-                return true; // Şimdilik geç
-            case 4: // Ödeme
+            case 3: // Ürün seçimishowError('Lütfen tüm zorunlu alanları doldurun');
+                return true; // Şimdilik geçalse;
+            case 4: // Ödeme       }
                 return document.querySelector('[name="payment_method"]')?.value;
-            default:
+            default:                return true;
                 return true;
         }
     }
-
-    nextStep() {
-        if (!this.validateStep(this.currentStep)) {
+ // Ödeme
+    nextStep() {       return document.querySelector('[name="payment_method"]')?.value;
+        if (!this.validateStep(this.currentStep)) {            default:
             showError('Lütfen tüm zorunlu alanları doldurunuz');
             return;
         }
 
-        if (this.currentStep < this.totalSteps) {
-            this.currentStep++;
-            this.showStep(this.currentStep);
+        if (this.currentStep < this.totalSteps) {extStep() {
+            this.currentStep++;        if (!this.validateStep(this.currentStep)) {
+            this.showStep(this.currentStep);Error('Lütfen tüm zorunlu alanları doldurunuz');
         }
     }
 
-    prevStep() {
-        if (this.currentStep > 1) {
-            this.currentStep--;
-            this.showStep(this.currentStep);
+    prevStep() {f (this.currentStep < this.totalSteps) {
+        if (this.currentStep > 1) {       this.currentStep++;
+            this.currentStep--;           this.showStep(this.currentStep);
+            this.showStep(this.currentStep);        }
+        }
+    }
+}
+     if (this.currentStep > 1) {
+// Sayfa yüklendiğinde formu başlat            this.currentStep--;
+
+
+
+
+});    window.newOrderForm = new NewOrderForm();document.addEventListener('DOMContentLoaded', () => {            this.showStep(this.currentStep);
         }
     }
 }
