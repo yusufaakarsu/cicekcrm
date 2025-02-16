@@ -150,6 +150,22 @@ async function showCustomerDetails(customerId) {
     }
 }
 
+function toggleEditCompanyFields(customerType) {
+    const companyFields = document.getElementById('editCompanyFields');
+    companyFields.style.display = customerType === 'corporate' ? 'block' : 'none';
+    
+    const companyName = document.querySelector('#editCustomerForm input[name="company_name"]');
+    const taxNumber = document.querySelector('#editCustomerForm input[name="tax_number"]');
+    
+    if (customerType === 'corporate') {
+        companyName.setAttribute('required', '');
+        taxNumber.setAttribute('required', '');
+    } else {
+        companyName.removeAttribute('required');
+        taxNumber.removeAttribute('required');
+    }
+}
+
 async function editCustomer(customerId) {
     try {
         editModal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
@@ -162,11 +178,21 @@ async function editCustomer(customerId) {
         
         // Form alanlarını doldur
         form.elements['id'].value = customer.id;
+        form.elements['customer_type'].value = customer.customer_type || 'retail';
         form.elements['name'].value = customer.name;
         form.elements['phone'].value = customer.phone;
         form.elements['email'].value = customer.email || '';
-        form.elements['address'].value = customer.address;
+        form.elements['address'].value = customer.address || '';
+        form.elements['city'].value = customer.city || '';
+        form.elements['district'].value = customer.district || '';
+        form.elements['company_name'].value = customer.company_name || '';
+        form.elements['tax_number'].value = customer.tax_number || '';
+        form.elements['special_dates'].value = customer.special_dates || '';
+        form.elements['notes'].value = customer.notes || '';
 
+        // Kurumsal alanları göster/gizle
+        toggleEditCompanyFields(customer.customer_type);
+        
         editModal.show();
     } catch (error) {
         console.error('Müşteri bilgileri yüklenirken hata:', error);
@@ -176,22 +202,33 @@ async function editCustomer(customerId) {
 
 async function updateCustomer() {
     const form = document.getElementById('editCustomerForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
     const formData = new FormData(form);
     const customerId = formData.get('id');
+    const data = Object.fromEntries(formData);
     
+    // Boş alanları temizle
+    Object.keys(data).forEach(key => {
+        if (!data[key]) delete data[key];
+    });
+
     try {
         const response = await fetch(`${API_URL}/customers/${customerId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(Object.fromEntries(formData))
+            body: JSON.stringify(data)
         });
 
         if (!response.ok) throw new Error('API Hatası');
 
         editModal.hide();
-        loadCustomers();
+        await loadCustomers();
         showSuccess('Müşteri başarıyla güncellendi!');
     } catch (error) {
         console.error('Müşteri güncellenirken hata:', error);

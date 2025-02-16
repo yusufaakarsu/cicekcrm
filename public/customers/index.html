@@ -189,20 +189,59 @@
                     <form id="editCustomerForm">
                         <input type="hidden" name="id">
                         <div class="mb-3">
-                            <label class="form-label">Müşteri Adı</label>
+                            <label class="form-label">Müşteri Tipi</label>
+                            <select class="form-control" name="customer_type" onchange="toggleEditCompanyFields(this.value)">
+                                <option value="retail">Bireysel</option>
+                                <option value="corporate">Kurumsal</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Müşteri Adı *</label>
                             <input type="text" class="form-control" name="name" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Telefon</label>
+                            <label class="form-label">Telefon *</label>
                             <input type="tel" class="form-control" name="phone" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Email</label>
-                            <input type="email" class="form-control" name="email">
+                            <input type="email" class="form-control" name="email" 
+                                   pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Adres</label>
-                            <textarea class="form-control" name="address" rows="3" required></textarea>
+                            <textarea class="form-control" name="address" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Şehir</label>
+                                <input type="text" class="form-control" name="city">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">İlçe</label>
+                                <input type="text" class="form-control" name="district">
+                            </div>
+                        </div>
+                        <!-- Kurumsal müşteri alanları -->
+                        <div id="editCompanyFields" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Firma Adı</label>
+                                <input type="text" class="form-control" name="company_name">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Vergi Numarası</label>
+                                <input type="text" class="form-control" name="tax_number" 
+                                       pattern="[0-9]*" maxlength="10">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Özel Tarihler</label>
+                            <input type="text" class="form-control" name="special_dates" 
+                                   placeholder="Örn: Doğum günü: 15.05, Evlilik yıldönümü: 22.08">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notlar</label>
+                            <textarea class="form-control" name="notes" rows="2"></textarea>
                         </div>
                     </form>
                 </div>
