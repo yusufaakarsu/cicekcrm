@@ -111,20 +111,22 @@ class AddressSelect {
         if (query.length < 3) return;
         
         try {
-            // İstanbul'a özel sorgu oluştur
-            const searchQuery = `${query}, İstanbul, Turkey`;
+            // Query parametrelerini düzelt
             const params = new URLSearchParams({
-                q: searchQuery,
-                apiKey: this.options.apiKey,
-                in: 'countryCode:TUR,city:Istanbul', 
+                apiKey: this.options.apiKey, 
+                q: `${query}, Istanbul, Turkey`,
+                in: 'countryCode:TUR',
                 limit: 5
             }).toString();
 
-            const response = await fetch(
-                `https://geocode.search.hereapi.com/v1/geocode?${params}`
-            );
+            const url = `https://geocode.search.hereapi.com/v1/geocode?${params}`;
+            console.log('Search URL:', url); // Debug için
+
+            const response = await fetch(url);
             
             if (!response.ok) {
+                const error = await response.text();
+                console.error('API Error:', error); // Debug için
                 throw new Error('API request failed');
             }
 
@@ -132,29 +134,32 @@ class AddressSelect {
             const resultsContainer = this.container.querySelector('#address-search-results');
             resultsContainer.style.display = 'block';
 
-            // İstanbul sonuçlarını filtrele
-            const istanbulResults = data.items?.filter(item => 
-                item.address?.city?.toLowerCase().includes('istanbul')
-            ) || [];
+            if (!data.items || data.items.length === 0) {
+                resultsContainer.innerHTML = '<div class="list-group-item">Sonuç bulunamadı</div>';
+                return;
+            }
 
-            if (istanbulResults.length > 0) {
-                resultsContainer.innerHTML = istanbulResults.map(item => `
+            // Sadece İstanbul'daki sonuçları filtrele
+            const istanbulResults = data.items.filter(item => 
+                item.address?.city?.toLowerCase().includes('istanbul')
+            );
+
+            resultsContainer.innerHTML = istanbulResults.length > 0 
+                ? istanbulResults.map(item => `
                     <div class="list-group-item">
-                        <strong>${item.address.street || item.address.label}</strong>
-                        <br>
-                        <small class="text-muted">
-                            ${item.address.district || ''} / ${item.address.city}
-                            ${item.address.postalCode ? `(${item.address.postalCode})` : ''}
-                        </small>
-                        <button class="btn btn-sm btn-outline-primary mt-2 w-100" 
-                                onclick='window.addressSelect.selectAddress(${JSON.stringify(item)})'>
+                        <div class="d-flex w-100 justify-content-between">
+                            <strong>${item.address.street || item.address.label}</strong>
+                            <small>${item.address.postalCode || ''}</small>
+                        </div>
+                        <p class="mb-1">${item.address.district || ''} / ${item.address.city}</p>
+                        <button class="btn btn-sm btn-outline-primary mt-2" 
+                                onclick="addressSelect.selectAddress(${JSON.stringify(item)})">
                             Bu Adresi Seç
                         </button>
                     </div>
-                `).join('');
-            } else {
-                resultsContainer.innerHTML = '<div class="list-group-item">İstanbul\'da adres bulunamadı</div>';
-            }
+                `).join('')
+                : '<div class="list-group-item">İstanbul\'da sonuç bulunamadı</div>';
+
         } catch (error) {
             console.error('Adres arama hatası:', error);
             this.container.querySelector('#address-search-results').innerHTML = 
@@ -217,3 +222,8 @@ class AddressSelect {
         }
     }
 }
+
+// Global instance
+window.addressSelect = new AddressSelect('addressSelect', {
+    apiKey: CONFIG.HERE_API_KEY
+});
