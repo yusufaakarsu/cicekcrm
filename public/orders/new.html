@@ -105,7 +105,7 @@
             </div>
 
             <!-- Step 2: Teslimat Bilgileri -->
-            <div class="step-content" data-step="2" style="display:none">
+            <div class="step-content" data-step="2">
                 <div class="row justify-content-center mb-4">
                     <div class="col-lg-8">
                         <div class="card border-0 shadow-sm">
@@ -115,12 +115,20 @@
                                 </h5>
                             </div>
                             <div class="card-body">
-                                <!-- Adres Arama -->
+                                <!-- DÜZELTME - Adres arama direkt burada -->
                                 <div class="mb-4">
-                                    <label class="form-label fw-500">Teslimat Adresi</label>
-                                    <div id="addressesContainer">
-                                        <!-- Adres seçici buraya gelecek -->
+                                    <label class="form-label">Teslimat Adresi</label>
+                                    <div class="input-group mb-2">
+                                        <input type="text" 
+                                               class="form-control" 
+                                               placeholder="Adres aramak için yazın..." 
+                                               id="addressSearchInput">
+                                        <button class="btn btn-primary" type="button" id="addressSearchBtn">
+                                            <i class="bi bi-search"></i> Ara
+                                        </button>
                                     </div>
+                                    <div id="addressSearchResults" class="list-group shadow-sm mt-2" style="display:none"></div>
+                                    <div id="selectedAddress" class="alert alert-success mt-2" style="display:none"></div>
                                 </div>
 
                                 <!-- Alıcı Bilgileri -->
