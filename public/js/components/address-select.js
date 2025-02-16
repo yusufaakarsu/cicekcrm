@@ -11,24 +11,36 @@ class AddressSelect {
     }
 
     render() {
+        // Temiz ve basit bir arayüz
         this.container.innerHTML = `
-            <div class="mb-3">
-                <!-- Adres Arama -->
-                <div class="input-group mb-2">
-                    <input type="text" 
-                           class="form-control" 
-                           placeholder="Adres aramak için yazın (ör: Beşiktaş, İstiklal Caddesi)..." 
-                           id="addressSearchInput">
-                    <button class="btn btn-outline-primary" type="button" id="addressSearchBtn">
-                        <i class="bi bi-search"></i>
-                    </button>
+            <div class="mb-4">
+                <!-- Kayıtlı Adresler -->
+                <div id="savedAddresses" class="mb-3"></div>
+
+                <!-- Yeni Adres Arama -->
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" 
+                               class="form-control form-control-lg" 
+                               placeholder="Yeni adres aramak için yazın..." 
+                               id="addressSearchInput">
+                        <button class="btn btn-primary" type="button" id="addressSearchBtn">
+                            <i class="bi bi-search"></i> Ara
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Arama Sonuçları -->
-                <div id="addressSearchResults" class="list-group shadow-sm" style="display:none"></div>
+                <div id="addressSearchResults" 
+                     class="list-group shadow-sm rounded-3" 
+                     style="display:none; max-height: 300px; overflow-y: auto;">
+                </div>
 
                 <!-- Seçili Adres -->
-                <div id="selectedAddress" class="alert alert-success mt-3" style="display:none"></div>
+                <div id="selectedAddress" 
+                     class="alert alert-success mt-3" 
+                     style="display:none">
+                </div>
             </div>
         `;
 
@@ -71,6 +83,8 @@ class AddressSelect {
             });
 
             const response = await fetch(`https://geocode.search.hereapi.com/v1/geocode?${params}`);
+            if (!response.ok) throw new Error('API Hatası');
+            
             const data = await response.json();
             this.showResults(data.items || []);
 
@@ -85,18 +99,24 @@ class AddressSelect {
         resultsDiv.style.display = 'block';
 
         if (items.length === 0) {
-            resultsDiv.innerHTML = '<div class="list-group-item">Sonuç bulunamadı</div>';
+            resultsDiv.innerHTML = `
+                <div class="list-group-item text-center text-muted py-3">
+                    <i class="bi bi-geo-alt"></i> Sonuç bulunamadı
+                </div>`;
             return;
         }
 
         resultsDiv.innerHTML = items.map(item => `
             <div class="list-group-item">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center p-2">
                     <div>
-                        <strong>${item.title}</strong><br>
-                        <small class="text-muted">${item.address.street || ''}, ${item.address.district || ''}</small>
+                        <h6 class="mb-1">${item.title}</h6>
+                        <p class="mb-0 text-muted small">
+                            ${item.address.street || ''}, ${item.address.district || ''}
+                        </p>
                     </div>
-                    <button class="btn btn-sm btn-primary" onclick='addressSelect.selectAddress(${JSON.stringify(item)})'>
+                    <button class="btn btn-sm btn-primary ms-3" 
+                            onclick='addressSelect.selectAddress(${JSON.stringify(item)})'>
                         Seç
                     </button>
                 </div>
