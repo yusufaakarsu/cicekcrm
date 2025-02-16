@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adres API Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>HERE API Test</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Adres Ara</label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Örn: Beşiktaş, İstanbul">
+                </div>
+                <button class="btn btn-primary" onclick="searchAddress()">Ara</button>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <h3>Sonuçlar:</h3>
+            <pre id="results" class="bg-light p-3 rounded"></pre>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = '8ga3iUSKvwTytKYkk8PbpnnH5iCFlNDsvFoSyCghhjI';
+
+        async function searchAddress() {
+            const query = document.getElementById('searchInput').value;
+            const resultsDiv = document.getElementById('results');
+
+            try {
+                const response = await fetch(
+                    `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(query)}&apiKey=${API_KEY}`
+                );
+                const data = await response.json();
+                
+                resultsDiv.textContent = JSON.stringify(data, null, 2);
+
+                // Başarılı sonuç varsa veritabanına kaydet
+                if (data.items && data.items.length > 0) {
+                    const address = data.items[0];
+                    await saveAddress({
+                        label: address.title,
+                        city: address.address.city,
+                        district: address.address.district || address.address.county,
+                        postal_code: address.address.postalCode,
+                        street: address.address.street,
+                        position: address.position,
+                        source: 'here_api',
+                        here_place_id: address.id
+                    });
+                }
+            } catch (error) {
+                resultsDiv.textContent = 'Hata: ' + error.message;
+            }
+        }
+
+        async function saveAddress(addressData) {
+            try {
+                const response = await fetch('https://cicek-crm-api.yusufaakarsu.workers.dev/addresses', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(addressData)
+                });
+
+                const result = await response.json();
+                console.log('Adres kaydedildi:', result);
+            } catch (error) {
+                console.error('Adres kaydedilemedi:', error);
+            }
+        }
+    </script>
+</body>
+</html>

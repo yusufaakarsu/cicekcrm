@@ -704,9 +704,23 @@ api.get('/orders/:id/details', async (c) => {
       SELECT 
         o.*,
         c.name as customer_name,
-        GROUP_CONCAT(oi.quantity || 'x ' || p.name) as items
+        c.phone as customer_phone,
+        a.label as delivery_address,
+        a.city as delivery_city,
+        a.district as delivery_district,
+        a.street as delivery_street,
+        a.building_no,
+        a.postal_code,
+        GROUP_CONCAT(oi.quantity || 'x ' || p.name) as items,
+        CASE 
+          WHEN o.payment_method = 'credit_card' THEN 'Kredi Kartı'
+          WHEN o.payment_method = 'bank_transfer' THEN 'Havale/EFT'
+          WHEN o.payment_method = 'cash' THEN 'Nakit'
+          ELSE o.payment_method 
+        END as payment_method_text
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
+      LEFT JOIN addresses a ON o.delivery_address_id = a.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       LEFT JOIN products p ON oi.product_id = p.id
       WHERE o.id = ?
@@ -718,17 +732,9 @@ api.get('/orders/:id/details', async (c) => {
       return c.json({ error: 'Order not found' }, 404);
     }
 
-    // Alıcı bilgilerini ayrı bir obje olarak ekle
-    order.recipient = {
-      name: order.recipient_name,
-      phone: order.recipient_phone,
-      note: order.recipient_note,
-      address: order.recipient_address,
-      card_message: order.card_message
-    };
-
     return c.json(order);
   } catch (error) {
+    console.error('Order details error:', error);
     return c.json({ error: 'Database error' }, 500);
   }
 });
@@ -743,24 +749,37 @@ api.post('/orders', async (c) => {
     // Sipariş ana bilgilerini ekle
     const orderResult = await db.prepare(`
       INSERT INTO orders (
-        customer_id, delivery_date, delivery_address, 
-        recipient_name, recipient_phone, recipient_note, recipient_address,
-        card_message, status, total_amount, tenant_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?)
+        tenant_id,
+        customer_id, 
+        delivery_date,
+        delivery_time_slot,
+        delivery_address_id,
+        delivery_type,
+        recipient_name, 
+        recipient_phone,
+        recipient_note,
+        card_message,
+        status,
+        total_amount,
+        payment_method,
+        payment_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, 'pending')
     `).bind(
-      body.customer_id, 
-      body.delivery_date, 
-      body.delivery_address,
-      body.recipient.name,
-      body.recipient.phone,
-      body.recipient.note,
-      body.recipient.address,
-      body.recipient.card_message,
+      tenant_id,
+      body.customer_id,
+      body.delivery_date,
+      body.delivery_time_slot,
+      body.delivery_address_id,
+      body.delivery_type,
+      body.recipient_name,
+      body.recipient_phone,
+      body.recipient_note,
+      body.card_message,
       body.total_amount,
-      tenant_id
+      body.payment_method
     ).run();
 
-    // ...existing code for order items...
+    // ...existing order items code...
 
     return c.json({ success: true, id: orderResult.lastRowId });
   } catch (error) {
@@ -816,6 +835,94 @@ api.get('/products/top-selling', async (c) => {
       GROUP BY p.id, p.name
       ORDER BY total_sold DESC
       LIMIT 5
+    `).bind(tenant_id).all();
+    
+    return c.json(results);
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// Yeni adres ekle
+api.post('/addresses', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  const body = await c.req.json();
+  
+  try {
+      const result = await db.prepare(`
+          INSERT INTO addresses (
+              tenant_id, label, city, district, 
+              postal_code, lat, lng, source, here_place_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+          tenant_id,
+          body.label,
+          body.city,
+          body.district,
+          body.postalCode,
+          body.position.lat,
+          body.position.lng,
+          body.source,
+          body.id
+      ).run();
+
+      return c.json({ 
+          success: true, 
+          id: result.lastRowId 
+      });
+      
+  } catch (error) {
+      return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// Adres endpoints
+api.post('/addresses', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  const body = await c.req.json();
+  
+  try {
+    const result = await db.prepare(`
+      INSERT INTO addresses (
+        tenant_id, label, city, district, street,
+        building_no, postal_code, lat, lng,
+        source, here_place_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      tenant_id,
+      body.label,
+      body.city,
+      body.district,
+      body.street,
+      body.building_no,
+      body.postal_code,
+      body.position?.lat,
+      body.position?.lng,
+      body.source || 'manual',
+      body.here_place_id
+    ).run();
+
+    return c.json({ 
+      success: true, 
+      id: result.lastRowId 
+    });
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500);
+  }
+});
+
+// Adres listele
+api.get('/addresses', async (c) => {
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  
+  try {
+    const { results } = await db.prepare(`
+      SELECT * FROM addresses
+      WHERE tenant_id = ?
+      ORDER BY created_at DESC
     `).bind(tenant_id).all();
     
     return c.json(results);

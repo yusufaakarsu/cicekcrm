@@ -1,6 +1,15 @@
 // API URL'ini global olarak tanımla
 const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev';
 
+// Config objesi
+const CONFIG = {
+    HERE_API_KEY: process.env.HERE_API_KEY,
+    HERE_APP_ID: process.env.HERE_APP_ID
+};
+
+// Address service örneği
+const addressService = new HereAddressService(CONFIG.HERE_API_KEY);
+
 // Header yükleme fonksiyonu
 async function loadHeader() {
     try {

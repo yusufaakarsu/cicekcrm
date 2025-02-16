@@ -19,176 +19,40 @@
             </a>
         </div>
 
-        <form id="newOrderForm">
+        <form id="orderForm">
             <div class="container">
                 <div class="row">
                     <div class="col-lg-8"> <!-- Sol taraf -->
-                        <div class="order-section customer">
-                            <h5>Müşteri Bilgileri</h5>
-                            <div class="row mb-4">
-                                <div class="col-md-12">
-                                    <div class="mb-3">
-                                        <label class="form-label">Telefon Numarası*</label>
-                                        <div class="input-group">
-                                            <input type="tel" class="form-control" name="customer_phone" required
-                                                   placeholder="5XX XXX XX XX" pattern="[0-9]{10}">
-                                            <button type="button" class="btn btn-outline-primary" onclick="searchCustomer()">
-                                                <i class="bi bi-search"></i> Müşteri Ara
-                                            </button>
-                                        </div>
-                                        <small class="form-text text-muted">Müşteri aramak için telefon numarasını girin</small>
-                                    </div>
-
-                                    <div id="customerDetails" class="d-none border rounded p-3">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="mb-2">
-                                                    <label class="form-label">Ad Soyad/Firma Adı*</label>
-                                                    <input type="text" class="form-control" name="customer_name" required>
-                                                    <input type="hidden" name="customer_id">
-                                                </div>
-                                                <div class="mb-2">
-                                                    <label class="form-label">E-posta</label>
-                                                    <input type="email" class="form-control" name="customer_email">
-                                                </div>
-                                                <div class="mb-2">
-                                                    <label class="form-label">Müşteri Tipi</label>
-                                                    <select class="form-select" name="customer_type" onchange="toggleCompanyFields()">
-                                                        <option value="retail">Bireysel</option>
-                                                        <option value="corporate">Kurumsal</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-2">
-                                                    <label class="form-label">Adres</label>
-                                                    <textarea class="form-control" name="customer_address" rows="2"></textarea>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="col-md-6">
-                                                        <div class="mb-2">
-                                                            <label class="form-label">İl</label>
-                                                            <input type="text" class="form-control" name="customer_city">
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="mb-2">
-                                                            <label class="form-label">İlçe</label>
-                                                            <input type="text" class="form-control" name="customer_district">
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Kurumsal Müşteri Alanları -->
-                                        <div id="companyFields" class="d-none mt-3">
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="mb-2">
-                                                        <label class="form-label">Firma Adı*</label>
-                                                        <input type="text" class="form-control" name="company_name">
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="mb-2">
-                                                        <label class="form-label">Vergi No*</label>
-                                                        <input type="text" class="form-control" name="tax_number">
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="row mt-3">
-                                            <div class="col-md-6">
-                                                <div class="mb-2">
-                                                    <label class="form-label">Özel Günler</label>
-                                                    <input type="text" class="form-control" name="special_dates" 
-                                                           placeholder="Örn: Doğum Günü: 15.05, Evlilik Yıldönümü: 22.08">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-2">
-                                                    <label class="form-label">Notlar</label>
-                                                    <textarea class="form-control" name="customer_notes" rows="1" 
-                                                            placeholder="Müşteri ile ilgili özel notlar..."></textarea>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Müşteri Bilgileri</h5>
+                                <div id="customerSelect"></div>
                             </div>
                         </div>
                         
-                        <div class="order-section delivery">
-                            <h5>Teslimat Bilgileri</h5>
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Teslimat Tarihi*</label>
-                                        <input type="date" class="form-control" name="delivery_date" required>
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Teslimat Bilgileri</h5>
+                                <div id="addressSelect"></div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Alıcı Adı</label>
+                                            <input type="text" class="form-control" name="recipient_name">
+                                        </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Teslimat Saati*</label>
-                                        <select class="form-select" name="delivery_time_slot" required>
-                                            <option value="">Saat Seçin</option>
-                                            <option value="morning">Sabah (09:00-12:00)</option>
-                                            <option value="afternoon">Öğlen (12:00-17:00)</option>
-                                            <option value="evening">Akşam (17:00-21:00)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Teslimat İl*</label>
-                                        <input type="text" class="form-control" name="delivery_city" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Teslimat İlçe*</label>
-                                        <input type="text" class="form-control" name="delivery_district" required>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Alıcı Telefon</label>
+                                            <input type="tel" class="form-control" name="recipient_phone">
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                        
-                        <div class="order-section recipient">
-                            <h5>Alıcı Bilgileri</h5>
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Alıcı Adı*</label>
-                                        <input type="text" class="form-control" name="recipient_name" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Alıcı Telefonu*</label>
-                                        <input type="tel" class="form-control" name="recipient_phone" required 
-                                               pattern="[0-9]{10}" placeholder="5XX XXX XX XX">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Alternatif Telefon</label>
-                                        <input type="tel" class="form-control" name="recipient_alternative_phone"
-                                               pattern="[0-9]{10}" placeholder="5XX XXX XX XX">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Teslimat Adresi*</label>
-                                        <textarea class="form-control" name="delivery_address" rows="3" required></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Alıcı Notu</label>
-                                        <input type="text" class="form-control" name="recipient_note" 
-                                               placeholder="Örn: Kapıda bekleyemeyebilir, arayınız">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Kart Mesajı</label>
-                                        <textarea class="form-control" name="card_message" rows="2" 
-                                                placeholder="Çiçek kartına yazılacak mesaj"></textarea>
-                                    </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Kart Notu</label>
+                                    <textarea class="form-control" name="card_message" rows="2"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -264,5 +128,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/common.js"></script>
     <script src="/js/orders.js"></script>
+    <script src="/js/components/address-select.js"></script>
+    <script>
+        new AddressSelect('addressSelect');
+    </script>
 </body>
 </html>
