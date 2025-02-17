@@ -199,14 +199,8 @@ async function saveNewCustomer() {
             formData.company_name = document.querySelector('[name="new_customer_company_name"]').value;
         }
 
-        // Zorunlu alan kontrolü
-        if (!formData.name || !formData.phone || !formData.district) {
-            showError('Lütfen zorunlu alanları doldurun');
-            return;
-        }
-
-        // API'ye gönder - Prefix düzeltmesi
-        const response = await fetch(`${API_URL}/customers`, { // api/ prefix'i kaldırıldı
+        // API'ye gönder
+        const response = await fetch(`${API_URL}/customers`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -220,7 +214,8 @@ async function saveNewCustomer() {
             // Başarılı mesajı göster
             showSuccess('Müşteri başarıyla kaydedildi');
             
-            // Müşteri detaylarını göster
+            // Müşteri detaylarını göster ve ID'yi sakla
+            document.getElementById('customerId').value = data.customer.id;
             showCustomerDetails(data.customer);
             
             // Yeni müşteri formunu gizle
@@ -231,7 +226,7 @@ async function saveNewCustomer() {
             
             // Eğer telefon numarası zaten kayıtlıysa
             if (data.id) {
-                // Var olan müşteriyi göster
+                document.getElementById('customerId').value = data.id;
                 const customerResponse = await fetch(`${API_URL}/customers/${data.id}`);
                 const customerData = await customerResponse.json();
                 showCustomerDetails(customerData);
