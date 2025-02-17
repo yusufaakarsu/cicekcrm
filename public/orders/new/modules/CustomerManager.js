@@ -60,16 +60,19 @@ class CustomerManager {
         }
 
         try {
-            const response = await fetch(`${API_URL}/customers/search/${phone}`);
+            // API endpoint düzeltildi
+            const response = await fetch(`${API_URL}/customers/phone/${phone}`);
             const data = await response.json();
 
-            if (data.success && data.customer) {
-                this.setCustomer(data.customer);
+            // Response yapısı düzeltildi
+            if (data && data.id) {
+                // Direkt customer objesi geldiği için data.customer yerine data kullanıldı
+                this.setCustomer(data);
             } else {
-                // Yeni müşteri modalını göster
                 this.showNewCustomerModal(phone);
             }
         } catch (error) {
+            console.error('Müşteri arama hatası:', error);
             showError('Müşteri araması başarısız');
         }
     }
@@ -96,6 +99,11 @@ class CustomerManager {
     }
 
     showNewCustomerModal(phone) {
+        // Modal açılmadan önce form verilerini temizle
+        if (this.modal) {
+            bootstrap.Modal.getInstance(this.modal)?.dispose();
+        }
+
         const modal = document.createElement('div');
         modal.className = 'modal fade';
         modal.innerHTML = `
@@ -106,10 +114,10 @@ class CustomerManager {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <form id="newCustomerForm">
+                        <form id="newCustomerForm" class="needs-validation" novalidate>
                             <div class="mb-3">
                                 <label class="form-label">Müşteri Tipi</label>
-                                <select class="form-select form-select-sm" name="customer_type" onchange="customerManager.toggleCompanyFields(this.value)">
+                                <select class="form-select form-select-sm" name="customer_type" required>
                                     <option value="retail">Bireysel</option>
                                     <option value="corporate">Kurumsal</option>
                                 </select>
@@ -120,41 +128,39 @@ class CustomerManager {
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Telefon *</label>
-                                <input type="tel" class="form-control form-control-sm" name="phone" value="${phone}" required>
+                                <input type="tel" class="form-control form-control-sm" name="phone" 
+                                       value="${formatPhoneNumber(phone)}" required readonly>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Email</label>
                                 <input type="email" class="form-control form-control-sm" name="email">
                             </div>
-                            <!-- Kurumsal alanlar -->
-                            <div id="newCompanyFields" style="display:none">
-                                <div class="mb-3">
-                                    <label class="form-label">Firma Adı *</label>
-                                    <input type="text" class="form-control form-control-sm" name="company_name">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Vergi No *</label>
-                                    <input type="text" class="form-control form-control-sm" name="tax_number">
-                                </div>
-                            </div>
+                            <!-- Diğer form alanları -->
                         </form>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
-                        <button type="button" class="btn btn-primary btn-sm" onclick="customerManager.saveNewCustomer()">
-                            Kaydet
-                        </button>
+                        <button type="submit" form="newCustomerForm" class="btn btn-primary btn-sm">Kaydet</button>
                     </div>
                 </div>
             </div>
         `;
 
         document.body.appendChild(modal);
+        this.modal = modal;
+
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
 
+        // Form submit
+        document.getElementById('newCustomerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.saveNewCustomer(e.target);
+        });
+
         modal.addEventListener('hidden.bs.modal', () => {
             document.body.removeChild(modal);
+            this.modal = null;
         });
     }
 
