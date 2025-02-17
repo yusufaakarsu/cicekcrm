@@ -5,9 +5,9 @@ const router = new Hono()
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
-
+  
   try {
-    // 1. Teslimat İstatistikleri 
+    // 1. Teslimat İstatistikleri
     const deliveryStats = await db.prepare(`
       SELECT 
         COUNT(*) as total_orders,
@@ -45,17 +45,7 @@ router.get('/', async (c) => {
       AND o.is_deleted = 0
     `).bind(tenant_id).first()
 
-    // 4. Düşük Stok Uyarıları
-    const lowStock = await db.prepare(`
-      SELECT 
-        COUNT(*) as count
-      FROM products p
-      WHERE p.tenant_id = ?
-      AND p.is_deleted = 0
-      AND p.stock <= p.min_stock
-    `).bind(tenant_id).first()
-
-    // 5. Günlük Hedefler
+    // 4. Günlük Hedefler
     const targets = await db.prepare(`
       SELECT 
         (SELECT COUNT(*) FROM orders 
@@ -65,43 +55,39 @@ router.get('/', async (c) => {
         (SELECT COUNT(*) FROM orders 
          WHERE DATE(delivery_date) = DATE('now')
          AND tenant_id = ?) as delivery_target,
-        (SELECT SUM(total_amount) FROM orders 
+        (SELECT COALESCE(SUM(total_amount), 0) FROM orders 
          WHERE DATE(created_at) = DATE('now')
          AND tenant_id = ?) as daily_revenue,
-        (SELECT AVG(total_amount) FROM orders 
+        (SELECT COALESCE(AVG(total_amount), 0) FROM orders 
          WHERE status = 'delivered'
          AND tenant_id = ?) as revenue_target
     `).bind(tenant_id, tenant_id, tenant_id, tenant_id).first()
 
-    // Tüm verileri birleştir ve döndür
+    // 5. Düşük Stok
+    const lowStock = await db.prepare(`
+      SELECT COUNT(*) as count
+      FROM products
+      WHERE tenant_id = ?
+      AND stock <= min_stock
+      AND is_deleted = 0
+    `).bind(tenant_id).first()
+
     return c.json({
-      deliveryStats: {
-        total_orders: deliveryStats?.total_orders || 0,
-        delivered_orders: deliveryStats?.delivered_orders || 0,
-        pending_orders: deliveryStats?.pending_orders || 0,
-        preparing_orders: deliveryStats?.preparing_orders || 0
-      },
-      finance: {
-        daily_revenue: finance?.daily_revenue || 0,
-        avg_order_value: finance?.avg_order_value || 0
-      },
-      criticalStats: {
-        delayed_deliveries: criticalStats?.delayed_deliveries || 0,
-        cancellations: criticalStats?.cancellations || 0,
-        complaints: criticalStats?.complaints || 0
-      },
-      lowStock: lowStock?.count || 0,
-      targets: {
-        delivered_orders: targets?.delivered_orders || 0,
-        delivery_target: targets?.delivery_target || 0,
-        daily_revenue: targets?.daily_revenue || 0,
-        revenue_target: targets?.revenue_target || 0
-      }
+      success: true,
+      deliveryStats,
+      finance,
+      criticalStats,
+      targets,
+      lowStock: lowStock.count || 0
     })
 
   } catch (error) {
-    console.error('Dashboard error:', error)
-    return c.json({ error: 'Internal Server Error' }, 500)
+    console.error('Dashboard Error:', error)
+    return c.json({ 
+      success: false,
+      error: 'Dashboard Error',
+      message: error.message 
+    }, 500)
   }
 })
 

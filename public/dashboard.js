@@ -7,16 +7,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadDashboardData() {
     try {
-        // Doğrudan '/api/dashboard' kullan
-        const response = await fetch('/api/dashboard');
+        const response = await fetch('http://localhost:8787/api/dashboard');
         
-        // Response kontrolü ekle
         if (!response.ok) {
             console.error('API Error:', await response.text());
             throw new Error('API Error');
         }
         
         const data = await response.json();
+        console.log('Dashboard data:', data); // Debug için
+
+        if (!data.success) {
+            throw new Error(data.message || 'API Error');
+        }
 
         // 1. Teslimat Durumu Kartı
         updateDeliveryCard(data.deliveryStats);

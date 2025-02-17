@@ -47,10 +47,14 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
+const API_BASE_URL = 'http://localhost:8787/api';
+
 async function fetchAPI(endpoint) {
-    const response = await fetch(`/api${endpoint}`);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`);
     if (!response.ok) throw new Error('API Hatası');
-    return response.json();
+    const data = await response.json();
+    if (!data.success) throw new Error(data.message || 'API Hatası');
+    return data;
 }
 
 function showLoading(element) {

@@ -7,29 +7,39 @@ import addressRoutes from './routes/addresses'
 import financeRoutes from './routes/finance'
 import productRoutes from './routes/products'
 
-const api = new Hono()
+const app = new Hono()
 
 // CORS middleware
-api.use('*', cors({
+app.use('*', cors({
   origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowHeaders: ['Content-Type', 'Authorization'],
+  allowHeaders: ['Content-Type'],
   credentials: true,
 }))
 
-// Tüm /api route'larını tek bir yerde topla
-api.use('/api/*', async (c, next) => {
+// Database ve tenant middleware
+app.use('*', async (c, next) => {
   c.set('db', c.env.DB)
-  c.set('tenant_id', 1)
+  c.set('tenant_id', 1) // Test için sabit tenant
   await next()
 })
 
-// Route'ları düzgün şekilde tanımla
-api.route('/api/dashboard', dashboardRoutes)
-api.route('/api/customers', customerRoutes) 
-api.route('/api/orders', orderRoutes)
-api.route('/api/addresses', addressRoutes)
-api.route('/api/finance', financeRoutes)
-api.route('/api/products', productRoutes)
+// Route'ları düzgün yerde tanımla
+app.route('/api/dashboard', dashboardRoutes)
+app.route('/api/customers', customerRoutes)
+app.route('/api/orders', orderRoutes)
+app.route('/api/addresses', addressRoutes)
+app.route('/api/finance', financeRoutes)
+app.route('/api/products', productRoutes)
 
-export default api
+// Catch-all error handler
+app.onError((err, c) => {
+  console.error('App Error:', err)
+  return c.json({
+    success: false,
+    error: 'Internal Server Error',
+    message: err.message
+  }, 500)
+})
+
+export default app
