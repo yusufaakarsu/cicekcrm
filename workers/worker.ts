@@ -1031,4 +1031,23 @@ api.get('/customers/phone/:phone', async (c) => {
     }
 });
 
+// Ürünleri listele
+api.get('/products', async (c) => {
+    const db = c.env.DB;
+    const tenant_id = c.get('tenant_id');
+    
+    try {
+        const { results } = await db.prepare(`
+            SELECT * FROM products 
+            WHERE tenant_id = ?
+            AND is_deleted = 0
+            ORDER BY name
+        `).bind(tenant_id).all();
+        
+        return c.json(results);
+    } catch (error) {
+        return c.json({ error: 'Database error' }, 500);
+    }
+});
+
 export default api
