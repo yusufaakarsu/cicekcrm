@@ -19,10 +19,10 @@ const orderState = {
 // Müşteri İşlemleri
 async function searchCustomer(phone) {
     try {
-        const response = await fetch(`${API_URL}/customers/search/phone/${phone}`);
+        const response = await fetch(`${API_URL}/customers/phone/${phone}`);
         const data = await response.json();
         
-        if (!data.found) {
+        if (!data.customer) {
             document.querySelector('#customerForm [name="phone"]').value = phone;
             const modal = new bootstrap.Modal(document.getElementById('customerModal'));
             modal.show();
@@ -169,10 +169,19 @@ function clearAddress() {
 // Ürün İşlemleri
 async function searchProducts(query) {
     try {
-        const response = await fetch(`${API_URL}/products/search?q=${query}`);
+        const response = await fetch(`${API_URL}/products`);
         const products = await response.json();
         
-        document.getElementById('productList').innerHTML = products.map(product => `
+        if (!products || products.length === 0) {
+            document.getElementById('productList').innerHTML = '<div class="alert alert-info">Sonuç bulunamadı</div>';
+            return;
+        }
+
+        const filteredProducts = products.filter(p => 
+            p.name.toLowerCase().includes(query.toLowerCase())
+        );
+
+        document.getElementById('productList').innerHTML = filteredProducts.map(product => `
             <div class="list-group-item">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -254,21 +263,25 @@ async function saveOrder() {
     try {
         const orderData = {
             customer_id: orderState.customer.id,
-            delivery: {
-                date: document.getElementById('deliveryDate').value,
-                time_slot: document.getElementById('deliveryTimeSlot').value,
-                address: orderState.delivery.address,
-                recipient_name: document.getElementById('recipientName').value,
-                recipient_phone: document.getElementById('recipientPhone').value,
-                notes: document.getElementById('deliveryNote').value,
-                card_message: document.getElementById('cardMessage').value
-            },
-            items: orderState.items,
-            payment: {
-                method: document.getElementById('paymentMethod').value,
-                status: 'pending'
-            },
-            totals: orderState.totals
+            delivery_date: document.getElementById('deliveryDate').value,
+            delivery_time_slot: document.getElementById('deliveryTimeSlot').value,
+            delivery_address_id: orderState.delivery.address.id,
+            delivery_type: 'recipient',
+            recipient_name: document.getElementById('recipientName').value,
+            recipient_phone: document.getElementById('recipientPhone').value,
+            recipient_note: document.getElementById('deliveryNote').value,
+            card_message: document.getElementById('cardMessage').value,
+            status: 'new',
+            payment_method: document.getElementById('paymentMethod').value,
+            payment_status: 'pending',
+            total_amount: orderState.totals.total,
+            subtotal: orderState.totals.subtotal,
+            delivery_fee: orderState.totals.deliveryFee,
+            items: orderState.items.map(item => ({
+                product_id: item.id,
+                quantity: item.quantity,
+                unit_price: item.price
+            }))
         };
 
         const response = await fetch(`${API_URL}/orders`, {
@@ -277,13 +290,13 @@ async function saveOrder() {
             body: JSON.stringify(orderData)
         });
 
-        if (!response.ok) throw new Error('Sipariş kaydedilemedi');
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Sipariş kaydedilemedi');
 
         showSuccess('Sipariş başarıyla oluşturuldu');
         setTimeout(() => window.location.href = '/orders', 1500);
-
     } catch (error) {
-        showError('Sipariş kaydedilemedi');
+        showError(error.message || 'Sipariş kaydedilemedi');
     }
 }
 
