@@ -28,12 +28,60 @@ class CustomerManager {
 
     renderSearch() {
         return `
-            <div class="input-group">
-                <input type="tel" class="form-control" placeholder="Telefon numarası ile ara" 
-                       id="customerPhone">
-                <button type="button" class="btn btn-primary" onclick="customerManager.search()">
-                    <i class="bi bi-search"></i> Ara
-                </button>
+            <div class="mb-3">
+                <div class="input-group">
+                    <input type="tel" class="form-control" placeholder="Telefon numarası ile ara" 
+                           id="customerPhone">
+                    <button type="button" class="btn btn-primary" onclick="customerManager.search()">
+                        <i class="bi bi-search"></i> Ara
+                    </button>
+                </div>
+            </div>
+            <!-- Yeni müşteri formu burada gösterilecek -->
+            <div id="newCustomerFormContainer" style="display:none">
+                <hr>
+                <h6 class="mb-3">Yeni Müşteri</h6>
+                <form id="newCustomerForm" class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label small">Müşteri Tipi</label>
+                        <select class="form-select form-select-sm" name="customer_type" onchange="customerManager.toggleCompanyFields(this.value)">
+                            <option value="retail">Bireysel</option>
+                            <option value="corporate">Kurumsal</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small">Ad Soyad *</label>
+                        <input type="text" class="form-control form-control-sm" name="name" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Telefon *</label>
+                        <input type="tel" class="form-control form-control-sm" name="phone" required readonly>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Email</label>
+                        <input type="email" class="form-control form-control-sm" name="email">
+                    </div>
+
+                    <!-- Kurumsal alanlar -->
+                    <div id="companyFields" class="col-12" style="display:none">
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label small">Firma Adı *</label>
+                                <input type="text" class="form-control form-control-sm" name="company_name">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small">Vergi No *</label>
+                                <input type="text" class="form-control form-control-sm" name="tax_number">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-check-lg"></i> Müşteriyi Kaydet
+                        </button>
+                    </div>
+                </form>
             </div>
         `;
     }
@@ -60,16 +108,25 @@ class CustomerManager {
         }
 
         try {
-            // API endpoint düzeltildi
             const response = await fetch(`${API_URL}/customers/phone/${phone}`);
             const data = await response.json();
 
-            // Response yapısı düzeltildi
             if (data && data.id) {
-                // Direkt customer objesi geldiği için data.customer yerine data kullanıldı
                 this.setCustomer(data);
             } else {
-                this.showNewCustomerModal(phone);
+                // Form container'ı göster
+                const formContainer = document.getElementById('newCustomerFormContainer');
+                formContainer.style.display = 'block';
+                
+                // Telefon numarasını form'a set et
+                const phoneInput = document.querySelector('#newCustomerForm input[name="phone"]');
+                phoneInput.value = formatPhoneNumber(phone);
+
+                // Form submit listener ekle
+                document.getElementById('newCustomerForm').onsubmit = async (e) => {
+                    e.preventDefault();
+                    await this.saveNewCustomer(e.target);
+                };
             }
         } catch (error) {
             console.error('Müşteri arama hatası:', error);
@@ -98,72 +155,6 @@ class CustomerManager {
         return this.customer;
     }
 
-    showNewCustomerModal(phone) {
-        // Modal açılmadan önce form verilerini temizle
-        if (this.modal) {
-            bootstrap.Modal.getInstance(this.modal)?.dispose();
-        }
-
-        const modal = document.createElement('div');
-        modal.className = 'modal fade';
-        modal.innerHTML = `
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Yeni Müşteri</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="newCustomerForm" class="needs-validation" novalidate>
-                            <div class="mb-3">
-                                <label class="form-label">Müşteri Tipi</label>
-                                <select class="form-select form-select-sm" name="customer_type" required>
-                                    <option value="retail">Bireysel</option>
-                                    <option value="corporate">Kurumsal</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Ad Soyad *</label>
-                                <input type="text" class="form-control form-control-sm" name="name" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Telefon *</label>
-                                <input type="tel" class="form-control form-control-sm" name="phone" 
-                                       value="${formatPhoneNumber(phone)}" required readonly>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control form-control-sm" name="email">
-                            </div>
-                            <!-- Diğer form alanları -->
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
-                        <button type="submit" form="newCustomerForm" class="btn btn-primary btn-sm">Kaydet</button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-        this.modal = modal;
-
-        const bsModal = new bootstrap.Modal(modal);
-        bsModal.show();
-
-        // Form submit
-        document.getElementById('newCustomerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await this.saveNewCustomer(e.target);
-        });
-
-        modal.addEventListener('hidden.bs.modal', () => {
-            document.body.removeChild(modal);
-            this.modal = null;
-        });
-    }
-
     async saveNewCustomer() {
         const form = document.getElementById('newCustomerForm');
         if (!form.checkValidity()) {
@@ -189,14 +180,24 @@ class CustomerManager {
             const result = await response.json();
             this.setCustomer(result.customer);
             
-            // Modal'ı kapat
-            bootstrap.Modal.getInstance(form.closest('.modal')).hide();
-            
             showSuccess('Müşteri kaydedildi');
 
         } catch (error) {
             console.error('Müşteri kayıt hatası:', error);
             showError('Müşteri kaydedilemedi');
+        }
+    }
+
+    toggleCompanyFields(type) {
+        const fields = document.getElementById('companyFields');
+        if (fields) {
+            fields.style.display = type === 'corporate' ? 'block' : 'none';
+            
+            // Zorunlu alanları toggle et
+            const companyInputs = fields.querySelectorAll('input');
+            companyInputs.forEach(input => {
+                input.required = type === 'corporate';
+            });
         }
     }
 }
