@@ -242,25 +242,29 @@ class NewOrderForm {
                        document.querySelector('[name="phone"]')?.value;
 
             case 2: // Teslimat bilgileri
-                // Adres kontrolü
-                if (!this.selectedAddressId) {
+                // Seçilen adresin doğru şekilde kaydedildiğinden emin ol
+                const selectedAddress = document.querySelector('#selectedAddressPreview .alert-success');
+                if (!selectedAddress || selectedAddress.style.display === 'none') {
                     showError('Lütfen teslimat adresi seçin');
                     return false;
                 }
 
-                // Form alanları kontrolü
+                // Form kontrollerini tek tek kontrol et
                 const requiredFields = {
-                    'recipient_name': 'Alıcı Adı',
-                    'recipient_phone': 'Alıcı Telefon',
-                    'delivery_date': 'Teslimat Tarihi',
-                    'delivery_time_slot': 'Teslimat Saati'
+                    'recipient_name': { label: 'Alıcı Adı', type: 'input' },
+                    'recipient_phone': { label: 'Alıcı Telefonu', type: 'input' },
+                    'delivery_date': { label: 'Teslimat Tarihi', type: 'input' },
+                    'delivery_time_slot': { label: 'Teslimat Saati', type: 'select' }
                 };
 
-                for (const [fieldName, fieldLabel] of Object.entries(requiredFields)) {
-                    const field = document.querySelector(`[name="${fieldName}"]`);
-                    if (!field?.value) {
-                        showError(`Lütfen ${fieldLabel} alanını doldurun`);
-                        field?.focus();
+                for (const [fieldName, field] of Object.entries(requiredFields)) {
+                    const element = document.querySelector(`[name="${fieldName}"]`);
+                    if (!element || !element.value.trim()) {
+                        showError(`Lütfen ${field.label} alanını doldurun`);
+                        if (element) {
+                            element.focus();
+                            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
                         return false;
                     }
                 }
@@ -418,8 +422,6 @@ class NewOrderForm {
 
     // Adres seçimi güncellemesi
     selectSavedAddress(addressId, label, location) {
-        this.selectedAddressId = addressId; // Seçilen adresi kaydet
-        
         const previewElement = document.getElementById('selectedAddressPreview');
         if (previewElement) {
             previewElement.innerHTML = `
@@ -437,10 +439,22 @@ class NewOrderForm {
             `;
             previewElement.style.display = 'block';
         }
-        
+
+        // Adres bilgisini kaydet
+        this.selectedAddressId = addressId;
+        this.selectedAddressLabel = label;
+        this.selectedAddressLocation = location;
+
         // Adres seçim alanını gizle
         const selectArea = document.getElementById('addressSelectionArea');
         if (selectArea) selectArea.style.display = 'none';
+
+        // Debug log
+        console.log('Seçilen adres:', {
+            id: addressId,
+            label: label,
+            location: location
+        });
     }
 
     // Adres değiştirme
@@ -452,6 +466,30 @@ class NewOrderForm {
         if (preview) preview.style.display = 'none';
         
         this.selectedAddressId = null; // Seçili adresi temizle
+    }
+
+    // Form gönderme işlemini güncelle
+    handleSubmit(e) {
+        e.preventDefault();
+        
+        // Son kontrol
+        if (!this.validateStep(this.currentStep)) {
+            return;
+        }
+
+        // Form verilerini topla
+        const formData = {
+            customerId: this.customerId,
+            addressId: this.selectedAddressId,
+            recipientName: this.form.querySelector('[name="recipient_name"]').value,
+            recipientPhone: this.form.querySelector('[name="recipient_phone"]').value,
+            deliveryDate: this.form.querySelector('[name="delivery_date"]').value,
+            deliveryTimeSlot: this.form.querySelector('[name="delivery_time_slot"]').value,
+            // ...diğer form alanları
+        };
+
+        console.log('Form verileri:', formData);
+        // API çağrısı burada yapılacak
     }
 }
 

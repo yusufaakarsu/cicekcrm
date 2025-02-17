@@ -135,14 +135,17 @@
                                     <!-- Adres seçici buraya gelecek -->
                                 </div>
 
+                                <!-- Adres Özeti -->
+                                <div id="selectedAddressPreview" style="display:none"></div>
+
                                 <!-- Alıcı Bilgileri -->
-                                <div class="row g-3">
+                                <div class="row g-3 mt-3">
                                     <div class="col-md-6">
-                                        <label class="form-label">Alıcı Adı</label>
+                                        <label class="form-label required">Alıcı Adı</label>
                                         <input type="text" class="form-control" name="recipient_name" required>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Alıcı Telefon</label>
+                                        <label class="form-label required">Alıcı Telefon</label>
                                         <input type="tel" class="form-control" name="recipient_phone" required>
                                     </div>
                                 </div>
@@ -150,11 +153,11 @@
                                 <!-- Teslimat Zamanı -->
                                 <div class="row g-3 mt-3">
                                     <div class="col-md-6">
-                                        <label class="form-label">Teslimat Tarihi</label>
+                                        <label class="form-label required">Teslimat Tarihi</label>
                                         <input type="date" class="form-control" name="delivery_date" required>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Teslimat Saati</label>
+                                        <label class="form-label required">Teslimat Saati</label>
                                         <select class="form-select" name="delivery_time_slot" required>
                                             <option value="">Zaman Dilimi Seçin</option>
                                             <option value="morning">Sabah (09:00-12:00)</option>
