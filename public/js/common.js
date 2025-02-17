@@ -1,6 +1,3 @@
-// API URL'i güncellenmiş versiyonu
-const API_URL = '/api';
-
 // Environment variables'ı doğrudan tanımla
 const CONFIG = {
     HERE_API_KEY: '8ga3iUSKvwTytKYkk8PbpnnH5iCFlNDsvFoSyCghhjI' // HERE API KEY buraya eklenecek
@@ -51,7 +48,7 @@ function formatCurrency(amount) {
 }
 
 async function fetchAPI(endpoint) {
-    const response = await fetch(`${API_URL}${endpoint}`);
+    const response = await fetch(`/api${endpoint}`);
     if (!response.ok) throw new Error('API Hatası');
     return response.json();
 }
@@ -219,7 +216,7 @@ function showSuccess(message) {
 async function loadDashboardData() {
     try {
         // /api/api/dashboard yerine /api/dashboard kullanılacak
-        const response = await fetch(`${API_URL}/dashboard`); // api/ prefix'i kaldırıldı
+        const response = await fetch(`/api/dashboard`); // api/ prefix'i kaldırıldı
         if (!response.ok) throw new Error('API Hatası');
         const data = await response.json();
 
@@ -264,7 +261,7 @@ async function loadDashboardData() {
 
 async function loadRecentOrders() {
     try {
-        const response = await fetch(`${API_URL}/orders`);
+        const response = await fetch(`/api/orders`);
         if (!response.ok) throw new Error('API Hatası');
         const orders = await response.json();
         

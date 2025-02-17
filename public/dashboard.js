@@ -7,8 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadDashboardData() {
     try {
-        // Düzeltildi: /api/api/dashboard yerine /api/dashboard kullanılıyor
-        const response = await fetch(`${API_URL}/dashboard`); // api/ prefix'i kaldırıldı
+        const response = await fetch('/api/dashboard'); // Changed to absolute path
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'API Hatası');
