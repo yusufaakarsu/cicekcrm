@@ -87,7 +87,10 @@ class DeliveryForm {
         // AddressSelect'i doğru container'a başlat
         const addressContainer = this.container.querySelector('#addressSelectContainer');
         if (addressContainer) {
-            this.addressSelect = new AddressSelect(addressContainer);
+            // AddressSelect instance'ını container'a bağla
+            addressContainer.addressSelect = new AddressSelect(addressContainer);
+            // this.addressSelect'i de sakla
+            this.addressSelect = addressContainer.addressSelect;
         } else {
             console.error('Address container not found in delivery form');
         }
@@ -163,6 +166,13 @@ class DeliveryForm {
         }
 
         return true;
+    }
+
+    // onClick handler'ları için yardımcı fonksiyon
+    handleAddressAction(action, ...args) {
+        if (this.addressSelect) {
+            this.addressSelect[action](...args);
+        }
     }
 }
 

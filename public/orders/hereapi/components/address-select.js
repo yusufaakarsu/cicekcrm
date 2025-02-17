@@ -115,7 +115,8 @@ class AddressSelect {
                         <strong>${item.title}</strong><br>
                         <small class="text-muted">${item.address.street || ''}, ${item.address.district || ''}</small>
                     </div>
-                    <button class="btn btn-sm btn-primary" onclick='addressSelect.selectAddress(${JSON.stringify(item)})'>
+                    <button class="btn btn-sm btn-primary" 
+                            onclick="document.querySelector('#deliveryFormContainer').deliveryForm.handleAddressAction('selectAddress', ${JSON.stringify(item)})">
                         Seç
                     </button>
                 </div>
@@ -162,7 +163,8 @@ class AddressSelect {
                         .filter(Boolean).join(', ')}</small>
                 </div>
                 <div>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="addressSelect.clearAddress()">
+                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                            onclick="document.querySelector('#deliveryFormContainer').deliveryForm.handleAddressAction('clearAddress')">
                         <i class="bi bi-x"></i>
                     </button>
                 </div>

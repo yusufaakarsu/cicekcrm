@@ -75,6 +75,21 @@ function setupEventListeners() {
     });
 }
 
+// Müşteri seçildiğinde teslimat seçeneklerini güncelle
+function updateDeliveryOptions() {
+    if (orderState.customer) {
+        // Müşterinin kayıtlı adreslerini yükle
+        const addressSelect = document.querySelector('#addressSelectContainer')?.addressSelect;
+        if (addressSelect) {
+            addressSelect.loadSavedAddresses(orderState.customer.id);
+        }
+
+        // Varsayılan alıcı bilgilerini doldur
+        document.getElementById('recipientName').value = orderState.customer.name;
+        document.getElementById('recipientPhone').value = orderState.customer.phone;
+    }
+}
+
 // Toplam tutarları güncelle
 function updateTotals() {
     // Ara toplam hesapla
