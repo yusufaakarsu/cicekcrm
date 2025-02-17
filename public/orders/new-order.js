@@ -179,3 +179,69 @@ function setupNewCustomerForm() {
         });
     });
 }
+
+// Yeni müşteri kaydetme fonksiyonu
+async function saveNewCustomer() {
+    try {
+        // Form verilerini topla
+        const formData = {
+            name: document.querySelector('[name="new_customer_name"]').value,
+            phone: document.querySelector('[name="new_customer_phone"]').value.replace(/\D/g, ''),
+            email: document.querySelector('[name="new_customer_email"]').value,
+            city: document.querySelector('[name="new_customer_city"]').value,
+            district: document.querySelector('[name="new_customer_district"]').value,
+            customer_type: document.querySelector('input[name="new_customer_type"]:checked').value,
+            special_dates: document.querySelector('[name="new_customer_special_dates"]').value,
+            notes: document.querySelector('[name="new_customer_notes"]').value
+        };
+
+        // Kurumsal müşteri ise ek alanları ekle
+        if (formData.customer_type === 'corporate') {
+            formData.tax_number = document.querySelector('[name="new_customer_tax_number"]').value;
+            formData.company_name = document.querySelector('[name="new_customer_company_name"]').value;
+        }
+
+        // Zorunlu alan kontrolü
+        if (!formData.name || !formData.phone || !formData.district) {
+            showError('Lütfen zorunlu alanları doldurun');
+            return;
+        }
+
+        // API'ye gönder
+        const response = await fetch(`${API_URL}/customers`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Başarılı mesajı göster
+            showSuccess('Müşteri başarıyla kaydedildi');
+            
+            // Müşteri detaylarını göster
+            showCustomerDetails(data.customer);
+            
+            // Yeni müşteri formunu gizle
+            document.getElementById('newCustomerForm').classList.add('d-none');
+        } else {
+            // Hata mesajını göster
+            showError(data.error || 'Müşteri kaydedilemedi');
+            
+            // Eğer telefon numarası zaten kayıtlıysa
+            if (data.id) {
+                // Var olan müşteriyi göster
+                const customerResponse = await fetch(`${API_URL}/customers/${data.id}`);
+                const customerData = await customerResponse.json();
+                showCustomerDetails(customerData);
+            }
+        }
+
+    } catch (error) {
+        console.error('Müşteri kayıt hatası:', error);
+        showError('Müşteri kaydedilirken bir hata oluştu');
+    }
+}
