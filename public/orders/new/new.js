@@ -1,24 +1,28 @@
 class OrderForm {
     constructor() {
-        // Core properties
-        this.form = document.getElementById('orderForm');
         this.customerId = null;
         this.selectedAddress = null;
         this.items = [];
+        this.init();
+    }
 
-        // Form elements
+    async init() {
+        await loadHeader(); // Header yüklenmesini bekle
+        
+        // Form elementlerini header yüklendikten sonra seç
+        this.form = document.getElementById('orderForm');
         this.customerForm = document.getElementById('customerForm');
         this.customerDetails = document.getElementById('customerDetails');
         this.searchInput = document.querySelector('input[name="phone"]');
         this.searchBtn = document.getElementById('searchCustomer');
-        this.productTable = document.getElementById('productTable').querySelector('tbody');
+        this.productTable = document.querySelector('#productTable tbody');
         this.addProductBtn = document.getElementById('addProductBtn');
 
-        this.init();
-    }
+        if (!this.form) {
+            console.error('Form elementi bulunamadı');
+            return;
+        }
 
-    init() {
-        loadHeader();
         this.setupEventListeners();
         this.initTodayAsMinDate();
     }
@@ -29,24 +33,33 @@ class OrderForm {
     }
 
     setupEventListeners() {
-        // Customer search
-        this.searchBtn.addEventListener('click', () => this.searchCustomer());
-        this.searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.searchCustomer();
-            }
-        });
-
-        // Product management
-        this.addProductBtn.addEventListener('click', () => this.showProductModal());
-
-        // Form submission
+        // Formun kendisini dinle
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
 
-        // Customer type change
-        document.querySelector('select[name="customer_type"]')?.addEventListener('change', 
-            (e) => this.toggleCompanyFields(e.target.value));
+        // Müşteri arama
+        if (this.searchBtn) {
+            this.searchBtn.addEventListener('click', () => this.searchCustomer());
+        }
+
+        if (this.searchInput) {
+            this.searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.searchCustomer();
+                }
+            });
+        }
+
+        // Ürün ekleme
+        if (this.addProductBtn) {
+            this.addProductBtn.addEventListener('click', () => this.showProductModal());
+        }
+
+        // Müşteri tipi değişimi
+        const customerTypeSelect = document.querySelector('select[name="customer_type"]');
+        if (customerTypeSelect) {
+            customerTypeSelect.addEventListener('change', (e) => this.toggleCompanyFields(e.target.value));
+        }
     }
 
     async searchCustomer() {
@@ -105,15 +118,24 @@ class OrderForm {
     }
 
     showNewCustomerForm(phone = '') {
+        if (!this.customerDetails || !this.customerForm) {
+            console.error('Müşteri form elementleri bulunamadı');
+            return;
+        }
+
         this.customerDetails.style.display = 'none';
         this.customerForm.style.display = 'block';
-        
-        // Form reset
-        this.customerForm.reset();
-        
-        // Set phone if provided
-        if (phone) {
-            this.customerForm.querySelector('[name="phone"]').value = phone;
+
+        // Form elementlerini temizle
+        const inputs = this.customerForm.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            input.value = '';
+        });
+
+        // Telefon numarasını set et
+        const phoneInput = this.customerForm.querySelector('input[name="phone"]');
+        if (phoneInput && phone) {
+            phoneInput.value = phone;
         }
     }
 
@@ -195,7 +217,75 @@ class OrderForm {
     }
 
     showAddressForm() {
-        // Address form implementation
+        if (!this.customerId) {
+            showError('Önce müşteri seçmelisiniz');
+            return;
+        }
+
+        // Adres formunu göster
+        const container = document.getElementById('addressSelectContainer');
+        if (!container) return;
+
+        container.innerHTML += `
+            <div class="card mt-3">
+                <div class="card-body">
+                    <form id="newAddressForm" class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label">Adres Başlığı</label>
+                            <input type="text" class="form-control form-control-sm" name="label" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Sokak/Cadde</label>
+                            <input type="text" class="form-control form-control-sm" name="street" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">İlçe</label>
+                            <input type="text" class="form-control form-control-sm" name="district" required>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-sm">Kaydet</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="this.closest('.card').remove()">İptal</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        // Form submit
+        const form = container.querySelector('#newAddressForm');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.saveAddress(new FormData(form));
+        });
+    }
+
+    async saveAddress(formData) {
+        try {
+            const addressData = {
+                ...Object.fromEntries(formData),
+                city: 'İstanbul',
+                country_code: 'TUR',
+                country_name: 'Türkiye'
+            };
+
+            const response = await fetch(`${API_URL}/customers/${this.customerId}/addresses`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(addressData)
+            });
+
+            if (!response.ok) throw new Error('Adres kaydedilemedi');
+
+            const result = await response.json();
+            showSuccess('Adres kaydedildi');
+            
+            // Adresleri yeniden yükle
+            await this.loadCustomerAddresses(this.customerId);
+
+        } catch (error) {
+            console.error('Adres kayıt hatası:', error);
+            showError('Adres kaydedilemedi');
+        }
     }
 
     async showProductModal() {
