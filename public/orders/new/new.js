@@ -43,44 +43,59 @@ class NewOrderForm {
         this.showStep(1);
     }
 
-    // Sadece API çağrısı öncesi temizleme yap
+    // Telefon numarasını temizleme
     cleanPhoneNumber(phone) {
-        return phone.replace(/\D/g, '').replace(/^0+/, '');
+        if (!phone) return '';
+        // Tüm boşlukları ve özel karakterleri kaldır
+        let cleaned = phone.replace(/\D/g, '');
+        // Başındaki 0'ı kaldır
+        cleaned = cleaned.replace(/^0+/, '');
+        // 10 haneden uzunsa kes, kısaysa başına 0 ekle
+        if (cleaned.length > 10) {
+            cleaned = cleaned.substring(cleaned.length - 10);
+        }
+        return cleaned;
     }
 
     async searchCustomer() {
         const rawPhone = document.querySelector('input[name="phone"]').value;
         const cleanPhone = this.cleanPhoneNumber(rawPhone);
         
-        if (cleanPhone.length !== 10) {
-            showError('Geçerli bir telefon numarası girin');
-            return;
-        }
+        console.log('Temizlenmiş numara:', cleanPhone); // Debug için
 
         try {
             const response = await fetch(`${API_URL}/customers/phone/${cleanPhone}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
             const data = await response.json();
+            console.log('API Yanıtı:', data); // Debug için
             
             if (data && data.customer) {
                 this.customerId = data.customer.id;
                 this.showCustomerDetails(data.customer);
                 
-                // Step 2'deki müşteri özeti ve adres listesi
+                // Müşteri özeti
                 const customerSummary = document.getElementById('customerSummary');
-                customerSummary.innerHTML = `
-                    <div class="mb-2">
-                        <strong>${data.customer.name}</strong><br>
-                        <small class="text-muted">${formatPhoneNumber(data.customer.phone)}</small>
-                    </div>
-                `;
+                if (customerSummary) {
+                    customerSummary.innerHTML = `
+                        <div class="mb-2">
+                            <strong>${data.customer.name}</strong><br>
+                            <small class="text-muted">${formatPhoneNumber(data.customer.phone)}</small>
+                        </div>
+                    `;
+                }
 
                 // Adresleri yükle
                 await this.loadCustomerAddresses(data.customer.id);
+                
+                // Step 2'ye geç
+                this.nextStep();
             } else {
                 this.showNewCustomerForm();
             }
         } catch (error) {
             console.error('Müşteri arama hatası:', error);
+            showError('Müşteri bulunamadı veya bir hata oluştu');
             this.showNewCustomerForm();
         }
     }
@@ -265,6 +280,42 @@ class NewOrderForm {
             this.showStep(this.currentStep);
         }
     }
+
+    // Müşteri adreslerini yükleme metodunu class içine taşıyalım
+    async loadCustomerAddresses(customerId) {
+        try {
+            const response = await fetch(`${API_URL}/customers/${customerId}/addresses`);
+            if (!response.ok) throw new Error('Adres getirme hatası');
+            
+            const addresses = await response.json();
+            const addressesContainer = document.getElementById('savedAddresses');
+            
+            if (!addressesContainer) return;
+            
+            if (addresses && addresses.length > 0) {
+                addressesContainer.innerHTML = addresses.map(address => `
+                    <div class="list-group-item list-group-item-action" role="button" 
+                         onclick="selectSavedAddress(${address.id}, '${address.label}', '${address.district}, ${address.city}')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${address.label}</h6>
+                            ${address.is_default ? '<span class="badge bg-primary">Varsayılan</span>' : ''}
+                        </div>
+                        <p class="mb-1">${address.street || ''}</p>
+                        <small class="text-muted">${address.district}, ${address.city}</small>
+                    </div>
+                `).join('');
+            } else {
+                addressesContainer.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Kayıtlı adres bulunamadı
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Adres yükleme hatası:', error);
+            showError('Adresler yüklenemedi');
+        }
+    }
 }
 
 // Global instance
@@ -355,38 +406,4 @@ function selectSavedAddress(addressId, label, location) {
     
     // Adres seçim alanını gizle
     document.getElementById('addressSelectionArea').style.display = 'none';
-}
-
-// Yeni fonksiyon: Müşteri adreslerini yükle
-async function loadCustomerAddresses(customerId) {
-    try {
-        const response = await fetch(`${API_URL}/customers/${customerId}/addresses`);
-        if (!response.ok) throw new Error('Adres getirme hatası');
-        
-        const addresses = await response.json();
-        const addressesContainer = document.getElementById('savedAddresses');
-        
-        if (addresses && addresses.length > 0) {
-            addressesContainer.innerHTML = addresses.map(address => `
-                <div class="list-group-item list-group-item-action" role="button" 
-                     onclick="selectSavedAddress(${address.id}, '${address.label}', '${address.district}, ${address.city}')">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h6 class="mb-1">${address.label}</h6>
-                        ${address.is_default ? '<span class="badge bg-primary">Varsayılan</span>' : ''}
-                    </div>
-                    <p class="mb-1">${address.street || ''}</p>
-                    <small class="text-muted">${address.district}, ${address.city}</small>
-                </div>
-            `).join('');
-        } else {
-            addressesContainer.innerHTML = `
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> Kayıtlı adres bulunamadı
-                </div>
-            `;
-        }
-    } catch (error) {
-        console.error('Adres yükleme hatası:', error);
-        showError('Adresler yüklenemedi');
-    }
 }
