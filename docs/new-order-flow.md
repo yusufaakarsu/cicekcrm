@@ -1,173 +1,146 @@
-# Yeni Sipariş Ekleme Akışı
+# Yeni Sipariş Akışı (Güncellenmiş)
 
-## 1. Veri Yapısı
-
-### 1.1 Sipariş Ana Yapısı
+## 1. Müşteri Seçimi/Arama
+### 1.1 Telefon ile Müşteri Arama
 ```typescript
-interface Order {
-    id: number;
-    tenant_id: number;
-    customer_id: number;
-    customer_type: 'new' | 'existing';
-    delivery: DeliveryInfo;
-    items: OrderItem[];
-    payment: PaymentInfo;
-    totals: OrderTotals;
-    meta: OrderMeta;
+interface CustomerSearchFlow {
+  1. Telefon numarası girişi
+  2. Müşteri kontrolü:
+     if (müşteri_varsa) {
+       - Müşteri bilgilerini göster
+       - Kayıtlı adresleri yükle
+     } else {
+       - Otomatik yeni müşteri modalı aç
+       - Telefon numarasını doldur
+     }
 }
 ```
 
-### 1.2 Alt Yapılar
+### 1.2 Yeni Müşteri Kaydı
 ```typescript
-interface DeliveryInfo {
-    date: string;
+interface NewCustomerData {
+    name: string;          // Zorunlu
+    phone: string;         // Zorunlu
+    email?: string;        // Opsiyonel
+    district: string;      // Zorunlu - İlçe seçimi
+    customer_type: 'retail' | 'corporate';
+    company_details?: {    // Kurumsal ise
+        company_name: string;
+        tax_number: string;
+    }
+}
+```
+
+## 2. Teslimat Bilgileri
+### 2.1 Teslimat Planlama
+```typescript
+interface DeliveryPlanning {
+    date: Date;           // Zorunlu
     time_slot: 'morning' | 'afternoon' | 'evening';
-    address_id?: number;
-    address_data?: AddressData; // Yeni adres için
-    recipient_name: string;
-    recipient_phone: string;
-    notes?: string;
-    card_message?: string;
-}
-
-interface OrderItem {
-    product_id: number;
-    quantity: number;
-    unit_price: number;
-    total_price: number;
-}
-
-interface PaymentInfo {
-    method: 'cash' | 'credit_card' | 'bank_transfer';
-    status: 'pending' | 'paid';
-    discount_code?: string;
-}
-
-interface OrderTotals {
-    subtotal: number;
-    delivery_fee: number;
-    discount: number;
-    total: number;
+    recipient: {
+        name: string;     // Zorunlu (Müşteri adı otomatik DOLDURULMAYACAK)
+        phone: string;    // Zorunlu
+    }
 }
 ```
 
-## 2. İş Akışı
-
-### 2.1 Müşteri Seçimi/Ekleme
-1. Telefon ile müşteri arama
-2. Mevcut müşteri seçimi VEYA
-3. Yeni müşteri ekleme
-   - Müşteri tipi seçimi
-   - Temel bilgiler
-   - Adres bilgisi (opsiyonel)
-
-### 2.2 Teslimat Bilgileri
-1. Tarih ve zaman dilimi seçimi
-2. Alıcı bilgileri girişi
-3. Adres seçimi/ekleme
-   - Kayıtlı adreslerden seçim VEYA
-   - HERE Maps ile yeni adres ekleme
-4. Not ve kart mesajı
-
-### 2.3 Ürün Seçimi
-1. Ürün arama ve ekleme
-2. Miktar belirleme
-3. Sepet yönetimi
-   - Ürün ekleme/çıkarma
-   - Miktar güncelleme
-   - Ara toplam hesaplama
-
-### 2.4 Ödeme Bilgileri
-1. Ödeme yöntemi seçimi
-2. İndirim kuponu (varsa)
-3. Toplam hesaplama
-   - Ara toplam
-   - Teslimat ücreti
-   - İndirim
-   - Genel toplam
-
-## 3. Validasyon Kuralları
-
-### 3.1 Zorunlu Alanlar
-- Müşteri bilgileri
-- Teslimat tarihi ve saati
-- Alıcı adı ve telefonu
-- Teslimat adresi
-- En az 1 ürün
-- Ödeme yöntemi
-
-### 3.2 İş Kuralları
-1. Aynı gün teslimat:
-   - Saat 14:00'e kadar sipariş verilebilir
-   - Sadece afternoon/evening seçilebilir
-
-2. Adres kontrolü:
-   - İstanbul içi teslimat kontrolü
-   - Koordinat zorunluluğu
-
-3. Stok kontrolü:
-   - Ürün stok kontrolü
-   - Rezervasyon yönetimi
-
-## 4. API Entegrasyonu
-
-### 4.1 Sipariş Kaydetme
+### 2.2 Adres Seçimi
 ```typescript
-POST /orders
-{
-    customer: CustomerData;
-    delivery: DeliveryInfo;
-    items: OrderItem[];
-    payment: PaymentInfo;
+interface AddressSelection {
+    sources: [
+        'saved_addresses',    // Müşterinin kayıtlı adresleri
+        'here_maps_search'    // HERE API arama sonuçları
+    ];
+    
+    display: {
+        saved: "Tek listede kayıtlı adresler",
+        search_results: "Aynı listede HERE sonuçları"
+    };
+
+    selected_address: {
+        id?: number;          // Kayıtlı adres için
+        label: string;        // Adres başlığı
+        full_address: string; // Tam adres
+        coordinates: {        // HERE API'den
+            lat: number;
+            lng: number;
+        }
+    }
 }
 ```
 
-### 4.2 Transaction Yönetimi
-1. Müşteri işlemleri
-2. Adres işlemleri
-3. Sipariş ana kaydı
-4. Sipariş detayları
-5. Stok güncellemeleri
+## 3. Sipariş Detayları
+### 3.1 Ürün Seçimi/Sepet
+```typescript
+interface CartManagement {
+    products: {
+        search: string;      // Anlık arama
+        display: [           // Liste görünümü
+            name: string,
+            price: number,
+            stock: number
+        ];
+    };
+    
+    cart: {
+        items: [{
+            id: number;
+            name: string;
+            quantity: number;
+            price: number;
+        }];
+        totals: {
+            subtotal: number;
+            delivery_fee: number;
+            total: number;
+        }
+    }
+}
+```
 
-## 5. Hata Yönetimi
+## 4. Backend API Yapısı
+### 4.1 Sipariş Kaydetme Transaction
+```sql
+BEGIN TRANSACTION;
 
-### 5.1 Validation Hataları
-- Form validasyonları
-- İş kuralı kontrolleri
-- Stok kontrolleri
+-- 1. Yeni müşteri ise önce müşteriyi kaydet
+INSERT INTO customers (...) VALUES (...);
 
-### 5.2 API Hataları
-- Bağlantı hataları
-- Sunucu hataları
-- Transaction hataları
+-- 2. Yeni adres ise adresi kaydet
+INSERT INTO addresses (...) VALUES (...);
 
-### 5.3 Kullanıcı Geri Bildirimi
-- Toast mesajları
-- Form hata gösterimi
-- Yönlendirme mesajları
+-- 3. Siparişi kaydet
+INSERT INTO orders (...) VALUES (...);
 
-## 6. UI/UX İyileştirmeleri
+-- 4. Sipariş detaylarını kaydet
+INSERT INTO order_items (...) VALUES (...);
 
-### 6.1 Form Kullanılabilirliği
-- Tab sıralaması
-- Otomatik tamamlama
-- Input maskeleme
-- Klavye kısayolları
+-- 5. Stok güncelle
+UPDATE products SET stock = stock - :quantity 
+WHERE id = :product_id;
 
-### 6.2 Progressive Enhancement
-- Offline desteği
-- Form state yönetimi
-- Otomatik kaydetme
-- Geri yükleme
+COMMIT;
+```
 
-## 7. Test Senaryoları
+## 5. Validasyon Kuralları
+### 5.1 Zorunlu Alanlar
+- Müşteri bilgileri (ad, telefon, ilçe)
+- Alıcı bilgileri (ad, telefon)
+- Teslimat tarihi ve saati
+- Teslimat adresi (koordinatlar zorunlu)
+- En az 1 ürün
 
-### 7.1 Pozitif Testler
-- Normal akış
-- Tüm alanlar dolu
-- Geçerli değerler
+### 5.2 İş Kuralları
+1. Yeni Müşteri:
+   - Telefon numarası unique
+   - İlçe seçimi zorunlu
 
-### 7.2 Negatif Testler
-- Eksik/hatalı veri
-- Sınır değerleri
-- API hataları
+2. Teslimat:
+   - İstanbul dışı teslimat yok
+   - HERE API ile adres doğrulama
+   - Alıcı bilgileri müşteriden bağımsız
+
+3. Sipariş:
+   - Minimum sipariş tutarı kontrolü
+   - Stok kontrolü
+   - Teslimat ücreti hesaplama

@@ -1,203 +1,121 @@
-// Global state yönetimi
-const orderState = {
-    customer: null,
-    delivery: {
-        date: null,
-        timeSlot: null,
-        address: null,
-        type: 'recipient' // 'recipient' veya 'customer'
-    },
-    recipient: {
-        name: '',
-        phone: '',
-        note: '',
-        cardMessage: ''
-    },
-    items: [], // {productId, quantity, price}
-    payment: {
-        method: 'cash',
-        status: 'pending'
-    },
-    totals: {
-        subtotal: 0,
-        deliveryFee: 0,
-        discount: 0,
-        total: 0
-    }
-};
-
-// Sayfa yüklendiğinde
-document.addEventListener('DOMContentLoaded', () => {
-    loadHeader();
-    initializeComponents();
-    setupEventListeners();
-});
-
-// Bileşenleri başlat
-function initializeComponents() {
-    // Müşteri seçim bileşeni
-    const customerSelect = new CustomerSelect('customerSelectContainer');
-    
-    // Teslimat formu
-    const deliveryForm = new DeliveryForm('deliveryFormContainer');
-    
-    // Ürün seçim bileşeni
-    const productSelect = new ProductSelect('productSelectContainer');
-    
-    // Ödeme formu
-    const paymentForm = new PaymentForm('paymentFormContainer');
-}
-
-// Event listener'ları ayarla
-function setupEventListeners() {
-    // Müşteri seçildiğinde
-    document.addEventListener('customerSelected', (e) => {
-        orderState.customer = e.detail;
-        updateDeliveryOptions();
-    });
-
-    // Teslimat bilgileri güncellendiğinde
-    document.addEventListener('deliveryUpdated', (e) => {
-        orderState.delivery = {...orderState.delivery, ...e.detail};
-        updateTotals();
-    });
-
-    // Ürün eklendiğinde/çıkarıldığında
-    document.addEventListener('cartUpdated', (e) => {
-        orderState.items = e.detail;
-        updateTotals();
-    });
-
-    // Ödeme yöntemi değiştiğinde
-    document.addEventListener('paymentMethodChanged', (e) => {
-        orderState.payment.method = e.detail;
-        updateTotals();
-    });
-}
-
-// Müşteri seçildiğinde teslimat seçeneklerini güncelle
-function updateDeliveryOptions() {
-    if (orderState.customer) {
-        // Müşterinin kayıtlı adreslerini yükle
-        const addressSelect = document.querySelector('#addressSelectContainer')?.addressSelect;
-        if (addressSelect) {
-            addressSelect.loadSavedAddresses(orderState.customer.id);
-        }
-
-        // Varsayılan alıcı bilgilerini doldur
-        document.getElementById('recipientName').value = orderState.customer.name;
-        document.getElementById('recipientPhone').value = orderState.customer.phone;
-    }
-}
-
-// Toplam tutarları güncelle
-function updateTotals() {
-    // Ara toplam hesapla
-    orderState.totals.subtotal = orderState.items.reduce(
-        (sum, item) => sum + (item.price * item.quantity), 0
-    );
-
-    // Teslimat ücreti hesapla
-    orderState.totals.deliveryFee = calculateDeliveryFee(
-        orderState.delivery.address,
-        orderState.delivery.timeSlot
-    );
-
-    // Toplam tutar
-    orderState.totals.total = 
-        orderState.totals.subtotal + 
-        orderState.totals.deliveryFee - 
-        orderState.totals.discount;
-
-    // UI güncelle
-    document.getElementById('orderTotal').textContent = 
-        formatCurrency(orderState.totals.total);
-}
-
-// Siparişi kaydet
-async function saveOrder() {
-    if (!validateOrder()) return;
-
-    try {
-        const response = await fetch(`${API_URL}/orders`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
+class OrderManager {
+    constructor() {
+        this.state = {
+            customer: null,
+            delivery: {
+                date: null,
+                timeSlot: null,
+                address: null,
+                recipient: { name: '', phone: '' }
             },
-            body: JSON.stringify({
-                customer_id: orderState.customer.id,
-                delivery_date: orderState.delivery.date,
-                delivery_time_slot: orderState.delivery.timeSlot,
-                delivery_address_id: orderState.delivery.address.id,
-                delivery_type: orderState.delivery.type,
-                recipient_name: orderState.recipient.name,
-                recipient_phone: orderState.recipient.phone,
-                recipient_note: orderState.recipient.note,
-                card_message: orderState.recipient.cardMessage,
-                items: orderState.items,
-                payment_method: orderState.payment.method,
-                total_amount: orderState.totals.total,
-                delivery_fee: orderState.totals.deliveryFee,
-                subtotal: orderState.totals.subtotal,
-                discount_amount: orderState.totals.discount
-            })
+            items: [],
+            payment: { method: 'cash', status: 'pending' }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            this.components = {
+                customerSelect: new CustomerSelect('customerSelectContainer', this),
+                deliveryForm: new DeliveryForm('deliveryFormContainer', this),
+                productSelect: new ProductSelect('productSelectContainer', this),
+                paymentForm: new PaymentForm('paymentFormContainer', this)
+            };
+
+            this.setupEventListeners();
+        });
+    }
+
+    setupEventListeners() {
+        document.addEventListener('customerSelected', (e) => {
+            this.state.customer = e.detail;
+            if (this.components.deliveryForm?.addressSelect) {
+                this.components.deliveryForm.addressSelect.loadSavedAddresses(e.detail?.id);
+            }
         });
 
-        if (!response.ok) throw new Error('API Hatası');
+        document.addEventListener('addressSelected', (e) => {
+            this.state.delivery.address = e.detail;
+            this.updateDeliveryFee();
+        });
 
-        const result = await response.json();
-        
-        showSuccess('Sipariş başarıyla oluşturuldu!');
-        setTimeout(() => {
-            window.location.href = `/orders/orders.html`;
-        }, 1500);
+        document.addEventListener('cartUpdated', (e) => {
+            this.state.items = e.detail;
+            this.updateTotals();
+        });
+    }
 
-    } catch (error) {
-        console.error('Sipariş kaydedilirken hata:', error);
-        showError('Sipariş kaydedilemedi!');
+    updateTotals() {
+        const totals = {
+            subtotal: this.state.items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+            deliveryFee: this.calculateDeliveryFee(),
+            discount: 0
+        };
+        totals.total = totals.subtotal + totals.deliveryFee - totals.discount;
+
+        if (this.components.paymentForm) {
+            this.components.paymentForm.updateTotals(totals);
+        }
+    }
+
+    calculateDeliveryFee() {
+        // Basit teslimat ücreti hesaplama
+        return this.state.delivery.address ? 70 : 0;
+    }
+
+    async saveOrder() {
+        if (!this.validateOrder()) return;
+
+        try {
+            const response = await fetch(`${API_URL}/orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.prepareOrderData())
+            });
+
+            if (!response.ok) throw new Error('API Hatası');
+            
+            showSuccess('Sipariş başarıyla oluşturuldu');
+            setTimeout(() => window.location.href = '/orders', 1500);
+        } catch (error) {
+            console.error('Sipariş kaydedilemedi:', error);
+            showError('Sipariş kaydedilemedi');
+        }
+    }
+
+    validateOrder() {
+        // Tüm gerekli alanları kontrol et
+        if (!this.state.customer) {
+            showError('Lütfen müşteri seçin');
+            return false;
+        }
+
+        if (!this.state.delivery.date || !this.state.delivery.timeSlot) {
+            showError('Lütfen teslimat bilgilerini girin');
+            return false;
+        }
+
+        if (!this.state.delivery.recipient.name || !this.state.delivery.recipient.phone) {
+            showError('Lütfen alıcı bilgilerini girin');
+            return false;
+        }
+
+        if (!this.state.items.length) {
+            showError('Lütfen en az bir ürün ekleyin');
+            return false;
+        }
+
+        return true;
+    }
+
+    prepareOrderData() {
+        return {
+            customer_id: this.state.customer.id,
+            delivery: this.state.delivery,
+            items: this.state.items,
+            payment: this.state.payment,
+            totals: this.state.cart.totals
+        };
     }
 }
 
-// Sipariş validasyonu
-function validateOrder() {
-    // Müşteri kontrolü
-    if (!orderState.customer) {
-        showError('Lütfen müşteri seçin');
-        return false;
-    }
-
-    // Teslimat bilgileri kontrolü
-    if (!orderState.delivery.date || !orderState.delivery.timeSlot || !orderState.delivery.address) {
-        showError('Lütfen teslimat bilgilerini eksiksiz doldurun');
-        return false;
-    }
-
-    // Alıcı bilgileri kontrolü
-    if (!orderState.recipient.name || !orderState.recipient.phone) {
-        showError('Lütfen alıcı bilgilerini eksiksiz doldurun');
-        return false;
-    }
-
-    // Ürün kontrolü
-    if (orderState.items.length === 0) {
-        showError('Lütfen en az bir ürün ekleyin');
-        return false;
-    }
-
-    return true;
-}
-
-// Teslimat ücreti hesaplama
-function calculateDeliveryFee(address, timeSlot) {
-    // Temel ücret
-    let fee = 50;
-
-    // Mesafeye göre ek ücret (TODO: HERE Maps ile mesafe hesaplama)
-    // ...
-
-    // Zaman dilimine göre ek ücret
-    if (timeSlot === 'morning') fee += 20;
-    if (timeSlot === 'evening') fee += 30;
-
-    return fee;
-}
+// Global instance
+window.orderManager = new OrderManager();

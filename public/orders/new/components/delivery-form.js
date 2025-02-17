@@ -1,6 +1,7 @@
 class DeliveryForm {
-    constructor(containerId) {
+    constructor(containerId, manager) {
         this.container = document.getElementById(containerId);
+        this.manager = manager;
         this.state = {
             date: null,
             timeSlot: null,

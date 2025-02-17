@@ -1,8 +1,8 @@
 class CustomerSelect {
-    constructor(containerId) {
+    constructor(containerId, manager) {
         this.container = document.getElementById(containerId);
+        this.manager = manager;
         this.selectedCustomer = null;
-        this.modal = null; // Modal instance'ını constructor'da null olarak başlat
         this.init();
     }
 
@@ -13,119 +13,86 @@ class CustomerSelect {
 
     render() {
         this.container.innerHTML = `
-            <div class="row g-3">
-                <!-- Sadece Telefon ile Müşteri Arama -->
-                <div class="col-12">
-                    <div class="input-group">
-                        <input type="tel" class="form-control" id="customerPhone" 
-                               placeholder="Müşteri telefonu" maxlength="11">
-                        <button class="btn btn-primary" type="button" id="searchCustomer">
-                            <i class="bi bi-search"></i> Ara
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Seçili Müşteri Bilgileri -->
-                <div class="col-12">
-                    <div id="selectedCustomerInfo" style="display:none" class="alert alert-success">
-                    </div>
-                </div>
+            <div class="input-group mb-2">
+                <input type="tel" class="form-control" id="customerPhone" 
+                       placeholder="Müşteri telefonu">
+                <button class="btn btn-primary" type="button" id="searchCustomerBtn">
+                    <i class="bi bi-search"></i> Ara
+                </button>
             </div>
-
-            <!-- Genişletilmiş Müşteri Modal -->
-            <div class="modal fade" id="newCustomerModal">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Yeni Müşteri</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="newCustomerForm">
-                                <div class="mb-3">
-                                    <label class="form-label">Müşteri Tipi</label>
-                                    <select class="form-control" name="customer_type" onchange="toggleCompanyFields(this.value)">
-                                        <option value="retail">Bireysel</option>
-                                        <option value="corporate">Kurumsal</option>
-                                    </select>
-                                </div>
-
-                                <!-- Temel Bilgiler -->
-                                <div class="mb-3">
-                                    <label class="form-label">Ad Soyad *</label>
-                                    <input type="text" class="form-control" name="name" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Telefon *</label>
-                                    <input type="tel" class="form-control" name="phone" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" class="form-control" name="email">
-                                </div>
-
-                                <!-- Lokasyon Bilgileri -->
-                                <div class="mb-3">
-                                    <label class="form-label">İlçe *</label>
-                                    <select class="form-control" name="district" required>
-                                        <option value="">Seçiniz</option>
-                                        <!-- İstanbul ilçeleri -->
-                                        <option value="Adalar">Adalar</option>
-                                        <option value="Arnavutköy">Arnavutköy</option>
-                                        <!-- ...diğer ilçeler... -->
-                                    </select>
-                                </div>
-
-                                <!-- Kurumsal Alanlar -->
-                                <div id="companyFields" style="display:none">
-                                    <div class="mb-3">
-                                        <label class="form-label">Firma Adı</label>
-                                        <input type="text" class="form-control" name="company_name">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Vergi No</label>
-                                        <input type="text" class="form-control" name="tax_number">
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                            <button type="button" class="btn btn-primary" onclick="saveNewCustomer()">Kaydet</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div id="customerInfo" class="alert alert-success" style="display:none"></div>
         `;
 
-        // Modal'ı sadece bir kere başlat
-        if (!this.modal) {
-            const modalElement = document.getElementById('newCustomerModal');
-            this.modal = new bootstrap.Modal(modalElement, {
-                backdrop: 'static', // Modal dışına tıklanınca kapanmasın
-                keyboard: false // ESC ile kapanmasın
-            });
-            this.form = document.getElementById('newCustomerForm');
+        // Modal template'ini bir kere ekle
+        if (!document.getElementById('customerModal')) {
+            document.body.insertAdjacentHTML('beforeend', `
+                <div class="modal fade" id="customerModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Yeni Müşteri</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="customerForm">
+                                    <div class="mb-3">
+                                        <label class="form-label">Ad Soyad *</label>
+                                        <input type="text" class="form-control" name="name" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Telefon *</label>
+                                        <input type="tel" class="form-control" name="phone" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">İlçe *</label>
+                                        <select class="form-select" name="district" required>
+                                            <option value="">Seçiniz</option>
+                                            ${ISTANBUL_DISTRICTS.map(d => 
+                                                `<option value="${d}">${d}</option>`
+                                            ).join('')}
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-control" name="email">
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                <button type="button" class="btn btn-primary" id="saveCustomerBtn">Kaydet</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+            
+            this.modal = new bootstrap.Modal(document.getElementById('customerModal'));
+            this.form = document.getElementById('customerForm');
         }
     }
 
     setupEventListeners() {
-        // Telefon ile arama
-        const searchBtn = document.getElementById('searchCustomer');
+        const searchBtn = document.getElementById('searchCustomerBtn');
         const phoneInput = document.getElementById('customerPhone');
+        const saveBtn = document.getElementById('saveCustomerBtn');
 
-        searchBtn.addEventListener('click', () => this.searchCustomer(phoneInput.value));
-        
-        phoneInput.addEventListener('keyup', (e) => {
+        // Enter ile arama
+        phoneInput?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                this.searchCustomer(e.target.value);
+                e.preventDefault();
+                this.searchCustomer(phoneInput.value);
             }
         });
 
-        // Yeni müşteri modal
-        document.getElementById('newCustomerBtn').addEventListener('click', () => {
-            this.form.reset();
-            this.modal.show();
+        // Butona tıklayarak arama
+        searchBtn?.addEventListener('click', () => {
+            this.searchCustomer(phoneInput.value);
+        });
+
+        // Müşteri kaydetme
+        saveBtn?.addEventListener('click', () => {
+            this.saveCustomer();
         });
     }
 
@@ -160,7 +127,7 @@ class CustomerSelect {
         this.selectedCustomer = customer;
         
         // Müşteri bilgilerini göster
-        const infoDiv = document.getElementById('selectedCustomerInfo');
+        const infoDiv = document.getElementById('customerInfo');
         infoDiv.style.display = 'block';
         infoDiv.innerHTML = `
             <div class="d-flex justify-content-between align-items-center">
@@ -183,7 +150,7 @@ class CustomerSelect {
 
     clearSelection() {
         this.selectedCustomer = null;
-        document.getElementById('selectedCustomerInfo').style.display = 'none';
+        document.getElementById('customerInfo').style.display = 'none';
         document.getElementById('customerPhone').value = '';
         
         // Event'i tetikle
@@ -192,7 +159,7 @@ class CustomerSelect {
         }));
     }
 
-    async saveNewCustomer() {
+    async saveCustomer() {
         if (!this.form.checkValidity()) {
             this.form.reportValidity();
             return;
@@ -228,13 +195,3 @@ class CustomerSelect {
         }
     }
 }
-
-// Global instance
-window.customerSelect = new CustomerSelect('customerSelectContainer');
-
-// Global saveNewCustomer fonksiyonu
-window.saveNewCustomer = function() {
-    if (window.customerSelect) {
-        window.customerSelect.saveNewCustomer();
-    }
-};
