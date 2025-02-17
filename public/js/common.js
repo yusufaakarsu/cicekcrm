@@ -57,33 +57,31 @@ async function fetchAPI(endpoint, options = {}) {
         console.log('API Request:', {
             url,
             method: options.method || 'GET',
-            headers: options.headers,
             body: options.body
         });
 
         const response = await fetch(url, {
-            ...options,
+            method: options.method || 'GET',
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                ...options.headers
-            }
+                'Content-Type': 'application/json'
+            },
+            body: options.body
         });
         
         const data = await response.json();
         console.log('API Response:', data);
 
-        if (!response.ok) {
-            throw new Error(data.error || 'API Error');
+        // Başarılı yanıt kontrolü
+        if (response.ok && data.success !== false) {
+            return data;
         }
-        
-        return data;
+
+        // Hata durumunda
+        throw new Error(data.error || data.message || 'API Error');
+
     } catch (error) {
-        console.error('API Error:', {
-            message: error.message,
-            endpoint,
-            options
-        });
+        console.error('API Error:', error);
         throw error;
     }
 }
