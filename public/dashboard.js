@@ -1,36 +1,22 @@
-document.addEventListener('DOMContentLoaded', () => {
-    loadHeader();
-    loadDashboardData();
-    // Her 5 dakikada bir güncelle
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadHeader();
+    await loadDashboardData();
     setInterval(loadDashboardData, 300000);
 });
 
 async function loadDashboardData() {
     try {
-        const response = await fetch('http://localhost:8787/api/dashboard');
-        
-        if (!response.ok) {
-            console.error('API Error:', await response.text());
-            throw new Error('API Error');
-        }
-        
-        const data = await response.json();
-        console.log('Dashboard data:', data); // Debug için
+        // fetchAPI fonksiyonunu kullan
+        const data = await fetchAPI('/dashboard');
 
         if (!data.success) {
             throw new Error(data.message || 'API Error');
         }
 
-        // 1. Teslimat Durumu Kartı
+        // Verileri güncelle
         updateDeliveryCard(data.deliveryStats);
-        
-        // 2. Finansal Durum Kartı
         updateFinanceCard(data.finance);
-        
-        // 3. Kritik Durumlar Kartı
         updateCriticalCard(data.criticalStats);
-        
-        // 4. Günlük Hedefler Kartı
         updateTargetsCard(data.targets);
 
         // Son güncelleme zamanını göster
@@ -39,7 +25,7 @@ async function loadDashboardData() {
 
     } catch (error) {
         console.error('Dashboard hatası:', error);
-        showError('Veriler yüklenemedi!');
+        showError('Veriler yüklenemedi! ' + error.message);
     }
 }
 

@@ -31,18 +31,17 @@ router.get('/', async (c) => {
       AND is_deleted = 0
     `).bind(tenant_id).first()
 
-    // 3. Kritik Durumlar
+    // 3. Kritik Durumlar - complaints tablosunu kaldırdık
     const criticalStats = await db.prepare(`
       SELECT 
         COUNT(CASE WHEN status = 'delivering' AND 
           DATETIME(delivery_date) < DATETIME('now') THEN 1 END) as delayed_deliveries,
         COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancellations,
-        COUNT(o.id) as complaints
-      FROM orders o
-      LEFT JOIN complaints c ON o.id = c.order_id
-      WHERE o.tenant_id = ? 
-      AND DATE(o.delivery_date) = DATE('now')
-      AND o.is_deleted = 0
+        0 as complaints  -- Şimdilik sabit 0 değeri
+      FROM orders 
+      WHERE tenant_id = ? 
+      AND DATE(delivery_date) = DATE('now')
+      AND is_deleted = 0
     `).bind(tenant_id).first()
 
     // 4. Günlük Hedefler
