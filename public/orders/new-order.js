@@ -1,4 +1,3 @@
-
 // Sayfa yüklendiğinde
 document.addEventListener('DOMContentLoaded', () => {
     // Header'ı yükle
@@ -32,6 +31,7 @@ function setupCustomerSearch() {
 async function searchCustomer() {
     // Input değerini al ve temizle
     const phoneInput = document.getElementById('customerSearch');
+    const searchButton = document.getElementById('searchCustomer'); // Button'u burada tanımla
     const phone = phoneInput.value.trim().replace(/\D/g, '');
     
     // Boş kontrolü
@@ -42,7 +42,6 @@ async function searchCustomer() {
     
     try {
         // Yükleniyor durumunu göster
-        const searchButton = document.getElementById('searchCustomer');
         const originalButtonContent = searchButton.innerHTML;
         searchButton.disabled = true;
         searchButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
@@ -73,8 +72,10 @@ async function searchCustomer() {
         showError('Müşteri araması başarısız oldu');
         
         // Buton durumunu resetle
-        searchButton.disabled = false;
-        searchButton.innerHTML = originalButtonContent;
+        if (searchButton) {
+            searchButton.disabled = false;
+            searchButton.innerHTML = '<i class="bi bi-search"></i>';
+        }
     }
 }
 
@@ -93,4 +94,52 @@ function showCustomerDetails(customer) {
     
     // Kayıtlı adresleri yükle
     loadCustomerAddresses(customer.id);
+}
+
+// Müşteri kayıtlı adreslerini yükle
+async function loadCustomerAddresses(customerId) {
+    try {
+        // Adresleri API'den al
+        const response = await fetch(`${API_URL}/customers/${customerId}/addresses`);
+        const data = await response.json();
+        
+        // Select elementini al
+        const addressSelect = document.getElementById('customerAddresses');
+        
+        // Mevcut options'ları temizle (ilk option hariç)
+        const defaultOption = addressSelect.options[0];
+        addressSelect.innerHTML = '';
+        addressSelect.appendChild(defaultOption);
+        
+        // Adresleri ekle
+        if (data && data.length > 0) {
+            data.forEach(address => {
+                const option = document.createElement('option');
+                option.value = address.id;
+                option.textContent = `${address.label} - ${address.district}`;
+                addressSelect.appendChild(option);
+            });
+        }
+        
+        // Select'i göster
+        addressSelect.parentElement.classList.remove('d-none');
+        
+    } catch (error) {
+        console.error('Adres yükleme hatası:', error);
+        showError('Adresler yüklenemedi');
+    }
+}
+
+// Yeni müşteri formu gösterme
+function showNewCustomerForm() {
+    document.getElementById('customerNotFound').classList.add('d-none');
+    document.getElementById('customerDetails').classList.add('d-none');
+    document.getElementById('newCustomerForm').classList.remove('d-none');
+    
+    // İlçe listesini doldur
+    const districtSelect = document.querySelector('[name="new_customer_district"]');
+    districtSelect.innerHTML = '<option value="">İlçe seçin...</option>' +
+        ISTANBUL_DISTRICTS.map(district => 
+            `<option value="${district}">${district}</option>`
+        ).join('');
 }
