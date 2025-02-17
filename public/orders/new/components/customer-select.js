@@ -2,6 +2,7 @@ class CustomerSelect {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
         this.selectedCustomer = null;
+        this.modal = null; // Modal instance'ını constructor'da null olarak başlat
         this.init();
     }
 
@@ -89,9 +90,15 @@ class CustomerSelect {
             </div>
         `;
 
-        // Modal ve form elementlerini sakla
-        this.modal = new bootstrap.Modal(document.getElementById('newCustomerModal'));
-        this.form = document.getElementById('newCustomerForm');
+        // Modal'ı sadece bir kere başlat
+        if (!this.modal) {
+            const modalElement = document.getElementById('newCustomerModal');
+            this.modal = new bootstrap.Modal(modalElement, {
+                backdrop: 'static', // Modal dışına tıklanınca kapanmasın
+                keyboard: false // ESC ile kapanmasın
+            });
+            this.form = document.getElementById('newCustomerForm');
+        }
     }
 
     setupEventListeners() {
@@ -183,10 +190,10 @@ class CustomerSelect {
             return;
         }
 
-        const formData = new FormData(this.form);
-        const data = Object.fromEntries(formData);
-
         try {
+            const formData = new FormData(this.form);
+            const data = Object.fromEntries(formData);
+
             const response = await fetch(`${API_URL}/customers`, {
                 method: 'POST',
                 headers: {
@@ -216,3 +223,10 @@ class CustomerSelect {
 
 // Global instance
 window.customerSelect = new CustomerSelect('customerSelectContainer');
+
+// Global saveNewCustomer fonksiyonu
+window.saveNewCustomer = function() {
+    if (window.customerSelect) {
+        window.customerSelect.saveNewCustomer();
+    }
+};

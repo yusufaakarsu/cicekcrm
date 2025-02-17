@@ -140,7 +140,8 @@ class AddressSelect {
                 lat: item.position.lat,
                 lng: item.position.lng
             },
-            here_place_id: item.id
+            here_place_id: item.id,
+            id: `new_${Date.now()}` // Geçici unique ID
         };
 
         this.selectedAddress = address;

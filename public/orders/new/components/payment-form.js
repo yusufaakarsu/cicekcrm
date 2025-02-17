@@ -73,6 +73,18 @@ class PaymentForm {
     }
 
     setupEventListeners() {
+        // Cart güncelleme event listener'ı ekle
+        document.addEventListener('cartUpdated', (e) => {
+            const items = e.detail;
+            const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            this.updateTotals({
+                subtotal: subtotal,
+                deliveryFee: 70, // Sabit teslimat ücreti
+                discount: 0,
+                total: subtotal + 70
+            });
+        });
+
         // Ödeme yöntemi değişimi
         document.getElementById('paymentMethod').addEventListener('change', (e) => {
             this.state.method = e.target.value;
