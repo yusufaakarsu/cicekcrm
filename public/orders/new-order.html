@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yeni Sipariş - Çiçek CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body data-page="orders">
+    <div id="header"></div>
+
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-plus-circle"></i> Yeni Sipariş
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Müşteri Seçimi -->
+                <div class="mb-4">
+                    <h6>1. Müşteri Bilgileri</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="tel" class="form-control" id="customerPhone" 
+                                       placeholder="Müşteri telefonu">
+                                <button class="btn btn-primary" type="button" id="searchCustomerBtn">
+                                    <i class="bi bi-search"></i> Ara
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="customerInfo" class="mt-2"></div>
+                </div>
+
+                <!-- Teslimat Bilgileri -->
+                <div class="mb-4">
+                    <h6>2. Teslimat Bilgileri</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Teslimat Tarihi *</label>
+                            <input type="date" class="form-control" id="deliveryDate" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Teslimat Saati *</label>
+                            <select class="form-select" id="deliveryTimeSlot" required>
+                                <option value="">Seçiniz</option>
+                                <option value="morning">Sabah (09:00-12:00)</option>
+                                <option value="afternoon">Öğlen (12:00-17:00)</option>
+                                <option value="evening">Akşam (17:00-21:00)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Alıcı Adı *</label>
+                            <input type="text" class="form-control" id="recipientName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Alıcı Telefonu *</label>
+                            <input type="tel" class="form-control" id="recipientPhone" required>
+                        </div>
+                        
+                        <!-- Adres Seçimi -->
+                        <div class="col-12">
+                            <label class="form-label">Teslimat Adresi *</label>
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" id="addressSearchInput" 
+                                       placeholder="Adres aramak için yazın...">
+                                <button class="btn btn-outline-primary" type="button">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <div id="addressList" class="list-group mb-2"></div>
+                            <div id="selectedAddress"></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Teslimat Notu</label>
+                            <textarea class="form-control" id="deliveryNote" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Kart Mesajı</label>
+                            <textarea class="form-control" id="cardMessage" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ürün Seçimi -->
+                <div class="mb-4">
+                    <h6>3. Ürün Seçimi</h6>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" id="productSearch" 
+                                       placeholder="Ürün ara...">
+                                <button class="btn btn-outline-primary" type="button">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <div id="productList" class="list-group mb-3"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Sepet</h6>
+                                    <div id="cartItems"></div>
+                                    <hr>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Ara Toplam:</span>
+                                        <strong id="subtotal">₺0,00</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Teslimat:</span>
+                                        <strong id="deliveryFee">₺0,00</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Toplam:</span>
+                                        <strong id="total" class="text-primary">₺0,00</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ödeme -->
+                <div>
+                    <h6>4. Ödeme Bilgileri</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Ödeme Yöntemi *</label>
+                            <select class="form-select" id="paymentMethod" required>
+                                <option value="cash">Nakit</option>
+                                <option value="credit_card">Kredi Kartı</option>
+                                <option value="bank_transfer">Havale/EFT</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="h5 mb-0">
+                            Toplam: <span id="orderTotal" class="text-primary">₺0,00</span>
+                        </div>
+                    </div>
+                    <div class="col text-end">
+                        <button type="button" class="btn btn-secondary" onclick="history.back()">İptal</button>
+                        <button type="button" class="btn btn-primary" onclick="saveOrder()">
+                            <i class="bi bi-check-lg"></i> Siparişi Kaydet
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yeni Müşteri Modal -->
+    <div class="modal fade" id="customerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Yeni Müşteri</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="customerForm">
+                        <div class="mb-3">
+                            <label class="form-label">Ad Soyad *</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Telefon *</label>
+                            <input type="tel" class="form-control" name="phone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">İlçe *</label>
+                            <select class="form-select" name="district" required>
+                                <option value="">Seçiniz</option>
+                                <option value="Adalar">Adalar</option>
+                                <option value="Arnavutköy">Arnavutköy</option>
+                                <!-- ... diğer ilçeler ... -->
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCustomer(customerForm)">
+                        Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="new-order.js"></script>
+</body>
+</html>
