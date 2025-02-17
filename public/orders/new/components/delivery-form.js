@@ -84,8 +84,13 @@ class DeliveryForm {
             </div>
         `;
 
-        // HERE Maps adres seçici başlat
-        this.addressSelect = new AddressSelect('addressSelectContainer');
+        // AddressSelect'i doğru container'a başlat
+        const addressContainer = this.container.querySelector('#addressSelectContainer');
+        if (addressContainer) {
+            this.addressSelect = new AddressSelect(addressContainer);
+        } else {
+            console.error('Address container not found in delivery form');
+        }
     }
 
     setupEventListeners() {
