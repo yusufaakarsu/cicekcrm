@@ -47,15 +47,13 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
-// API URL'ini production için düzenle
-const API_URL = location.hostname === 'localhost' 
-  ? 'http://localhost:8787/api'
-  : 'https://cicek-crm-api.yusufaakarsu.workers.dev/api';
+// API URL'i sadece production için
+const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev/api';
 
-// Merkezi fetchAPI fonksiyonu
+// Merkezi fetchAPI fonksiyonu 
 async function fetchAPI(endpoint) {
     try {
-        const response = await fetch(`https://cicek-crm-api.yusufaakarsu.workers.dev/api${endpoint}`);
+        const response = await fetch(API_URL + endpoint);
         if (!response.ok) {
             throw new Error('API Error');
         }
