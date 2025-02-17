@@ -140,6 +140,7 @@ class CustomerManager {
 
     setCustomer(customer) {
         this.customer = customer;
+        window.wizardManager.setStepCompleted(1, true);
         this.step.innerHTML = `<i class="bi bi-check-circle text-success"></i> ${customer.name}`;
         this.render();
         // Address Manager'ı aktif et

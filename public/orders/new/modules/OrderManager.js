@@ -76,6 +76,8 @@ class OrderManager {
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
         }
+
+        window.wizardManager.setStepCompleted(3, true);
     }
 
     validateForm() {

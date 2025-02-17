@@ -257,6 +257,8 @@ class AddressManager {
             // Adresleri yeniden yükle
             await this.loadCustomerAddresses(this.customerId);
 
+            window.wizardManager.setStepCompleted(2, true);
+
         } catch (error) {
             console.error('Adres kayıt hatası:', error);
             showError('Adres kaydedilemedi');
