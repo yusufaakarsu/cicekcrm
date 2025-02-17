@@ -9,38 +9,51 @@ class OrderManager {
                 recipient: { name: '', phone: '' }
             },
             items: [],
-            payment: { method: 'cash', status: 'pending' }
+            totals: {
+                subtotal: 0,
+                deliveryFee: 70,
+                discount: 0,
+                total: 0
+            }
         };
 
         document.addEventListener('DOMContentLoaded', () => {
-            this.components = {
-                customerSelect: new CustomerSelect('customerSelectContainer', this),
-                deliveryForm: new DeliveryForm('deliveryFormContainer', this),
-                productSelect: new ProductSelect('productSelectContainer', this),
-                paymentForm: new PaymentForm('paymentFormContainer', this)
-            };
-
+            this.initComponents();
             this.setupEventListeners();
         });
     }
 
+    initComponents() {
+        // Her bileşene OrderManager referansını geçir
+        this.customerSelect = new CustomerSelect('customerSelectContainer', this);
+        this.deliveryForm = new DeliveryForm('deliveryFormContainer', this);
+        this.productSelect = new ProductSelect('productSelectContainer', this);
+        this.paymentForm = new PaymentForm('paymentFormContainer', this);
+    }
+
     setupEventListeners() {
-        document.addEventListener('customerSelected', (e) => {
-            this.state.customer = e.detail;
-            if (this.components.deliveryForm?.addressSelect) {
-                this.components.deliveryForm.addressSelect.loadSavedAddresses(e.detail?.id);
-            }
-        });
+        document.addEventListener('customerUpdated', (e) => this.updateCustomer(e.detail));
+        document.addEventListener('deliveryUpdated', (e) => this.updateDelivery(e.detail));
+        document.addEventListener('cartUpdated', (e) => this.updateCart(e.detail));
+    }
 
-        document.addEventListener('addressSelected', (e) => {
-            this.state.delivery.address = e.detail;
-            this.updateDeliveryFee();
-        });
+    // State güncelleme metodları
+    updateCustomer(customer) {
+        this.state.customer = customer;
+        // Müşteri değişince adresleri güncelle
+        if (this.deliveryForm) {
+            this.deliveryForm.loadCustomerAddresses(customer?.id);
+        }
+    }
 
-        document.addEventListener('cartUpdated', (e) => {
-            this.state.items = e.detail;
-            this.updateTotals();
-        });
+    updateDelivery(delivery) {
+        this.state.delivery = {...this.state.delivery, ...delivery};
+        this.updateTotals();
+    }
+
+    updateCart(items) {
+        this.state.items = items;
+        this.updateTotals();
     }
 
     updateTotals() {
@@ -51,8 +64,8 @@ class OrderManager {
         };
         totals.total = totals.subtotal + totals.deliveryFee - totals.discount;
 
-        if (this.components.paymentForm) {
-            this.components.paymentForm.updateTotals(totals);
+        if (this.paymentForm) {
+            this.paymentForm.updateTotals(totals);
         }
     }
 
