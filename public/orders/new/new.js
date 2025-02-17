@@ -233,26 +233,55 @@ class NewOrderForm {
                        document.querySelector('[name="phone"]')?.value;
 
             case 2: // Teslimat bilgileri
-                const selectedAddress = window.addressSelect?.getSelectedAddress();
-                if (!selectedAddress) {
+                // Seçilen adres kontrolü - addressSelectContainer'dan kontrol et
+                const addressContainer = document.getElementById('addressSelectContainer');
+                const selectedAddressPreview = document.getElementById('selectedAddressPreview');
+                
+                // Eğer adres seçilmediyse veya gizliyse
+                if (!selectedAddressPreview || selectedAddressPreview.style.display === 'none') {
                     showError('Lütfen teslimat adresi seçin');
                     return false;
                 }
 
-                const recipientName = document.querySelector('[name="recipient_name"]')?.value;
-                const recipientPhone = document.querySelector('[name="recipient_phone"]')?.value;
-                const deliveryDate = document.querySelector('[name="delivery_date"]')?.value;
-                const timeSlot = document.querySelector('[name="delivery_time_slot"]')?.value;
+                // Alıcı bilgileri kontrolü
+                const recipientName = document.querySelector('[name="recipient_name"]');
+                const recipientPhone = document.querySelector('[name="recipient_phone"]');
+                const deliveryDate = document.querySelector('[name="delivery_date"]');
+                const timeSlot = document.querySelector('[name="delivery_time_slot"]');
 
-                if (!recipientName || !recipientPhone || !deliveryDate || !timeSlot) {
-                    showError('Lütfen tüm zorunlu alanları doldurun');
+                // Her alan için ayrı kontrol ve hata mesajı
+                if (!recipientName?.value) {
+                    showError('Lütfen alıcı adını girin');
+                    recipientName?.focus();
+                    return false;
+                }
+
+                if (!recipientPhone?.value) {
+                    showError('Lütfen alıcı telefon numarasını girin');
+                    recipientPhone?.focus();
+                    return false;
+                }
+
+                if (!deliveryDate?.value) {
+                    showError('Lütfen teslimat tarihi seçin');
+                    deliveryDate?.focus();
+                    return false;
+                }
+
+                if (!timeSlot?.value) {
+                    showError('Lütfen teslimat saati seçin');
+                    timeSlot?.focus();
                     return false;
                 }
 
                 return true;
 
-            case 3: // Ürün seçimi
-                return true; // Şimdilik geç
+            case 3: // Ürün seçimi güncellendi
+                if (this.items.length === 0) {
+                    showError('Lütfen en az bir ürün seçin');
+                    return false;
+                }
+                return true;
 
             case 4: // Ödeme
                 return document.querySelector('[name="payment_method"]')?.value;
@@ -315,6 +344,85 @@ class NewOrderForm {
             console.error('Adres yükleme hatası:', error);
             showError('Adresler yüklenemedi');
         }
+    }
+
+    // Ürün ekleme fonksiyonu güncellendi
+    addToCart(productId) {
+        const qtyInput = document.getElementById(`qty_${productId}`);
+        const quantity = parseInt(qtyInput.value);
+        
+        if (isNaN(quantity) || quantity < 1) {
+            showError('Lütfen geçerli bir miktar girin');
+            return;
+        }
+
+        // Ürünü bul
+        const productElement = qtyInput.closest('tr');
+        const productName = productElement.querySelector('td:first-child').textContent;
+        const productPrice = parseFloat(productElement.querySelector('td:nth-child(3)').textContent.replace(/[^0-9,]/g, '').replace(',', '.'));
+
+        // Sepete ekle
+        this.items.push({
+            id: productId,
+            name: productName,
+            quantity: quantity,
+            price: productPrice,
+            total: quantity * productPrice
+        });
+
+        // Sepeti güncelle
+        this.updateCart();
+        
+        // Input'u sıfırla
+        qtyInput.value = "1";
+        
+        // Başarılı mesajı göster
+        showSuccess(`${productName} sepete eklendi`);
+    }
+
+    // Sepet güncelleme fonksiyonu
+    updateCart() {
+        const cartContainer = document.getElementById('selectedProducts');
+        if (!cartContainer) return;
+
+        if (this.items.length === 0) {
+            cartContainer.innerHTML = '<div class="alert alert-info">Henüz ürün seçilmedi</div>';
+            return;
+        }
+
+        cartContainer.innerHTML = `
+            <div class="list-group">
+                ${this.items.map(item => `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">${item.name}</h6>
+                            <small class="text-muted">${item.quantity} adet x ${formatCurrency(item.price)}</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <strong>${formatCurrency(item.total)}</strong>
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" 
+                                    onclick="window.newOrderForm.removeFromCart(${item.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="text-end mt-3">
+                <strong>Toplam: ${formatCurrency(this.getTotalAmount())}</strong>
+            </div>
+        `;
+    }
+
+    // Sepetten ürün çıkarma
+    removeFromCart(productId) {
+        this.items = this.items.filter(item => item.id !== productId);
+        this.updateCart();
+    }
+
+    // Toplam tutarı hesapla
+    getTotalAmount() {
+        return this.items.reduce((total, item) => total + item.total, 0);
     }
 }
 
@@ -394,16 +502,27 @@ function selectSavedAddress(addressId, label, location) {
     };
     
     // Adres özeti göster
-    document.getElementById('selectedAddressPreview').innerHTML = `
-        <div class="mb-2">
-            <strong>${label}</strong><br>
-            <small class="text-muted">${location}</small>
-        </div>
-        <button type="button" class="btn btn-sm btn-outline-primary" onclick="changeAddress()">
-            <i class="bi bi-pencil"></i> Değiştir
-        </button>
-    `;
+    const previewElement = document.getElementById('selectedAddressPreview');
+    if (previewElement) {
+        previewElement.innerHTML = `
+            <div class="alert alert-success mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${label}</strong><br>
+                        <small class="text-muted">${location}</small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="changeAddress()">
+                        <i class="bi bi-pencil"></i> Değiştir
+                    </button>
+                </div>
+            </div>
+        `;
+        previewElement.style.display = 'block';
+    }
     
     // Adres seçim alanını gizle
-    document.getElementById('addressSelectionArea').style.display = 'none';
+    const selectArea = document.getElementById('addressSelectionArea');
+    if (selectArea) {
+        selectArea.style.display = 'none';
+    }
 }
