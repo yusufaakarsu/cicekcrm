@@ -247,9 +247,9 @@ api.post('/api/customers', async (c) => {
       }, 400);
     }
 
-    // Telefon numarası kontrolü
+    // Telefon numarası kontrolü 
     const existing = await db.prepare(`
-      SELECT id FROM customers 
+      SELECT * FROM customers 
       WHERE phone = ? AND tenant_id = ? AND is_deleted = 0
     `).bind(phone, tenant_id).first();
     
@@ -257,23 +257,9 @@ api.post('/api/customers', async (c) => {
       return c.json({ 
         success: false, 
         error: 'Bu telefon numarası zaten kayıtlı',
-        id: existing.id 
+        customer: existing 
       }, 400);
     }
-
-    console.log('Kaydedilecek veri:', { 
-      tenant_id,
-      name: body.name,
-      phone,
-      district: body.district,
-      customer_type: body.customer_type || 'retail',
-      email: body.email || null,
-      city: body.city || 'İstanbul',
-      special_dates: body.special_dates || null,
-      notes: body.notes || null,
-      tax_number: body.tax_number || null,
-      company_name: body.company_name || null
-    });
 
     // Yeni müşteri ekle
     const result = await db.prepare(`
@@ -281,33 +267,33 @@ api.post('/api/customers', async (c) => {
         tenant_id,
         name,
         phone,
-        district,
-        customer_type,
         email,
         city,
-        special_dates,
-        notes,
+        district,
+        customer_type,
         tax_number,
-        company_name
+        company_name,
+        special_dates,
+        notes
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       tenant_id,
       body.name,
       phone,
-      body.district,
-      body.customer_type || 'retail',
       body.email || null,
       body.city || 'İstanbul',
-      body.special_dates || null,
-      body.notes || null,
+      body.district,
+      body.customer_type || 'retail',
       body.tax_number || null,
-      body.company_name || null
+      body.company_name || null,
+      body.special_dates || null,
+      body.notes || null
     ).run();
 
     // Eklenen müşteriyi getir
     const customer = await db.prepare(`
-      SELECT * FROM customers WHERE id = last_insert_rowid()
-    `).first();
+      SELECT * FROM customers WHERE id = ?
+    `).bind(result.lastRowId).first();
 
     return c.json({ 
       success: true, 
@@ -712,20 +698,6 @@ async function getOrdersCount(db: D1Database, tenant_id: number, status?: string
     countQuery += ` AND o.status = ?`;
     params.push(status);
   }
-
-  if (date_filter) {
-    switch (date_filter) {
-      case 'today':
-        countQuery += ` AND date(o.delivery_date) = date('now')`;
-        break;
-      case 'tomorrow':
-        countQuery += ` AND date(o.delivery_date) = date('now', '+1 day')`;
-        break;
-      case 'week':
-        countQuery += ` AND date(o.delivery_date) BETWEEN date('now') AND date('now', '+7 days')`;
-        break;
-      case 'month':
-        countQuery += ` AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', 'now')`;
         break;
     }
   } else if (start_date && end_date) {
@@ -1113,6 +1085,87 @@ api.get('/products', async (c) => {
     } catch (error) {
         return c.json({ error: 'Database error' }, 500);
     }
+});
+
+// Yeni müşteri ekle
+api.post('/api/customers', async (c) => {
+  const body = await c.req.json();
+  const db = c.env.DB;
+  const tenant_id = c.get('tenant_id');
+  
+  try {
+    // Telefon numarası temizleme
+    const phone = body.phone.replace(/\D/g, '');
+
+    // Zorunlu alanları kontrol et
+    if (!body.name || !phone || !body.district) {
+      return c.json({ 
+        success: false, 
+        error: 'Ad, telefon ve ilçe alanları zorunludur' 
+      }, 400);
+    }
+
+    // Telefon numarası kontrolü
+    const existing = await db.prepare(`
+      SELECT * FROM customers 
+      WHERE phone = ? AND tenant_id = ? AND is_deleted = 0
+    `).bind(phone, tenant_id).first();
+    
+    if (existing) {
+      return c.json({ 
+        success: false, 
+        error: 'Bu telefon numarası zaten kayıtlı',
+        customer: existing 
+      }, 400);
+    }
+
+    // Yeni müşteri ekle
+    const result = await db.prepare(`
+      INSERT INTO customers (
+        tenant_id,
+        name,
+        phone,
+        email,
+        city,
+        district,
+        customer_type,
+        tax_number,
+        company_name,
+        special_dates,
+        notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      tenant_id,
+      body.name,
+      phone,
+      body.email || null,
+      body.city || 'İstanbul',
+      body.district,
+      body.customer_type || 'retail',
+      body.tax_number || null,
+      body.company_name || null,
+      body.special_dates || null,
+      body.notes || null
+    ).run();
+
+    // Eklenen müşteriyi getir
+    const customer = await db.prepare(`
+      SELECT * FROM customers WHERE id = ?
+    `).bind(result.lastRowId).first();
+
+    return c.json({ 
+      success: true, 
+      customer: customer
+    });
+    
+  } catch (error) {
+    console.error('Müşteri kayıt hatası:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Veritabanı hatası',
+      details: error.message 
+    }, 500);
+  }
 });
 
 export default api
