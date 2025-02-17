@@ -82,27 +82,16 @@ class AddressSelect {
                         <strong>${item.title}</strong><br>
                         <small class="text-muted">${item.address.street || ''}, ${item.address.district || ''}</small>
                     </div>
-                    <button type="button" class="btn btn-sm btn-primary select-address" 
-                            data-address='${JSON.stringify(item)}'>
+                    <button class="btn btn-sm btn-primary" onclick='addressSelect.selectAddress(${JSON.stringify(item)})'>
                         Seç
                     </button>
                 </div>
             </div>
         `).join('');
-
-        // Event listener'ları ekle
-        this.resultsDiv.querySelectorAll('.select-address').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault(); // İleri butonuna tıklamayı engelle
-                const address = JSON.parse(btn.dataset.address);
-                this.selectAddress(address);
-            });
-        });
     }
 
     selectAddress(item) {
-        // Form verilerini hazırla
-        const addressData = {
+        this.selectedAddress = {
             label: item.title,
             city: 'İstanbul',
             district: item.address.district || '',
@@ -114,28 +103,19 @@ class AddressSelect {
             }
         };
 
-        // Seçilen adresi göster
-        const selectedEl = document.createElement('div');
-        selectedEl.className = 'alert alert-success mb-2';
-        selectedEl.innerHTML = `
+        this.selectedDiv.style.display = 'block';
+        this.selectedDiv.innerHTML = `
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <strong>${addressData.label}</strong><br>
-                    <small class="text-muted">${[addressData.street, addressData.district, 'İstanbul'].filter(Boolean).join(', ')}</small>
+                    <strong>${this.selectedAddress.label}</strong><br>
+                    <small>${[this.selectedAddress.street, this.selectedAddress.district, 'İstanbul'].filter(Boolean).join(', ')}</small>
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addressSelect.changeAddress()">
-                    <i class="bi bi-pencil"></i> Değiştir
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="addressSelect.clearAddress()">
+                    <i class="bi bi-x"></i>
                 </button>
             </div>
         `;
 
-        // Seçilen adresi kaydet ve göster
-        this.selectedAddress = addressData;
-        this.selectedDiv.innerHTML = '';
-        this.selectedDiv.appendChild(selectedEl);
-        this.selectedDiv.style.display = 'block';
-        
-        // Arama sonuçlarını temizle
         this.searchInput.value = '';
         this.resultsDiv.style.display = 'none';
     }

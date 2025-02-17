@@ -365,7 +365,7 @@ wrangler d1 execute cicek-crm-db \
 
 cd /Users/yusuf/Downloads/kod/CCRM
 git add .
-git commit -m "2"
+git commit -m "5"
 git push origin development
 
 git push origin development:main

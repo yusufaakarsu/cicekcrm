@@ -62,91 +62,70 @@ class NewOrderForm {
         const rawPhone = document.querySelector('input[name="phone"]').value;
         const cleanPhone = this.cleanPhoneNumber(rawPhone);
         
-        console.log('Temizlenmiş numara:', cleanPhone); // Debug için
-
         try {
             const response = await fetch(`${API_URL}/customers/phone/${cleanPhone}`);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            
             const data = await response.json();
-            console.log('API Yanıtı:', data); // Debug için
             
             if (data && data.customer) {
                 this.customerId = data.customer.id;
                 this.showCustomerDetails(data.customer);
-                
-                // Müşteri özeti
-                const customerSummary = document.getElementById('customerSummary');
-                if (customerSummary) {
-                    customerSummary.innerHTML = `
-                        <div class="mb-2">
-                            <strong>${data.customer.name}</strong><br>
-                            <small class="text-muted">${formatPhoneNumber(data.customer.phone)}</small>
-                        </div>
-                    `;
-                }
-
-                // Adresleri yükle
                 await this.loadCustomerAddresses(data.customer.id);
-                
-                // Step 2'ye geç
                 this.nextStep();
             } else {
                 // Yeni müşteri modalını göster
-                if (!this.modalCustomerForm) {
-                    // Modal form ilk kez oluşturuluyorsa
-                    const response = await fetch('/components/modal-customer-form.html');
-                    const html = await response.text();
-                    document.body.insertAdjacentHTML('beforeend', html);
-                    
-                    this.modalCustomerForm = new bootstrap.Modal(document.getElementById('customerFormModal'));
-                    
-                    // Form submit olduğunda
-                    document.getElementById('customerFormModal').querySelector('form')
-                        .addEventListener('submit', async (e) => {
-                            e.preventDefault();
-                            const formData = new FormData(e.target);
-                            const customer = await this.saveNewCustomer(formData);
-                            if (customer) {
-                                this.customerId = customer.id;
-                                this.showCustomerDetails(customer);
-                                this.modalCustomerForm.hide();
-                            }
-                        });
-                }
-                
-                // Form alanlarına telefon numarasını yerleştir
-                const phoneInput = document.querySelector('#customerFormModal [name="phone"]');
-                if (phoneInput) phoneInput.value = rawPhone;
-                
-                this.modalCustomerForm.show();
+                const modal = new bootstrap.Modal(document.getElementById('customerFormModal'));
+                // Telefon numarasını forma yerleştir
+                document.querySelector('#newCustomerForm [name="phone"]').value = rawPhone;
+                modal.show();
             }
         } catch (error) {
             console.error('Müşteri arama hatası:', error);
-            showError('Müşteri bulunamadı veya bir hata oluştu');
-            this.showNewCustomerForm();
+            showError('Müşteri bulunamadı');
         }
     }
 
-    async saveNewCustomer(formData) {
+    async saveCustomer() {
+        const form = document.getElementById('newCustomerForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
         try {
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
             const response = await fetch(`${API_URL}/customers`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(Object.fromEntries(formData))
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
             });
 
             if (!response.ok) throw new Error('Müşteri kaydedilemedi');
             
             const result = await response.json();
-            showSuccess('Müşteri başarıyla eklendi');
-            return result.customer;
+            
+            // Modal'ı kapat
+            bootstrap.Modal.getInstance(document.getElementById('customerFormModal')).hide();
+            
+            // Müşteri bilgilerini güncelle
+            this.customerId = result.customer.id;
+            this.showCustomerDetails(result.customer);
+            
+            // Adres seçimine geç
+            this.nextStep();
+            
+            showSuccess('Müşteri kaydedildi');
         } catch (error) {
             console.error('Müşteri kayıt hatası:', error);
             showError('Müşteri kaydedilemedi');
-            return null;
+        }
+    }
+
+    toggleCompanyFields(type) {
+        const companyFields = document.getElementById('companyFields');
+        if (companyFields) {
+            companyFields.style.display = type === 'corporate' ? 'block' : 'none';
         }
     }
 
