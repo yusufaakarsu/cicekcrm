@@ -137,10 +137,12 @@ class DeliveryForm {
         });
 
         // Adres seçimi event listener
-        document.addEventListener('addressSelected', (e) => {
-            this.state.address = e.detail;
-            this.emitChange();
-        });
+        if (this.addressSelect) {
+            document.addEventListener('addressSelected', (e) => {
+                this.state.address = e.detail;
+                this.emitChange();
+            });
+        }
     }
 
     emitChange() {

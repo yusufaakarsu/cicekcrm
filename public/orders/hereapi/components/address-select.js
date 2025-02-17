@@ -1,6 +1,14 @@
 class AddressSelect {
-    constructor(containerId) {
-        this.container = document.getElementById(containerId);
+    constructor(container) {
+        // Container doğrudan element veya ID olarak alınabilir
+        this.container = typeof container === 'string' ? 
+            document.getElementById(container) : container;
+            
+        if (!this.container) {
+            console.error('Address container not found:', container);
+            return;
+        }
+
         this.selectedAddress = null;
         this.savedAddressesDiv = null;
         this.apiKey = CONFIG.HERE_API_KEY;
@@ -230,6 +238,3 @@ class AddressSelect {
         }));
     }
 }
-
-// Global instance
-window.addressSelect = new AddressSelect('addressSelectContainer');
