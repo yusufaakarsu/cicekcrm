@@ -268,3 +268,88 @@ class NewOrderForm {
 document.addEventListener('DOMContentLoaded', () => {
     window.newOrderForm = new NewOrderForm();
 });
+
+async function proceedToStep2() {
+    const phone = document.getElementById('customerPhone').value;
+    if (!phone) {
+        showError('Lütfen telefon numarası girin');
+        return;
+    }
+
+    try {
+        // Müşteri kontrolü
+        const customerResponse = await fetch(`${API_URL}/customers/search/phone/${phone}`);
+        if (!customerResponse.ok) throw new Error('Müşteri arama hatası');
+        
+        const customerData = await customerResponse.json();
+        
+        // Müşteri bulunduysa
+        if (customerData && customerData.id) {
+            currentCustomer = customerData;
+            
+            // Müşteri özeti
+            document.getElementById('customerSummary').innerHTML = `
+                <div class="mb-2">
+                    <strong>${customerData.name}</strong><br>
+                    <small class="text-muted">${formatPhoneNumber(customerData.phone)}</small>
+                </div>
+            `;
+
+            // Kayıtlı adresleri getir
+            const addressesResponse = await fetch(`${API_URL}/customers/${customerData.id}/addresses`);
+            if (!addressesResponse.ok) throw new Error('Adres getirme hatası');
+            
+            const addresses = await addressesResponse.json();
+            
+            // Adresleri listele
+            const addressesContainer = document.getElementById('savedAddresses');
+            if (addresses && addresses.length > 0) {
+                addressesContainer.innerHTML = addresses.map(address => `
+                    <div class="list-group-item list-group-item-action" role="button" 
+                         onclick="selectSavedAddress(${address.id}, '${address.label}', '${address.district}, ${address.city}')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${address.label}</h6>
+                            ${address.is_default ? '<span class="badge bg-primary">Varsayılan</span>' : ''}
+                        </div>
+                        <p class="mb-1">${address.street}</p>
+                        <small class="text-muted">${address.district}, ${address.city}</small>
+                    </div>
+                `).join('');
+            } else {
+                addressesContainer.innerHTML = '<div class="text-muted">Kayıtlı adres bulunamadı</div>';
+            }
+        }
+
+        // Step 2'ye geç
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = 'block';
+
+    } catch (error) {
+        console.error('Hata:', error);
+        showError('İşlem sırasında bir hata oluştu');
+    }
+}
+
+// Kayıtlı adres seçme fonksiyonu
+function selectSavedAddress(addressId, label, location) {
+    // Seçilen adresi forma doldur
+    currentDeliveryAddress = {
+        id: addressId,
+        label: label,
+        location: location
+    };
+    
+    // Adres özeti göster
+    document.getElementById('selectedAddressPreview').innerHTML = `
+        <div class="mb-2">
+            <strong>${label}</strong><br>
+            <small class="text-muted">${location}</small>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="changeAddress()">
+            <i class="bi bi-pencil"></i> Değiştir
+        </button>
+    `;
+    
+    // Adres seçim alanını gizle
+    document.getElementById('addressSelectionArea').style.display = 'none';
+}
