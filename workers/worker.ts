@@ -261,49 +261,65 @@ api.post('/api/customers', async (c) => {
       }, 400);
     }
 
+    console.log('Kaydedilecek veri:', { 
+      tenant_id,
+      name: body.name,
+      phone,
+      district: body.district,
+      customer_type: body.customer_type || 'retail',
+      email: body.email || null,
+      city: body.city || 'İstanbul',
+      special_dates: body.special_dates || null,
+      notes: body.notes || null,
+      tax_number: body.tax_number || null,
+      company_name: body.company_name || null
+    });
+
     // Yeni müşteri ekle
     const result = await db.prepare(`
       INSERT INTO customers (
-        tenant_id, 
-        name, 
+        tenant_id,
+        name,
         phone,
-        email,
-        city,
         district,
         customer_type,
-        tax_number,
-        company_name,
+        email,
+        city,
         special_dates,
-        notes
+        notes,
+        tax_number,
+        company_name
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       tenant_id,
       body.name,
       phone,
-      body.email || null,
-      body.city || 'İstanbul',
       body.district,
       body.customer_type || 'retail',
-      body.tax_number || null,
-      body.company_name || null,
+      body.email || null,
+      body.city || 'İstanbul',
       body.special_dates || null,
-      body.notes || null
+      body.notes || null,
+      body.tax_number || null,
+      body.company_name || null
     ).run();
 
     // Eklenen müşteriyi getir
     const customer = await db.prepare(`
-      SELECT * FROM customers WHERE id = ?
-    `).bind(result.lastRowId).first();
+      SELECT * FROM customers WHERE id = last_insert_rowid()
+    `).first();
 
     return c.json({ 
       success: true, 
       customer: customer
     });
+    
   } catch (error) {
     console.error('Müşteri kayıt hatası:', error);
     return c.json({ 
       success: false, 
-      error: 'Veritabanı hatası' 
+      error: 'Veritabanı hatası',
+      details: error.message 
     }, 500);
   }
 })

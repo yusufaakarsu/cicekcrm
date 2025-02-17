@@ -431,5 +431,5 @@ wrangler d1 execute cicek-crm-db \
 
 
 git add .
-git commit -m "ghjghg" 
+git commit -m "basit açıklama" 
 git push origin development
