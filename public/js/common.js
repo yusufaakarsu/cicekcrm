@@ -54,16 +54,16 @@ const API_URL = location.hostname === 'localhost'
 
 // Merkezi fetchAPI fonksiyonu
 async function fetchAPI(endpoint) {
-  try {
-    const response = await fetch(`${API_URL}${endpoint}`);
-    if (!response.ok) {
-      throw new Error('API Error');
+    try {
+        const response = await fetch(`https://cicek-crm-api.yusufaakarsu.workers.dev/api${endpoint}`);
+        if (!response.ok) {
+            throw new Error('API Error');
+        }
+        return response.json();
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
     }
-    return response.json();
-  } catch (error) {
-    console.error('API Error:', error);
-    throw error;
-  }
 }
 
 function showLoading(element) {
