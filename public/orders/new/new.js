@@ -222,40 +222,47 @@ class OrderForm {
             return;
         }
 
-        // Adres formunu göster
         const container = document.getElementById('addressSelectContainer');
-        if (!container) return;
+        const existingForm = document.getElementById('newAddressForm');
+        
+        // Eğer form zaten açıksa tekrar açma
+        if (existingForm) return;
 
-        container.innerHTML += `
-            <div class="card mt-3">
+        const formHtml = `
+            <div class="card mt-3" id="newAddressCard">
                 <div class="card-body">
                     <form id="newAddressForm" class="row g-2">
                         <div class="col-12">
-                            <label class="form-label">Adres Başlığı</label>
+                            <label class="small mb-1">Adres Başlığı *</label>
                             <input type="text" class="form-control form-control-sm" name="label" required>
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Sokak/Cadde</label>
+                            <label class="small mb-1">Sokak/Cadde *</label>
                             <input type="text" class="form-control form-control-sm" name="street" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">İlçe</label>
+                            <label class="small mb-1">İlçe *</label>
                             <input type="text" class="form-control form-control-sm" name="district" required>
                         </div>
-                        <div class="col-12">
+                        <div class="col-12 mt-3">
                             <button type="submit" class="btn btn-primary btn-sm">Kaydet</button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="this.closest('.card').remove()">İptal</button>
+                            <button type="button" class="btn btn-secondary btn-sm" 
+                                    onclick="document.getElementById('newAddressCard').remove()">
+                                İptal
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
         `;
 
-        // Form submit
-        const form = container.querySelector('#newAddressForm');
-        form.addEventListener('submit', async (e) => {
+        // Formu ekle
+        container.insertAdjacentHTML('beforeend', formHtml);
+
+        // Form submit event listener'ı ekle
+        document.getElementById('newAddressForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            await this.saveAddress(new FormData(form));
+            await this.saveAddress(new FormData(e.target));
         });
     }
 
@@ -263,6 +270,7 @@ class OrderForm {
         try {
             const addressData = {
                 ...Object.fromEntries(formData),
+                customer_id: this.customerId,
                 city: 'İstanbul',
                 country_code: 'TUR',
                 country_name: 'Türkiye'
@@ -276,8 +284,10 @@ class OrderForm {
 
             if (!response.ok) throw new Error('Adres kaydedilemedi');
 
-            const result = await response.json();
-            showSuccess('Adres kaydedildi');
+            showSuccess('Adres başarıyla kaydedildi');
+            
+            // Form container'ı kaldır
+            document.getElementById('newAddressCard')?.remove();
             
             // Adresleri yeniden yükle
             await this.loadCustomerAddresses(this.customerId);
@@ -447,6 +457,34 @@ class OrderForm {
             }
         });
         return items;
+    }
+
+    // Adres arama fonksiyonu
+    setupAddressSearch() {
+        const searchInput = document.getElementById('addressSearchInput');
+        const searchBtn = document.getElementById('addressSearchBtn');
+        const resultsDiv = document.getElementById('addressSearchResults');
+
+        if (searchInput && searchBtn) {
+            let timeout;
+            
+            // Input değiştiğinde
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(timeout);
+                const query = e.target.value;
+                if (query.length >= 3) {
+                    timeout = setTimeout(() => this.searchAddress(query), 500);
+                }
+            });
+
+            // Buton tıklandığında
+            searchBtn.addEventListener('click', () => {
+                const query = searchInput.value;
+                if (query.length >= 3) {
+                    this.searchAddress(query);
+                }
+            });
+        }
     }
 }
 
