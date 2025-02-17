@@ -46,24 +46,73 @@
                             </div>
 
                             <div id="customerForm" class="row g-2" style="display:none">
+                                <!-- Temel Bilgiler -->
                                 <div class="col-12">
-                                    <label class="small mb-1">Müşteri Tipi</label>
-                                    <select class="form-select form-select-sm" name="customer_type">
+                                    <label class="form-label small">Müşteri Tipi *</label>
+                                    <select class="form-select form-select-sm" name="customer_type" required>
                                         <option value="retail">Bireysel</option>
                                         <option value="corporate">Kurumsal</option>
                                     </select>
                                 </div>
                                 <div class="col-12">
-                                    <label class="small mb-1">Ad Soyad</label>
-                                    <input type="text" class="form-control form-control-sm" name="name">
+                                    <label class="form-label small">Ad Soyad *</label>
+                                    <input type="text" class="form-control form-control-sm" name="name" required>
                                 </div>
-                                <div class="col-12">
-                                    <label class="small mb-1">Email</label>
+                                <div class="col-6">
+                                    <label class="form-label small">Telefon *</label>
+                                    <input type="tel" class="form-control form-control-sm" name="phone" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Email</label>
                                     <input type="email" class="form-control form-control-sm" name="email">
                                 </div>
-                                <!-- Diğer müşteri alanları -->
-                                <div id="companyFields" style="display:none">
-                                    <!-- Kurumsal alanlar -->
+
+                                <!-- Adres Bilgileri -->
+                                <div class="col-12">
+                                    <label class="form-label small">Adres</label>
+                                    <textarea class="form-control form-control-sm" name="address" rows="2"></textarea>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Şehir</label>
+                                    <input type="text" class="form-control form-control-sm" name="city" value="İstanbul">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">İlçe *</label>
+                                    <input type="text" class="form-control form-control-sm" name="district" required>
+                                </div>
+
+                                <!-- Kurumsal Müşteri Alanları -->
+                                <div id="companyFields" class="row g-2" style="display:none">
+                                    <div class="col-12">
+                                        <label class="form-label small">Firma Adı *</label>
+                                        <input type="text" class="form-control form-control-sm" name="company_name">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small">Vergi Numarası *</label>
+                                        <input type="text" class="form-control form-control-sm" name="tax_number" 
+                                               pattern="[0-9]*" maxlength="10">
+                                    </div>
+                                </div>
+
+                                <!-- Ek Bilgiler -->
+                                <div class="col-12">
+                                    <label class="form-label small">Özel Tarihler</label>
+                                    <input type="text" class="form-control form-control-sm" name="special_dates" 
+                                           placeholder="Örn: Doğum günü: 15.05, Evlilik: 22.08">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small">Notlar</label>
+                                    <textarea class="form-control form-control-sm" name="notes" rows="2"></textarea>
+                                </div>
+
+                                <!-- Form Butonları -->
+                                <div class="col-12 mt-3">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="window.orderForm.saveCustomer()">
+                                        <i class="bi bi-check-lg"></i> Müşteriyi Kaydet
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.orderForm.cancelCustomerForm()">
+                                        <i class="bi bi-x"></i> İptal
+                                    </button>
                                 </div>
                             </div>
                         </div>
