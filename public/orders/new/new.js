@@ -154,34 +154,30 @@ class NewOrderForm {
     }
 
     async showStep(step) {
-        // Progress bar ve badge'leri güncelle
-        const progress = ((step - 1) / (this.totalSteps - 1)) * 100;
-        this.progressBar.style.width = `${progress}%`;
-        
-        // Badge'leri güncelle
-        document.querySelectorAll('.step-badge').forEach((badge, index) => {
-            badge.classList.remove('bg-primary', 'bg-success', 'bg-secondary');
-            if (index + 1 === step) {
-                badge.classList.add('bg-primary');
-            } else if (index + 1 < step) {
-                badge.classList.add('bg-success');
-            } else {
-                badge.classList.add('bg-secondary');
-            }
+        // Önceki adımı gizle
+        document.querySelectorAll('.step-content').forEach(el => {
+            el.style.display = 'none';
         });
 
-        // Tüm adımları gizle
-        document.querySelectorAll('.step-content').forEach(content => {
-            content.style.display = 'none';
-        });
-
-        // Aktif adımı göster
-        const activeStep = document.querySelector(`.step-content[data-step="${step}"]`);
-        if (activeStep) {
-            activeStep.style.display = 'block';
-            console.log(`Adım ${step} gösteriliyor`); // Debug için
-        } else {
-            console.warn(`Adım ${step} bulunamadı`); // Debug için
+        // Yeni adımı göster
+        const currentStepEl = document.querySelector(`.step-content[data-step="${step}"]`);
+        if (currentStepEl) {
+            currentStepEl.style.display = 'block';
+            
+            // Progress bar güncelle
+            const progress = ((step - 1) / (this.totalSteps - 1)) * 100;
+            document.querySelector('.progress-bar').style.width = `${progress}%`;
+            
+            // Badge'leri güncelle
+            document.querySelectorAll('.badge').forEach((badge, index) => {
+                if (index + 1 === step) {
+                    badge.className = 'badge bg-primary';
+                } else if (index + 1 < step) {
+                    badge.className = 'badge bg-success';
+                } else {
+                    badge.className = 'badge bg-secondary';
+                }
+            });
         }
 
         // Ürün adımında ürünleri yükle

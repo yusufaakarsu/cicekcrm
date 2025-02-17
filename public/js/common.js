@@ -9,19 +9,27 @@ const CONFIG = {
 // Header yükleme fonksiyonu
 async function loadHeader() {
     try {
+        const headerContainer = document.getElementById('header');
+        if (!headerContainer) return;
+
         const response = await fetch('/common/header.html');
-        const html = await response.text();
-        document.getElementById('header').innerHTML = html;
+        if (!response.ok) throw new Error('Header yüklenemedi');
         
-        // Aktif sayfayı işaretle
+        const html = await response.text();
+        headerContainer.innerHTML = html;
+
+        // Active menüyü işaretle
         const currentPage = document.body.dataset.page;
         if (currentPage) {
             document.querySelector(`[data-page="${currentPage}"]`)?.classList.add('active');
         }
     } catch (error) {
-        console.error('Header yüklenemedi:', error);
+        console.error('Header yükleme hatası:', error);
     }
 }
+
+// Sayfa yüklendiğinde header'ı yükle
+document.addEventListener('DOMContentLoaded', loadHeader);
 
 // Format para birimi
 function formatCurrency(amount) {
