@@ -1,318 +1,115 @@
+// Temel OrderForm sınıfı
 class OrderForm {
     constructor() {
+        this.form = null;
         this.customerId = null;
-        this.selectedAddress = null;
+        this.addressId = null;
         this.items = [];
+
+        // Managers
+        this.customerManager = null;
+        this.addressManager = null;
+        
         this.init();
     }
 
     async init() {
-        await loadHeader(); // Header yüklenmesini bekle
-        
-        // Form elementlerini header yüklendikten sonra seç
+        await loadHeader();
         this.form = document.getElementById('orderForm');
+        if (!this.form) return;
+        
+        // Initialize managers
+        this.customerManager = new CustomerManager(this);
+        this.addressManager = new AddressManager(this);
+        
+        this.initElements();
+        this.setupListeners();
+    }
+
+    initElements() {
+        // Müşteri Elementleri
+        this.customerSearch = document.querySelector('input[name="phone"]');
+        this.customerSearchBtn = document.getElementById('searchCustomer');
         this.customerForm = document.getElementById('customerForm');
         this.customerDetails = document.getElementById('customerDetails');
-        this.searchInput = document.querySelector('input[name="phone"]');
-        this.searchBtn = document.getElementById('searchCustomer');
+        
+        // Ürün Elementleri
         this.productTable = document.querySelector('#productTable tbody');
         this.addProductBtn = document.getElementById('addProductBtn');
 
-        if (!this.form) {
-            console.error('Form elementi bulunamadı');
-            return;
-        }
-
-        this.setupEventListeners();
-        this.initTodayAsMinDate();
+        // Tarih sınırı
+        document.querySelector('input[name="delivery_date"]').min = 
+            new Date().toISOString().split('T')[0];
     }
 
-    initTodayAsMinDate() {
-        const today = new Date().toISOString().split('T')[0];
-        document.querySelector('input[name="delivery_date"]').min = today;
-    }
+    setupListeners() {
+        // Form Submit
+        this.form.addEventListener('submit', e => {
+            e.preventDefault();
+            this.handleSubmit();
+        });
 
-    setupEventListeners() {
-        // Formun kendisini dinle
-        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        // Müşteri Arama
+        this.customerSearchBtn?.addEventListener('click', () => this.searchCustomer());
 
-        // Müşteri arama
-        if (this.searchBtn) {
-            this.searchBtn.addEventListener('click', () => this.searchCustomer());
-        }
+        // Ürün Ekleme
+        this.addProductBtn?.addEventListener('click', () => this.addProduct());
 
-        if (this.searchInput) {
-            this.searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    this.searchCustomer();
-                }
-            });
-        }
-
-        // Ürün ekleme
-        if (this.addProductBtn) {
-            this.addProductBtn.addEventListener('click', () => this.showProductModal());
-        }
-
-        // Müşteri tipi değişimi
-        const customerTypeSelect = document.querySelector('select[name="customer_type"]');
-        if (customerTypeSelect) {
-            customerTypeSelect.addEventListener('change', (e) => this.toggleCompanyFields(e.target.value));
-        }
+        // Müşteri Tipi Değişimi
+        const typeSelect = document.querySelector('select[name="customer_type"]');
+        typeSelect?.addEventListener('change', e => {
+            document.getElementById('companyFields').style.display = 
+                e.target.value === 'corporate' ? 'block' : 'none';
+        });
     }
 
     async searchCustomer() {
-        const phone = this.cleanPhoneNumber(this.searchInput.value);
+        const phone = this.customerSearch.value.replace(/\D/g, '');
         if (!phone) {
-            showError('Geçerli bir telefon numarası girin');
+            showError('Geçerli telefon numarası girin');
             return;
         }
 
         try {
-            const response = await fetch(`${API_URL}/customers/phone/${phone}`);
+            const response = await fetch(`${API_URL}/customers/search/${phone}`);
             const data = await response.json();
 
-            if (data.success && data.customer) {
-                this.customerId = data.customer.id;
-                this.showCustomerDetails(data.customer);
-                await this.loadCustomerAddresses(data.customer.id);
-                // Adres arama kutusunu aktif et
-                this.setupAddressSearch();
+            if (data.customer) {
+                this.setCustomer(data.customer);
             } else {
-                this.showNewCustomerForm(phone);
-                // Yeni müşteri formu için adres arama kutusunu deaktif et
-                document.getElementById('addressSearchInput')?.setAttribute('disabled', 'disabled');
-                document.getElementById('addressSearchBtn')?.setAttribute('disabled', 'disabled');
+                this.showCustomerForm(phone);
             }
         } catch (error) {
-            console.error('Müşteri arama hatası:', error);
             showError('Müşteri araması başarısız');
         }
     }
 
-    cleanPhoneNumber(phone) {
-        return phone.replace(/\D/g, '').replace(/^0+/, '');
+    setCustomer(customer) {
+        this.customerId = customer.id;
+        this.customerForm.style.display = 'none';
+        this.customerDetails.style.display = 'block';
+        this.customerDetails.innerHTML = this.getCustomerTemplate(customer);
+        this.loadAddresses();
     }
 
-    showCustomerDetails(customer) {
-        this.customerDetails.style.display = 'block';
-        this.customerForm.style.display = 'none';
-
-        this.customerDetails.innerHTML = `
+    getCustomerTemplate(customer) {
+        return `
             <div class="alert alert-success mb-0">
-                <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex justify-content-between">
                     <div>
-                        <strong class="d-block mb-1">${customer.name}</strong>
-                        <small class="text-muted d-block">${formatPhoneNumber(customer.phone)}</small>
-                        ${customer.email ? `<small class="text-muted d-block">${customer.email}</small>` : ''}
-                        ${customer.customer_type === 'corporate' ? `
-                            <small class="d-block mt-1">
-                                <span class="badge bg-info">Kurumsal</span>
-                                ${customer.company_name}
-                            </small>
-                        ` : ''}
+                        <strong>${customer.name}</strong>
+                        <div class="small text-muted">${customer.phone}</div>
+                        ${customer.email ? `<div class="small">${customer.email}</div>` : ''}
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-success" 
-                            onclick="window.orderForm.editCustomer(${customer.id})">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="orderForm.editCustomer()">
                         <i class="bi bi-pencil"></i>
                     </button>
                 </div>
             </div>
         `;
-
-        // Adres arama kutusunu aktif et
-        document.getElementById('addressSearchInput')?.removeAttribute('disabled');
-        document.getElementById('addressSearchBtn')?.removeAttribute('disabled');
     }
 
-    showNewCustomerForm(phone = '') {
-        if (!this.customerDetails || !this.customerForm) {
-            console.error('Müşteri form elementleri bulunamadı');
-            return;
-        }
-
-        this.customerDetails.style.display = 'none';
-        this.customerForm.style.display = 'block';
-
-        // Form elementlerini temizle
-        const inputs = this.customerForm.querySelectorAll('input, select, textarea');
-        inputs.forEach(input => {
-            input.value = '';
-        });
-
-        // Telefon numarasını set et
-        const phoneInput = this.customerForm.querySelector('input[name="phone"]');
-        if (phoneInput && phone) {
-            phoneInput.value = phone;
-        }
-    }
-
-    toggleCompanyFields(type) {
-        const companyFields = document.getElementById('companyFields');
-        if (companyFields) {
-            companyFields.style.display = type === 'corporate' ? 'block' : 'none';
-        }
-    }
-
-    async saveCustomer() {
-        if (!this.customerForm.checkValidity()) {
-            this.customerForm.reportValidity();
-            return;
-        }
-
-        const formData = new FormData(this.customerForm);
-        const customerData = Object.fromEntries(formData);
-
-        try {
-            const response = await fetch(`${API_URL}/customers`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(customerData)
-            });
-
-            if (!response.ok) throw new Error('Müşteri kaydedilemedi');
-
-            const result = await response.json();
-            this.customerId = result.id;
-            
-            showSuccess('Müşteri kaydedildi');
-            this.showCustomerDetails(result);
-
-            // Müşteri kaydedildikten sonra adres arama kutusunu aktif et
-            document.getElementById('addressSearchInput')?.removeAttribute('disabled');
-            document.getElementById('addressSearchBtn')?.removeAttribute('disabled');
-            this.setupAddressSearch();
-
-        } catch (error) {
-            console.error('Müşteri kayıt hatası:', error);
-            showError('Müşteri kaydedilemedi');
-        }
-    }
-
-    async loadCustomerAddresses(customerId) {
-        try {
-            const response = await fetch(`${API_URL}/customers/${customerId}/addresses`);
-            const addresses = await response.json();
-            
-            const container = document.getElementById('addressSelectContainer');
-            
-            if (addresses && addresses.length > 0) {
-                container.innerHTML = addresses.map(addr => `
-                    <div class="form-check mb-2">
-                        <input type="radio" class="form-check-input" name="delivery_address_id" 
-                               value="${addr.id}" id="addr_${addr.id}" required>
-                        <label class="form-check-label" for="addr_${addr.id}">
-                            <strong>${addr.label}</strong><br>
-                            <small class="text-muted">
-                                ${[addr.street, addr.district, addr.city].filter(Boolean).join(', ')}
-                            </small>
-                        </label>
-                    </div>
-                `).join('') + `
-                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
-                            onclick="window.orderForm.showAddressForm()">
-                        <i class="bi bi-plus-lg"></i> Yeni Adres
-                    </button>
-                `;
-            } else {
-                container.innerHTML = `
-                    <div class="alert alert-info mb-2">Kayıtlı adres bulunamadı</div>
-                    <button type="button" class="btn btn-sm btn-primary" 
-                            onclick="window.orderForm.showAddressForm()">
-                        <i class="bi bi-plus-lg"></i> Adres Ekle
-                    </button>
-                `;
-            }
-        } catch (error) {
-            console.error('Adres yükleme hatası:', error);
-            showError('Adresler yüklenemedi');
-        }
-    }
-
-    showAddressForm() {
-        if (!this.customerId) {
-            showError('Önce müşteri seçmelisiniz');
-            return;
-        }
-
-        const container = document.getElementById('addressSelectContainer');
-        const existingForm = document.getElementById('newAddressForm');
-        
-        // Eğer form zaten açıksa tekrar açma
-        if (existingForm) return;
-
-        const formHtml = `
-            <div class="card mt-3" id="newAddressCard">
-                <div class="card-body">
-                    <form id="newAddressForm" class="row g-2">
-                        <div class="col-12">
-                            <label class="small mb-1">Adres Başlığı *</label>
-                            <input type="text" class="form-control form-control-sm" name="label" required>
-                        </div>
-                        <div class="col-12">
-                            <label class="small mb-1">Sokak/Cadde *</label>
-                            <input type="text" class="form-control form-control-sm" name="street" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="small mb-1">İlçe *</label>
-                            <input type="text" class="form-control form-control-sm" name="district" required>
-                        </div>
-                        <div class="col-12 mt-3">
-                            <button type="submit" class="btn btn-primary btn-sm">Kaydet</button>
-                            <button type="button" class="btn btn-secondary btn-sm" 
-                                    onclick="document.getElementById('newAddressCard').remove()">
-                                İptal
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
-
-        // Formu ekle
-        container.insertAdjacentHTML('beforeend', formHtml);
-
-        // Form submit event listener'ı ekle
-        document.getElementById('newAddressForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await this.saveAddress(new FormData(e.target));
-        });
-    }
-
-    async saveAddress(formData) {
-        try {
-            const addressData = {
-                ...Object.fromEntries(formData),
-                customer_id: this.customerId,
-                city: 'İstanbul',
-                country_code: 'TUR',
-                country_name: 'Türkiye'
-            };
-
-            const response = await fetch(`${API_URL}/customers/${this.customerId}/addresses`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(addressData)
-            });
-
-            if (!response.ok) throw new Error('Adres kaydedilemedi');
-
-            showSuccess('Adres başarıyla kaydedildi');
-            
-            // Form container'ı kaldır
-            document.getElementById('newAddressCard')?.remove();
-            
-            // Adresleri yeniden yükle
-            await this.loadCustomerAddresses(this.customerId);
-
-        } catch (error) {
-            console.error('Adres kayıt hatası:', error);
-            showError('Adres kaydedilemedi');
-        }
-    }
-
-    async showProductModal() {
+    addProduct() {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>
@@ -320,7 +117,6 @@ class OrderForm {
                     <option value="">Ürün Seçin</option>
                     <option value="1" data-price="199.90">Kırmızı Güller</option>
                     <option value="2" data-price="299.90">Beyaz Orkide</option>
-                    <option value="3" data-price="149.90">Renkli Papatya</option>
                 </select>
             </td>
             <td><input type="number" class="form-control form-control-sm" value="1" min="1"></td>
@@ -333,71 +129,58 @@ class OrderForm {
             </td>
         `;
 
-        // Event listeners
+        // Event Listeners
         const select = row.querySelector('select');
-        const qtyInput = row.querySelector('input');
+        const input = row.querySelector('input');
         const deleteBtn = row.querySelector('button');
 
-        select.addEventListener('change', () => this.updateRowPrices(row));
-        qtyInput.addEventListener('change', () => this.updateRowPrices(row));
+        select.addEventListener('change', () => this.calculateRowTotal(row));
+        input.addEventListener('change', () => this.calculateRowTotal(row));
         deleteBtn.addEventListener('click', () => {
             row.remove();
-            this.updateTotals();
+            this.calculateTotals();
         });
 
         this.productTable.appendChild(row);
     }
 
-    updateRowPrices(row) {
+    calculateRowTotal(row) {
         const select = row.querySelector('select');
         const qty = parseInt(row.querySelector('input').value);
-        const option = select.selectedOptions[0];
+        const price = parseFloat(select.selectedOptions[0]?.dataset.price || 0);
         
-        if (option && option.dataset.price) {
-            const price = parseFloat(option.dataset.price);
-            const total = price * qty;
-            
-            row.cells[2].textContent = formatCurrency(price);
-            row.cells[3].textContent = formatCurrency(total);
-            
-            this.updateTotals();
-        }
+        row.cells[2].textContent = formatCurrency(price);
+        row.cells[3].textContent = formatCurrency(price * qty);
+        
+        this.calculateTotals();
     }
 
-    updateTotals() {
+    calculateTotals() {
         let subtotal = 0;
-        const deliveryFee = 50.00;
-
         this.productTable.querySelectorAll('tr').forEach(row => {
-            const totalCell = row.cells[3]?.textContent;
-            if (totalCell) {
-                subtotal += parseFloat(totalCell.replace(/[^\d,]/g, '').replace(',', '.'));
+            const total = row.cells[3]?.textContent;
+            if (total) {
+                subtotal += parseFloat(total.replace(/[^\d,]/g, '').replace(',', '.'));
             }
         });
 
         document.getElementById('subtotal').textContent = formatCurrency(subtotal);
-        document.getElementById('deliveryFee').textContent = formatCurrency(deliveryFee);
-        document.getElementById('total').textContent = formatCurrency(subtotal + deliveryFee);
+        document.getElementById('total').textContent = formatCurrency(subtotal + 50);
     }
 
-    async handleSubmit(e) {
-        e.preventDefault();
-
-        if (!this.validateForm()) {
-            return;
-        }
+    async handleSubmit() {
+        if (!this.validateForm()) return;
 
         const formData = new FormData(this.form);
         const orderData = {
             customer_id: this.customerId,
-            delivery_address_id: formData.get('delivery_address_id'),
-            recipient_name: formData.get('recipient_name'),
-            recipient_phone: formData.get('recipient_phone'),
+            items: this.getOrderItems(),
             delivery_date: formData.get('delivery_date'),
             delivery_time_slot: formData.get('delivery_time_slot'),
+            recipient_name: formData.get('recipient_name'),
+            recipient_phone: formData.get('recipient_phone'),
             card_message: formData.get('card_message'),
-            payment_method: formData.get('payment_method'),
-            items: this.getOrderItems()
+            payment_method: formData.get('payment_method')
         };
 
         try {
@@ -407,50 +190,23 @@ class OrderForm {
                 body: JSON.stringify(orderData)
             });
 
-            if (!response.ok) throw new Error('Sipariş oluşturulamadı');
+            if (!response.ok) throw new Error();
 
-            const result = await response.json();
-            showSuccess('Sipariş başarıyla oluşturuldu');
-
-            setTimeout(() => {
-                window.location.href = '/orders/list.html';
-            }, 2000);
-
-        } catch (error) {
-            console.error('Sipariş oluşturma hatası:', error);
+            showSuccess('Sipariş oluşturuldu');
+            setTimeout(() => location.href = '/orders/list.html', 1500);
+        } catch {
             showError('Sipariş oluşturulamadı');
         }
     }
 
     validateForm() {
-        // Required fields validation
-        const requiredFields = {
-            'customer': this.customerId,
-            'delivery_address_id': 'Teslimat adresi',
-            'recipient_name': 'Alıcı adı',
-            'recipient_phone': 'Alıcı telefonu',
-            'delivery_date': 'Teslimat tarihi',
-            'delivery_time_slot': 'Teslimat saati',
-            'payment_method': 'Ödeme yöntemi'
-        };
-
-        for (const [field, label] of Object.entries(requiredFields)) {
-            if (field === 'customer' && !this.customerId) {
-                showError('Lütfen müşteri seçin veya ekleyin');
-                return false;
-            }
-
-            const input = this.form.querySelector(`[name="${field}"]`);
-            if (!input?.value) {
-                showError(`Lütfen ${label} alanını doldurun`);
-                input?.focus();
-                return false;
-            }
+        if (!this.customerId) {
+            showError('Müşteri seçilmedi');
+            return false;
         }
 
-        // Products validation
-        if (this.productTable.children.length === 0) {
-            showError('Lütfen en az bir ürün ekleyin');
+        if (!this.productTable.children.length) {
+            showError('Ürün eklenmedi');
             return false;
         }
 
@@ -458,94 +214,15 @@ class OrderForm {
     }
 
     getOrderItems() {
-        const items = [];
-        this.productTable.querySelectorAll('tr').forEach(row => {
-            const select = row.querySelector('select');
-            const qty = row.querySelector('input').value;
-            if (select.value && qty) {
-                items.push({
-                    product_id: parseInt(select.value),
-                    quantity: parseInt(qty),
-                    unit_price: parseFloat(row.cells[2].textContent.replace(/[^\d,]/g, '').replace(',', '.'))
-                });
-            }
-        });
-        return items;
-    }
-
-    // Adres arama fonksiyonu
-    setupAddressSearch() {
-        const searchInput = document.getElementById('addressSearchInput');
-        const searchBtn = document.getElementById('addressSearchBtn');
-        const resultsDiv = document.getElementById('addressSearchResults');
-
-        if (!searchInput || !searchBtn || !resultsDiv) return;
-
-        // Önceki event listener'ları temizle
-        searchInput.replaceWith(searchInput.cloneNode(true));
-        searchBtn.replaceWith(searchBtn.cloneNode(true));
-
-        // Güncel elementleri al
-        const newSearchInput = document.getElementById('addressSearchInput');
-        const newSearchBtn = document.getElementById('addressSearchBtn');
-
-        let timeout;
-        
-        // Input değiştiğinde
-        newSearchInput.addEventListener('input', (e) => {
-            clearTimeout(timeout);
-            const query = e.target.value;
-            if (query.length >= 3) {
-                timeout = setTimeout(() => this.searchAddress(query), 500);
-            } else {
-                resultsDiv.style.display = 'none';
-            }
-        });
-
-        // Buton tıklandığında
-        newSearchBtn.addEventListener('click', () => {
-            const query = newSearchInput.value;
-            if (query.length >= 3) {
-                this.searchAddress(query);
-            }
-        });
-    }
-
-    async searchAddress(query) {
-        if (!this.customerId) {
-            showError('Önce müşteri seçin veya kaydedin');
-            return;
-        }
-
-        const resultsDiv = document.getElementById('addressSearchResults');
-        
-        try {
-            const response = await fetch(`${API_URL}/here/geocode?q=${encodeURIComponent(query)}`);
-            const data = await response.json();
-
-            resultsDiv.style.display = 'block';
-            
-            if (!data.items?.length) {
-                resultsDiv.innerHTML = '<div class="list-group-item">Sonuç bulunamadı</div>';
-                return;
-            }
-
-            resultsDiv.innerHTML = data.items.map(item => `
-                <button type="button" class="list-group-item list-group-item-action" 
-                        onclick="window.orderForm.selectAddress(${JSON.stringify(item)})">
-                    <strong>${item.title}</strong><br>
-                    <small class="text-muted">${item.address.label}</small>
-                </button>
-            `).join('');
-
-        } catch (error) {
-            console.error('Adres arama hatası:', error);
-            showError('Adres araması başarısız');
-        }
+        return Array.from(this.productTable.children).map(row => ({
+            product_id: row.querySelector('select').value,
+            quantity: row.querySelector('input').value,
+            unit_price: parseFloat(row.cells[2].textContent.replace(/[^\d,]/g, '').replace(',', '.'))
+        }));
     }
 }
 
-// Global instance
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     window.orderForm = new OrderForm();
 });
