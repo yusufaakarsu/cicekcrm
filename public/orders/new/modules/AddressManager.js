@@ -39,39 +39,15 @@ class AddressManager {
                         </div>
                     </div>
                     
-                    <!-- Yeni Adres Ekleme -->
-                    <div class="mb-3">
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="addAddressBtn">
-                            <i class="bi bi-plus-lg"></i> Yeni Adres Ekle
-                        </button>
-                    </div>
+                    <!-- Tek bir "Yeni Adres Ekle" butonu -->
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="addressManager.showAddressForm()">
+                        <i class="bi bi-plus-lg"></i> Yeni Adres Ekle
+                    </button>
+                </div>
 
-                    <div id="newAddressForm" class="card d-none">
-                        <div class="card-body">
-                            <div class="row g-2">
-                                <div class="col-12">
-                                    <label class="form-label small">Adres Başlığı *</label>
-                                    <input type="text" class="form-control form-control-sm" id="addressLabel" required>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label small">Adres *</label>
-                                    <textarea class="form-control form-control-sm" id="addressText" rows="2" required></textarea>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small">İlçe *</label>
-                                    <input type="text" class="form-control form-control-sm" id="addressDistrict" required>
-                                </div>
-                                <div class="col-12">
-                                    <button type="button" class="btn btn-primary btn-sm" onclick="addressManager.saveNewAddress()">
-                                        Adresi Kaydet
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addressManager.cancelNewAddress()">
-                                        İptal
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Adres form container -->
+                <div id="newAddressFormContainer" class="col-12" style="display:none">
+                    <!-- Form buraya eklenecek -->
                 </div>
 
                 <!-- Alıcı Bilgileri -->
@@ -188,13 +164,6 @@ class AddressManager {
                 `;
             }
 
-            // Add Address butonu ekle
-            container.insertAdjacentHTML('beforeend', `
-                <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addressManager.showAddressForm()">
-                    <i class="bi bi-plus-lg"></i> Yeni Adres Ekle
-                </button>
-            `);
-
         } catch (error) {
             console.error('Adres yükleme hatası:', error);
             document.getElementById('savedAddresses').innerHTML = `
@@ -206,14 +175,19 @@ class AddressManager {
     }
 
     showAddressForm() {
-        const container = document.getElementById('savedAddresses');
-        const existingForm = document.getElementById('newAddressForm');
-        
-        // Eğer form zaten açıksa geri dön
-        if (existingForm) return;
+        const container = document.getElementById('newAddressFormContainer');
+        if (!container) return;
 
-        container.insertAdjacentHTML('beforeend', `
-            <div class="card mt-3" id="newAddressCard">
+        // Form zaten açıksa gizle
+        if (container.style.display !== 'none') {
+            container.style.display = 'none';
+            return;
+        }
+
+        // Yeni form göster
+        container.style.display = 'block';
+        container.innerHTML = `
+            <div class="card mt-3">
                 <div class="card-body">
                     <form id="newAddressForm" class="row g-2">
                         <div class="col-12">
@@ -233,20 +207,27 @@ class AddressManager {
                                 <i class="bi bi-check-lg"></i> Kaydet
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-sm" 
-                                    onclick="document.getElementById('newAddressCard').remove()">
+                                    onclick="addressManager.hideAddressForm()">
                                 İptal
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
-        `);
+        `;
 
-        // Form submit event
+        // Form submit listener ekle
         document.getElementById('newAddressForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             await this.saveAddress(e.target);
         });
+    }
+
+    hideAddressForm() {
+        const container = document.getElementById('newAddressFormContainer');
+        if (container) {
+            container.style.display = 'none';
+        }
     }
 
     async saveAddress(form) {
