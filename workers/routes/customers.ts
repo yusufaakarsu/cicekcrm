@@ -10,18 +10,25 @@ router.get('/', async (c) => {
     const { results } = await db.prepare(`
       SELECT 
         c.*,
-        COUNT(o.id) as total_orders,
+        COUNT(DISTINCT o.id) as total_orders,
         MAX(o.created_at) as last_order,
-        SUM(o.total_amount) as total_spent
+        COALESCE(SUM(o.total_amount), 0) as total_spent
       FROM customers c
-      LEFT JOIN orders o ON c.id = o.customer_id
+      LEFT JOIN orders o ON c.id = o.customer_id AND o.is_deleted = 0
       WHERE c.tenant_id = ?
-      GROUP BY c.id, c.name, c.phone, c.email, c.address
+      AND c.is_deleted = 0
+      GROUP BY c.id
       ORDER BY c.name
     `).bind(tenant_id).all()
+    
     return c.json(results)
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Customers list error:', error)
+    return c.json({ 
+      success: false,
+      error: 'Database error',
+      message: error.message 
+    }, 500)
   }
 })
 
