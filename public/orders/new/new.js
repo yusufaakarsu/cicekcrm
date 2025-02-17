@@ -344,8 +344,12 @@ class NewOrderForm {
     // Ürün ekleme fonksiyonu güncellendi
     addToCart(productId) {
         const qtyInput = document.getElementById(`qty_${productId}`);
+        if (!qtyInput) {
+            console.error('Miktar inputu bulunamadı');
+            return;
+        }
+
         const quantity = parseInt(qtyInput.value);
-        
         if (isNaN(quantity) || quantity < 1) {
             showError('Lütfen geçerli bir miktar girin');
             return;
@@ -353,9 +357,21 @@ class NewOrderForm {
 
         // Ürünü bul
         const productElement = qtyInput.closest('tr');
+        if (!productElement) {
+            console.error('Ürün satırı bulunamadı');
+            return;
+        }
+
         const productName = productElement.querySelector('td:first-child').textContent;
         const priceText = productElement.querySelector('td:nth-child(3)').textContent;
         const productPrice = parseFloat(priceText.replace(/[^\d,]/g, '').replace(',', '.'));
+
+        // Seçilen ürünler listesini kontrol et
+        const cartContainer = document.getElementById('selectedProducts');
+        if (!cartContainer) {
+            console.error('Seçilen ürünler container\'ı bulunamadı');
+            return;
+        }
 
         // Ürün zaten sepette mi kontrol et
         const existingItemIndex = this.items.findIndex(item => item.id === productId);
@@ -382,15 +398,15 @@ class NewOrderForm {
         
         // Input'u sıfırla
         qtyInput.value = "1";
-
-        // Seçilen ürünleri göster
-        document.getElementById('selectedProducts').style.display = 'block';
     }
 
-    // Sepet güncelleme fonksiyonu
+    // Sepet güncelleme fonksiyonu güncellendi
     updateCart() {
         const cartContainer = document.getElementById('selectedProducts');
-        if (!cartContainer) return;
+        if (!cartContainer) {
+            console.error('Seçilen ürünler container\'ı bulunamadı');
+            return;
+        }
 
         if (this.items.length === 0) {
             cartContainer.innerHTML = '<div class="alert alert-info">Henüz ürün seçilmedi</div>';
@@ -398,27 +414,36 @@ class NewOrderForm {
         }
 
         cartContainer.innerHTML = `
-            <div class="list-group">
-                ${this.items.map(item => `
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0">${item.name}</h6>
-                            <small class="text-muted">${item.quantity} adet x ${formatCurrency(item.price)}</small>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <strong>${formatCurrency(item.total)}</strong>
-                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" 
-                                    onclick="window.newOrderForm.removeFromCart(${item.id})">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title mb-3">Seçilen Ürünler</h6>
+                    <div class="list-group list-group-flush">
+                        ${this.items.map(item => `
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">${item.name}</h6>
+                                    <small class="text-muted">${item.quantity} adet x ${formatCurrency(item.price)}</small>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <strong>${formatCurrency(item.total)}</strong>
+                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" 
+                                            onclick="window.newOrderForm.removeFromCart(${item.id})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
-                `).join('')}
-            </div>
-            <div class="text-end mt-3">
-                <strong>Toplam: ${formatCurrency(this.getTotalAmount())}</strong>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <h6 class="mb-0">Toplam Tutar:</h6>
+                        <strong>${formatCurrency(this.getTotalAmount())}</strong>
+                    </div>
+                </div>
             </div>
         `;
+
+        // Sipariş özetini güncelle
+        this.updateOrderSummary();
     }
 
     // Sepetten ürün çıkarma
@@ -481,27 +506,75 @@ class NewOrderForm {
     }
 
     // Form gönderme işlemini güncelle
-    handleSubmit(e) {
+    async handleSubmit(e) {
         e.preventDefault();
         
-        // Son kontrol
         if (!this.validateStep(this.currentStep)) {
             return;
         }
 
-        // Form verilerini topla
-        const formData = {
-            customerId: this.customerId,
-            addressId: this.selectedAddressId,
-            recipientName: this.form.querySelector('[name="recipient_name"]').value,
-            recipientPhone: this.form.querySelector('[name="recipient_phone"]').value,
-            deliveryDate: this.form.querySelector('[name="delivery_date"]').value,
-            deliveryTimeSlot: this.form.querySelector('[name="delivery_time_slot"]').value,
-            // ...diğer form alanları
-        };
+        try {
+            // Form verilerini hazırla
+            const formData = {
+                customer_id: this.customerId,
+                delivery_address_id: this.selectedAddressId,
+                recipient_name: this.form.querySelector('[name="recipient_name"]').value,
+                recipient_phone: this.form.querySelector('[name="recipient_phone"]').value,
+                delivery_date: this.form.querySelector('[name="delivery_date"]').value,
+                delivery_time_slot: this.form.querySelector('[name="delivery_time_slot"]').value,
+                card_message: this.form.querySelector('[name="card_message"]').value || null,
+                payment_method: this.form.querySelector('[name="payment_method"]').value,
+                items: this.items.map(item => ({
+                    product_id: item.id,
+                    quantity: item.quantity,
+                    unit_price: item.price
+                })),
+                subtotal: this.getTotalAmount(),
+                delivery_fee: 50.00, // Sabit teslimat ücreti
+                total_amount: this.getTotalAmount() + 50.00 // Toplam + Teslimat
+            };
 
-        console.log('Form verileri:', formData);
-        // API çağrısı burada yapılacak
+            console.log('Gönderilecek veriler:', formData);
+
+            // API'ye gönder
+            const response = await fetch(`${API_URL}/orders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (!response.ok) {
+                throw new Error('Sipariş oluşturma hatası');
+            }
+
+            const result = await response.json();
+            
+            // Başarılı mesajı göster
+            showSuccess('Sipariş başarıyla oluşturuldu!');
+
+            // Sipariş listesine yönlendir
+            setTimeout(() => {
+                window.location.href = '/orders/list.html';
+            }, 2000);
+
+        } catch (error) {
+            console.error('Sipariş oluşturma hatası:', error);
+            showError('Sipariş oluşturulamadı. Lütfen tekrar deneyin.');
+        }
+    }
+
+    // Sipariş özeti güncelleme fonksiyonu
+    updateOrderSummary() {
+        const subtotal = this.getTotalAmount();
+        const deliveryFee = 50.00;
+        const total = subtotal + deliveryFee;
+
+        // Özet alanlarını güncelle
+        document.getElementById('subtotal').textContent = formatCurrency(subtotal);
+        document.getElementById('deliveryFee').textContent = formatCurrency(deliveryFee);
+        document.getElementById('total').textContent = formatCurrency(total);
     }
 }
 
