@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Müşteri arama dinleyicisini ekle
     setupCustomerSearch();
+
+    // Yeni müşteri formu dinleyicisini ekle
+    setupNewCustomerForm();
 });
 
 // Müşteri arama işlemlerini ayarla
@@ -142,4 +145,37 @@ function showNewCustomerForm() {
         ISTANBUL_DISTRICTS.map(district => 
             `<option value="${district}">${district}</option>`
         ).join('');
+
+    // Form alanlarını resetle
+    const form = document.getElementById('newCustomerForm');
+    form.querySelector('[name="new_customer_name"]').value = '';
+    form.querySelector('[name="new_customer_phone"]').value = '';
+    form.querySelector('[name="new_customer_email"]').value = '';
+    form.querySelector('[name="new_customer_district"]').value = '';
+    form.querySelector('[name="new_customer_notes"]').value = '';
+    form.querySelector('[name="new_customer_special_dates"]').value = '';
+    form.querySelector('[name="new_customer_tax_number"]').value = '';
+    form.querySelector('[name="new_customer_company_name"]').value = '';
+
+    // Bireysel müşteri tipini seç
+    document.getElementById('customerTypeRetail').checked = true;
+    document.getElementById('customerTypeCorporate').checked = false;
+
+    // Kurumsal alanları gizle
+    document.querySelectorAll('.corporate-fields').forEach(field => {
+        field.classList.add('d-none');
+    });
+}
+
+// Müşteri tipi değişikliğini dinle
+function setupNewCustomerForm() {
+    const customerTypeInputs = document.querySelectorAll('input[name="new_customer_type"]');
+    customerTypeInputs.forEach(input => {
+        input.addEventListener('change', (e) => {
+            const corporateFields = document.querySelectorAll('.corporate-fields');
+            corporateFields.forEach(field => {
+                field.classList.toggle('d-none', e.target.value !== 'corporate');
+            });
+        });
+    });
 }
