@@ -77,8 +77,13 @@ class OrderForm {
                 this.customerId = data.customer.id;
                 this.showCustomerDetails(data.customer);
                 await this.loadCustomerAddresses(data.customer.id);
+                // Adres arama kutusunu aktif et
+                this.setupAddressSearch();
             } else {
                 this.showNewCustomerForm(phone);
+                // Yeni müşteri formu için adres arama kutusunu deaktif et
+                document.getElementById('addressSearchInput')?.setAttribute('disabled', 'disabled');
+                document.getElementById('addressSearchBtn')?.setAttribute('disabled', 'disabled');
             }
         } catch (error) {
             console.error('Müşteri arama hatası:', error);
@@ -115,6 +120,10 @@ class OrderForm {
                 </div>
             </div>
         `;
+
+        // Adres arama kutusunu aktif et
+        document.getElementById('addressSearchInput')?.removeAttribute('disabled');
+        document.getElementById('addressSearchBtn')?.removeAttribute('disabled');
     }
 
     showNewCustomerForm(phone = '') {
@@ -169,6 +178,11 @@ class OrderForm {
             
             showSuccess('Müşteri kaydedildi');
             this.showCustomerDetails(result);
+
+            // Müşteri kaydedildikten sonra adres arama kutusunu aktif et
+            document.getElementById('addressSearchInput')?.removeAttribute('disabled');
+            document.getElementById('addressSearchBtn')?.removeAttribute('disabled');
+            this.setupAddressSearch();
 
         } catch (error) {
             console.error('Müşteri kayıt hatası:', error);
@@ -465,25 +479,68 @@ class OrderForm {
         const searchBtn = document.getElementById('addressSearchBtn');
         const resultsDiv = document.getElementById('addressSearchResults');
 
-        if (searchInput && searchBtn) {
-            let timeout;
-            
-            // Input değiştiğinde
-            searchInput.addEventListener('input', (e) => {
-                clearTimeout(timeout);
-                const query = e.target.value;
-                if (query.length >= 3) {
-                    timeout = setTimeout(() => this.searchAddress(query), 500);
-                }
-            });
+        if (!searchInput || !searchBtn || !resultsDiv) return;
 
-            // Buton tıklandığında
-            searchBtn.addEventListener('click', () => {
-                const query = searchInput.value;
-                if (query.length >= 3) {
-                    this.searchAddress(query);
-                }
-            });
+        // Önceki event listener'ları temizle
+        searchInput.replaceWith(searchInput.cloneNode(true));
+        searchBtn.replaceWith(searchBtn.cloneNode(true));
+
+        // Güncel elementleri al
+        const newSearchInput = document.getElementById('addressSearchInput');
+        const newSearchBtn = document.getElementById('addressSearchBtn');
+
+        let timeout;
+        
+        // Input değiştiğinde
+        newSearchInput.addEventListener('input', (e) => {
+            clearTimeout(timeout);
+            const query = e.target.value;
+            if (query.length >= 3) {
+                timeout = setTimeout(() => this.searchAddress(query), 500);
+            } else {
+                resultsDiv.style.display = 'none';
+            }
+        });
+
+        // Buton tıklandığında
+        newSearchBtn.addEventListener('click', () => {
+            const query = newSearchInput.value;
+            if (query.length >= 3) {
+                this.searchAddress(query);
+            }
+        });
+    }
+
+    async searchAddress(query) {
+        if (!this.customerId) {
+            showError('Önce müşteri seçin veya kaydedin');
+            return;
+        }
+
+        const resultsDiv = document.getElementById('addressSearchResults');
+        
+        try {
+            const response = await fetch(`${API_URL}/here/geocode?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+
+            resultsDiv.style.display = 'block';
+            
+            if (!data.items?.length) {
+                resultsDiv.innerHTML = '<div class="list-group-item">Sonuç bulunamadı</div>';
+                return;
+            }
+
+            resultsDiv.innerHTML = data.items.map(item => `
+                <button type="button" class="list-group-item list-group-item-action" 
+                        onclick="window.orderForm.selectAddress(${JSON.stringify(item)})">
+                    <strong>${item.title}</strong><br>
+                    <small class="text-muted">${item.address.label}</small>
+                </button>
+            `).join('');
+
+        } catch (error) {
+            console.error('Adres arama hatası:', error);
+            showError('Adres araması başarısız');
         }
     }
 }
