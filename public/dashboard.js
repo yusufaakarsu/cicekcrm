@@ -7,11 +7,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadDashboardData() {
     try {
-        const response = await fetch('/api/dashboard'); // Changed to absolute path
+        // Doğrudan '/api/dashboard' kullan
+        const response = await fetch('/api/dashboard');
+        
+        // Response kontrolü ekle
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'API Hatası');
+            console.error('API Error:', await response.text());
+            throw new Error('API Error');
         }
+        
         const data = await response.json();
 
         // 1. Teslimat Durumu Kartı
