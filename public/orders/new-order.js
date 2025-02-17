@@ -55,18 +55,35 @@ function selectCustomer(customer) {
 async function saveCustomer(form) {
     try {
         const formData = new FormData(form);
+        const customerData = Object.fromEntries(formData);
+        
         const response = await fetch(`${API_URL}/customers`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(Object.fromEntries(formData))
+            body: JSON.stringify({
+                name: customerData.name,
+                phone: customerData.phone.replace(/\D/g, ''),  // Sadece rakamları al
+                district: customerData.district
+            })
         });
 
-        const customer = await response.json();
+        const data = await response.json();
+        if (!data.success && !data.id) {
+            throw new Error(data.error || 'Müşteri kaydedilemedi');
+        }
+
+        // Modalı kapat
         bootstrap.Modal.getInstance(document.getElementById('customerModal')).hide();
-        selectCustomer(customer);
+
+        // Kaydedilen müşteriyi seç
+        const customerResponse = await fetch(`${API_URL}/customers/${data.id}`);
+        const savedCustomerData = await customerResponse.json();
+        selectCustomer(savedCustomerData);
+        
         showSuccess('Müşteri kaydedildi');
+        form.reset();
     } catch (error) {
-        showError('Müşteri kaydedilemedi');
+        showError(error.message || 'Müşteri kaydedilemedi');
     }
 }
 

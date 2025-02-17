@@ -168,14 +168,17 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="customerForm">
+                    <form id="customerForm" onsubmit="event.preventDefault(); saveCustomer(this);">
                         <div class="mb-3">
                             <label class="form-label">Ad Soyad *</label>
                             <input type="text" class="form-control" name="name" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Telefon *</label>
-                            <input type="tel" class="form-control" name="phone" required>
+                            <input type="tel" class="form-control" name="phone" required 
+                                   pattern="[0-9]{10,11}" 
+                                   title="Lütfen geçerli bir telefon numarası girin"
+                                   placeholder="5XX XXX XXXX">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">İlçe *</label>
@@ -183,7 +186,42 @@
                                 <option value="">Seçiniz</option>
                                 <option value="Adalar">Adalar</option>
                                 <option value="Arnavutköy">Arnavutköy</option>
-                                <!-- ... diğer ilçeler ... -->
+                                <option value="Ataşehir">Ataşehir</option>
+                                <option value="Avcılar">Avcılar</option>
+                                <option value="Bağcılar">Bağcılar</option>
+                                <option value="Bahçelievler">Bahçelievler</option>
+                                <option value="Bakırköy">Bakırköy</option>
+                                <option value="Başakşehir">Başakşehir</option>
+                                <option value="Bayrampaşa">Bayrampaşa</option>
+                                <option value="Beşiktaş">Beşiktaş</option>
+                                <option value="Beykoz">Beykoz</option>
+                                <option value="Beylikdüzü">Beylikdüzü</option>
+                                <option value="Beyoğlu">Beyoğlu</option>
+                                <option value="Büyükçekmece">Büyükçekmece</option>
+                                <option value="Çekmeköy">Çekmeköy</option>
+                                <option value="Esenler">Esenler</option>
+                                <option value="Esenyurt">Esenyurt</option>
+                                <option value="Eyüpsultan">Eyüpsultan</option>
+                                <option value="Fatih">Fatih</option>
+                                <option value="Gaziosmanpaşa">Gaziosmanpaşa</option>
+                                <option value="Güngören">Güngören</option>
+                                <option value="Kadıköy">Kadıköy</option>
+                                <option value="Kağıthane">Kağıthane</option>
+                                <option value="Kartal">Kartal</option>
+                                <option value="Küçükçekmece">Küçükçekmece</option>
+                                <option value="Maltepe">Maltepe</option>
+                                <option value="Pendik">Pendik</option>
+                                <option value="Sancaktepe">Sancaktepe</option>
+                                <option value="Sarıyer">Sarıyer</option>
+                                <option value="Silivri">Silivri</option>
+                                <option value="Sultanbeyli">Sultanbeyli</option>
+                                <option value="Sultangazi">Sultangazi</option>
+                                <option value="Şile">Şile</option>
+                                <option value="Şişli">Şişli</option>
+                                <option value="Tuzla">Tuzla</option>
+                                <option value="Ümraniye">Ümraniye</option>
+                                <option value="Üsküdar">Üsküdar</option>
+                                <option value="Zeytinburnu">Zeytinburnu</option>
                             </select>
                         </div>
                     </form>

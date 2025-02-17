@@ -231,31 +231,68 @@ api.get('/customers/search/phone/:phone', async (c) => {
 
 // Yeni müşteri ekle
 api.post('/customers', async (c) => {
-  const body = await c.req.json()
-  const db = c.env.DB
+  const body = await c.req.json();
+  const db = c.env.DB;
   const tenant_id = c.get('tenant_id');
   
   try {
-    // Önce telefon numarasını kontrol et
-    const existing = await db.prepare(`
-      SELECT id FROM customers WHERE phone = ? AND tenant_id = ?
-    `).bind(body.phone, tenant_id).first();
-    
-    if (existing) {
-      return c.json({ error: 'Phone number already exists', id: existing.id }, 400);
+    // Telefon numarası temizleme
+    const phone = body.phone.replace(/\D/g, '');
+
+    // Zorunlu alanları kontrol et
+    if (!body.name || !phone || !body.district) {
+      return c.json({ 
+        success: false, 
+        error: 'Ad, telefon ve ilçe alanları zorunludur' 
+      }, 400);
     }
 
-    const result = await db
-      .prepare(`
-        INSERT INTO customers (name, phone, email, address, tenant_id)
-        VALUES (?, ?, ?, ?, ?)
-      `)
-      .bind(body.name, body.phone, body.email, body.address, tenant_id)
-      .run()
+    // Telefon numarası kontrolü
+    const existing = await db.prepare(`
+      SELECT id FROM customers 
+      WHERE phone = ? AND tenant_id = ? AND is_deleted = 0
+    `).bind(phone, tenant_id).first();
+    
+    if (existing) {
+      return c.json({ 
+        success: false, 
+        error: 'Bu telefon numarası zaten kayıtlı',
+        id: existing.id 
+      }, 400);
+    }
 
-    return c.json({ success: true, id: result.lastRowId })
+    // Yeni müşteri ekle
+    const result = await db.prepare(`
+      INSERT INTO customers (
+        tenant_id, 
+        name, 
+        phone, 
+        district,
+        customer_type
+      ) VALUES (?, ?, ?, ?, 'retail')
+    `).bind(
+      tenant_id,
+      body.name,
+      phone,
+      body.district
+    ).run();
+
+    // Eklenen müşteriyi getir
+    const customer = await db.prepare(`
+      SELECT * FROM customers WHERE id = ?
+    `).bind(result.lastRowId).first();
+
+    return c.json({ 
+      success: true, 
+      id: result.lastRowId,
+      customer: customer
+    });
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Müşteri kayıt hatası:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Veritabanı hatası' 
+    }, 500);
   }
 })
 
