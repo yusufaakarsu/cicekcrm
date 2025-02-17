@@ -108,20 +108,24 @@ class AddressSelect {
             return;
         }
 
-        this.resultsDiv.innerHTML = items.map(item => `
-            <div class="list-group-item">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>${item.title}</strong><br>
-                        <small class="text-muted">${item.address.street || ''}, ${item.address.district || ''}</small>
+        // JSON stringfy ve onclick handler düzeltmesi
+        this.resultsDiv.innerHTML = items.map(item => {
+            const safeItem = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            return `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${item.title}</strong><br>
+                            <small class="text-muted">${item.address.street || ''}, ${item.address.district || ''}</small>
+                        </div>
+                        <button class="btn btn-sm btn-primary" 
+                                onclick='this.closest("#addressSelectContainer").addressSelect.selectAddress(JSON.parse("${safeItem}"))'>
+                            Seç
+                        </button>
                     </div>
-                    <button class="btn btn-sm btn-primary" 
-                            onclick="document.querySelector('#deliveryFormContainer').deliveryForm.handleAddressAction('selectAddress', ${JSON.stringify(item)})">
-                        Seç
-                    </button>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     selectAddress(item) {
