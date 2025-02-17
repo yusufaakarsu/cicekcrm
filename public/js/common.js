@@ -155,6 +155,41 @@ function showError(message) {
     });
 }
 
+// Başarı mesajı gösterme fonksiyonu
+function showSuccess(message) {
+    const toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    toastContainer.style.zIndex = '1050';
+
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+
+    toast.innerHTML = `
+        <div class="toast-header bg-success text-white">
+            <i class="bi bi-check-circle me-2"></i>
+            <strong class="me-auto">Başarılı</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
+    `;
+
+    toastContainer.appendChild(toast);
+    document.body.appendChild(toastContainer);
+
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+
+    // Toast kapandığında container'ı kaldır
+    toast.addEventListener('hidden.bs.toast', () => {
+        document.body.removeChild(toastContainer);
+    });
+}
+
 async function loadDashboardData() {
     try {
         const response = await fetch(`${API_URL}/api/dashboard`);

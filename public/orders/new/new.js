@@ -354,25 +354,37 @@ class NewOrderForm {
         // Ürünü bul
         const productElement = qtyInput.closest('tr');
         const productName = productElement.querySelector('td:first-child').textContent;
-        const productPrice = parseFloat(productElement.querySelector('td:nth-child(3)').textContent.replace(/[^0-9,]/g, '').replace(',', '.'));
+        const priceText = productElement.querySelector('td:nth-child(3)').textContent;
+        const productPrice = parseFloat(priceText.replace(/[^\d,]/g, '').replace(',', '.'));
 
-        // Sepete ekle
-        this.items.push({
-            id: productId,
-            name: productName,
-            quantity: quantity,
-            price: productPrice,
-            total: quantity * productPrice
-        });
+        // Ürün zaten sepette mi kontrol et
+        const existingItemIndex = this.items.findIndex(item => item.id === productId);
+        
+        if (existingItemIndex !== -1) {
+            // Varolan ürünün miktarını güncelle
+            this.items[existingItemIndex].quantity += quantity;
+            this.items[existingItemIndex].total = this.items[existingItemIndex].quantity * this.items[existingItemIndex].price;
+            showSuccess(`${productName} miktarı güncellendi (${this.items[existingItemIndex].quantity} adet)`);
+        } else {
+            // Yeni ürün ekle
+            this.items.push({
+                id: productId,
+                name: productName,
+                quantity: quantity,
+                price: productPrice,
+                total: quantity * productPrice
+            });
+            showSuccess(`${productName} sepete eklendi`);
+        }
 
         // Sepeti güncelle
         this.updateCart();
         
         // Input'u sıfırla
         qtyInput.value = "1";
-        
-        // Başarılı mesajı göster
-        showSuccess(`${productName} sepete eklendi`);
+
+        // Seçilen ürünleri göster
+        document.getElementById('selectedProducts').style.display = 'block';
     }
 
     // Sepet güncelleme fonksiyonu
