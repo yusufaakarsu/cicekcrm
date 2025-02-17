@@ -53,21 +53,37 @@ const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev/api';
 // Merkezi fetchAPI fonksiyonu 
 async function fetchAPI(endpoint, options = {}) {
     try {
-        const response = await fetch(API_URL + endpoint, {
+        const url = API_URL + endpoint;
+        console.log('API Request:', {
+            url,
+            method: options.method || 'GET',
+            headers: options.headers,
+            body: options.body
+        });
+
+        const response = await fetch(url, {
             ...options,
             headers: {
+                'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 ...options.headers
             }
         });
         
+        const data = await response.json();
+        console.log('API Response:', data);
+
         if (!response.ok) {
-            throw new Error('API Error');
+            throw new Error(data.error || 'API Error');
         }
         
-        return response.json();
+        return data;
     } catch (error) {
-        console.error('API Error:', error);
+        console.error('API Error:', {
+            message: error.message,
+            endpoint,
+            options
+        });
         throw error;
     }
 }

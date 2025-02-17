@@ -184,12 +184,12 @@ async function saveNewCustomer() {
         const formData = {
             name: document.querySelector('[name="new_customer_name"]').value,
             phone: document.querySelector('[name="new_customer_phone"]').value.replace(/\D/g, ''),
-            email: document.querySelector('[name="new_customer_email"]').value,
-            city: document.querySelector('[name="new_customer_city"]').value,
+            email: document.querySelector('[name="new_customer_email"]').value || null,
+            city: document.querySelector('[name="new_customer_city"]').value || 'İstanbul',
             district: document.querySelector('[name="new_customer_district"]').value,
             customer_type: document.querySelector('input[name="new_customer_type"]:checked').value,
-            special_dates: document.querySelector('[name="new_customer_special_dates"]').value,
-            notes: document.querySelector('[name="new_customer_notes"]').value
+            special_dates: document.querySelector('[name="new_customer_special_dates"]').value || null,
+            notes: document.querySelector('[name="new_customer_notes"]').value || null
         };
 
         if (formData.customer_type === 'corporate') {
@@ -197,22 +197,26 @@ async function saveNewCustomer() {
             formData.company_name = document.querySelector('[name="new_customer_company_name"]').value;
         }
 
-        const response = await fetchAPI('/customers', {
+        console.log('Gönderilen veri:', formData);
+
+        const data = await fetchAPI('/customers', {
             method: 'POST',
             body: JSON.stringify(formData)
         });
 
-        if (response.success) {
+        console.log('API yanıtı:', data);
+
+        if (data.success) {
             showSuccess('Müşteri başarıyla kaydedildi');
-            document.getElementById('customerId').value = response.customer.id;
-            showCustomerDetails(response.customer);
+            document.getElementById('customerId').value = data.id;
+            showCustomerDetails(data.customer);
             document.getElementById('newCustomerForm').classList.add('d-none');
         } else {
-            showError(response.error || 'Müşteri kaydedilemedi');
+            throw new Error(data.error || 'Müşteri kaydedilemedi');
         }
 
     } catch (error) {
         console.error('Müşteri kayıt hatası:', error);
-        showError('Müşteri kaydedilirken bir hata oluştu');
+        showError(error.message);
     }
 }
