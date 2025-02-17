@@ -47,14 +47,22 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
-const API_BASE_URL = 'http://localhost:8787/api';
+// API endpoint'i production için ayarla
+const API_URL = '/api';
 
+// Yeni fetchAPI yardımcı fonksiyonu
 async function fetchAPI(endpoint) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`);
-    if (!response.ok) throw new Error('API Hatası');
-    const data = await response.json();
-    if (!data.success) throw new Error(data.message || 'API Hatası');
-    return data;
+    try {
+        const response = await fetch(`${API_URL}${endpoint}`);
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error);
+        }
+        return response.json();
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
+    }
 }
 
 function showLoading(element) {
