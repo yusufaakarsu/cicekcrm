@@ -111,6 +111,7 @@ class AddressSelect {
         // JSON stringfy ve onclick handler düzeltmesi
         this.resultsDiv.innerHTML = items.map(item => {
             const safeItem = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const addressContainer = this.container.id;
             return `
                 <div class="list-group-item">
                     <div class="d-flex justify-content-between align-items-center">
@@ -119,7 +120,7 @@ class AddressSelect {
                             <small class="text-muted">${item.address.street || ''}, ${item.address.district || ''}</small>
                         </div>
                         <button class="btn btn-sm btn-primary" 
-                                onclick='this.closest("#addressSelectContainer").addressSelect.selectAddress(JSON.parse("${safeItem}"))'>
+                                onclick='document.querySelector("#${addressContainer}").addressSelect.selectAddress(${safeItem})'>
                             Seç
                         </button>
                     </div>

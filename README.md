@@ -426,3 +426,10 @@ wrangler d1 execute cicek-crm-db \
 - AI destekli öneriler
 - Tedarikçi portalı
 - Marketplace entegrasyonu
+
+
+
+
+git add .
+git commit -m "ghjghg" 
+git push origin development

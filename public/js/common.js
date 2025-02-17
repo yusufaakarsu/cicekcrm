@@ -3,7 +3,7 @@ const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev';
 
 // Environment variables'ı doğrudan tanımla
 const CONFIG = {
-    HERE_API_KEY: '8ga3iUSKvwTytKYkk8PbpnnH5iCFlNDsvFoSyCghhjI'
+    HERE_API_KEY: '8ga3iUSKvwTytKYkk8PbpnnH5iCFlNDsvFoSyCghhjI' // HERE API KEY buraya eklenecek
 };
 
 // Header yükleme fonksiyonu
