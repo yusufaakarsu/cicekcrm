@@ -205,8 +205,8 @@ async function saveNewCustomer() {
             return;
         }
 
-        // API'ye gönder - Doğru endpoint kullanımı
-        const response = await fetch(`${API_URL}/api/customers`, {
+        // API'ye gönder - Prefix düzeltmesi
+        const response = await fetch(`${API_URL}/customers`, { // api/ prefix'i kaldırıldı
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

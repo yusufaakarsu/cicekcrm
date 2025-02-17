@@ -218,7 +218,8 @@ function showSuccess(message) {
 
 async function loadDashboardData() {
     try {
-        const response = await fetch(`${API_URL}/api/dashboard`);
+        // /api/api/dashboard yerine /api/dashboard kullanılacak
+        const response = await fetch(`${API_URL}/dashboard`); // api/ prefix'i kaldırıldı
         if (!response.ok) throw new Error('API Hatası');
         const data = await response.json();
 
