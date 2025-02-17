@@ -1,6 +1,6 @@
 class AddressManager {
     constructor() {
-        this.address = null;
+        this.selectedAddress = null;
         this.customerId = null;
         this.step = document.getElementById('step2Status');
         this.container = document.createElement('div');
@@ -12,18 +12,13 @@ class AddressManager {
     render() {
         this.container.innerHTML = `
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header">
                     <h6 class="mb-0">2. Teslimat Bilgileri</h6>
-                    ${this.address ? `
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addressManager.clear()">
-                            <i class="bi bi-arrow-left"></i> Değiştir
-                        </button>
-                    ` : ''}
                 </div>
                 <div class="card-body">
-                    ${this.customerId ? this.renderAddressForm() : `
+                    ${this.customerId ? this.renderDeliveryForm() : `
                         <div class="alert alert-info mb-0">
-                            Önce müşteri seçin
+                            <i class="bi bi-info-circle"></i> Önce müşteri seçin
                         </div>
                     `}
                 </div>
@@ -31,38 +26,72 @@ class AddressManager {
         `;
     }
 
-    renderAddressForm() {
+    renderDeliveryForm() {
         return `
-            <div class="mb-3">
-                <label class="form-label">Teslimat Adresi</label>
-                <div class="input-group mb-2">
-                    <input type="text" class="form-control" id="addressSearch" 
-                           placeholder="Adres aramak için yazın...">
-                    <button class="btn btn-outline-primary" type="button" id="searchAddressBtn">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-                <div id="addressResults" class="list-group mt-2" style="display:none"></div>
-                <div id="selectedAddress"></div>
-            </div>
-
-            <!-- Alıcı Bilgileri -->
             <div class="row g-3">
+                <!-- Adres Seçimi -->
+                <div class="col-12">
+                    <label class="form-label small">Teslimat Adresi *</label>
+                    <div id="savedAddresses" class="mb-3">
+                        <!-- Kayıtlı adresler buraya gelecek -->
+                        <div class="text-center p-3">
+                            <div class="spinner-border spinner-border-sm"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Yeni Adres Ekleme -->
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="addAddressBtn">
+                            <i class="bi bi-plus-lg"></i> Yeni Adres Ekle
+                        </button>
+                    </div>
+
+                    <div id="newAddressForm" class="card d-none">
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <label class="form-label small">Adres Başlığı *</label>
+                                    <input type="text" class="form-control form-control-sm" id="addressLabel" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small">Adres *</label>
+                                    <textarea class="form-control form-control-sm" id="addressText" rows="2" required></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">İlçe *</label>
+                                    <input type="text" class="form-control form-control-sm" id="addressDistrict" required>
+                                </div>
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="addressManager.saveNewAddress()">
+                                        Adresi Kaydet
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addressManager.cancelNewAddress()">
+                                        İptal
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alıcı Bilgileri -->
                 <div class="col-md-6">
-                    <label class="form-label">Alıcı Adı *</label>
-                    <input type="text" class="form-control form-control-sm" id="recipientName" required>
+                    <label class="form-label small">Alıcı Adı *</label>
+                    <input type="text" class="form-control form-control-sm" name="recipient_name" required>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Alıcı Telefon *</label>
-                    <input type="tel" class="form-control form-control-sm" id="recipientPhone" required>
+                    <label class="form-label small">Alıcı Telefon *</label>
+                    <input type="tel" class="form-control form-control-sm" name="recipient_phone" required>
+                </div>
+
+                <!-- Teslimat Zamanı -->
+                <div class="col-md-6">
+                    <label class="form-label small">Teslimat Tarihi *</label>
+                    <input type="date" class="form-control form-control-sm" name="delivery_date" required>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Teslimat Tarihi *</label>
-                    <input type="date" class="form-control form-control-sm" id="deliveryDate" required>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Saat Dilimi *</label>
-                    <select class="form-select form-select-sm" id="timeSlot" required>
+                    <label class="form-label small">Saat Dilimi *</label>
+                    <select class="form-select form-select-sm" name="delivery_time_slot" required>
                         <option value="">Seçiniz</option>
                         <option value="morning">09:00-12:00</option>
                         <option value="afternoon">12:00-17:00</option>

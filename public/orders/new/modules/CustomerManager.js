@@ -108,11 +108,15 @@ class CustomerManager {
         }
 
         try {
+            // API endpoint değişti ve response kontrolü düzeltildi
             const response = await fetch(`${API_URL}/customers/phone/${phone}`);
             const data = await response.json();
 
-            if (data && data.id) {
-                this.setCustomer(data);
+            console.log('API Response:', data); // Debug için
+
+            // Eğer müşteri varsa success true gelecek
+            if (data.success && data.customer) {
+                this.setCustomer(data.customer);
             } else {
                 // Form container'ı göster
                 const formContainer = document.getElementById('newCustomerFormContainer');
@@ -120,7 +124,7 @@ class CustomerManager {
                 
                 // Telefon numarasını form'a set et
                 const phoneInput = document.querySelector('#newCustomerForm input[name="phone"]');
-                phoneInput.value = formatPhoneNumber(phone);
+                phoneInput.value = phone;
 
                 // Form submit listener ekle
                 document.getElementById('newCustomerForm').onsubmit = async (e) => {
