@@ -132,7 +132,12 @@ function formatPaymentMethod(method) {
 
 // Hata gösterme fonksiyonu
 function showError(message) {
-    // Bootstrap toast kullanarak hata göster
+    // Önce varsa eski toast container'ı temizle
+    const existingContainer = document.querySelector('.toast-container');
+    if (existingContainer) {
+        existingContainer.remove();
+    }
+
     const toastContainer = document.createElement('div');
     toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
     toastContainer.style.zIndex = '1050';
@@ -160,14 +165,22 @@ function showError(message) {
     const bsToast = new bootstrap.Toast(toast);
     bsToast.show();
 
-    // 5 saniye sonra container'ı kaldır
+    // Toast kapandığında container'ı kaldır
     toast.addEventListener('hidden.bs.toast', () => {
-        document.body.removeChild(toastContainer);
+        if (toastContainer && toastContainer.parentNode === document.body) {
+            document.body.removeChild(toastContainer);
+        }
     });
 }
 
 // Başarı mesajı gösterme fonksiyonu
 function showSuccess(message) {
+    // Önce varsa eski toast container'ı temizle
+    const existingContainer = document.querySelector('.toast-container');
+    if (existingContainer) {
+        existingContainer.remove();
+    }
+
     const toastContainer = document.createElement('div');
     toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
     toastContainer.style.zIndex = '1050';
@@ -197,7 +210,9 @@ function showSuccess(message) {
 
     // Toast kapandığında container'ı kaldır
     toast.addEventListener('hidden.bs.toast', () => {
-        document.body.removeChild(toastContainer);
+        if (toastContainer && toastContainer.parentNode === document.body) {
+            document.body.removeChild(toastContainer);
+        }
     });
 }
 
