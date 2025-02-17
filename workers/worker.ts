@@ -230,7 +230,7 @@ api.get('/customers/search/phone/:phone', async (c) => {
 });
 
 // Yeni müşteri ekle
-api.post('/customers', async (c) => {
+api.post('/api/customers', async (c) => {
   const body = await c.req.json();
   const db = c.env.DB;
   const tenant_id = c.get('tenant_id');
@@ -266,15 +266,28 @@ api.post('/customers', async (c) => {
       INSERT INTO customers (
         tenant_id, 
         name, 
-        phone, 
+        phone,
+        email,
+        city,
         district,
-        customer_type
-      ) VALUES (?, ?, ?, ?, 'retail')
+        customer_type,
+        tax_number,
+        company_name,
+        special_dates,
+        notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       tenant_id,
       body.name,
       phone,
-      body.district
+      body.email || null,
+      body.city || 'İstanbul',
+      body.district,
+      body.customer_type || 'retail',
+      body.tax_number || null,
+      body.company_name || null,
+      body.special_dates || null,
+      body.notes || null
     ).run();
 
     // Eklenen müşteriyi getir
@@ -284,7 +297,6 @@ api.post('/customers', async (c) => {
 
     return c.json({ 
       success: true, 
-      id: result.lastRowId,
       customer: customer
     });
   } catch (error) {

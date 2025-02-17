@@ -30,11 +30,11 @@ function setupCustomerSearch() {
     });
 }
 
-// Müşteri arama fonksiyonu
+// Müşteri arama fonksiyonu güncellendi
 async function searchCustomer() {
     // Input değerini al ve temizle
     const phoneInput = document.getElementById('customerSearch');
-    const searchButton = document.getElementById('searchCustomer'); // Button'u burada tanımla
+    const searchButton = document.getElementById('searchCustomer');
     const phone = phoneInput.value.trim().replace(/\D/g, '');
     
     // Boş kontrolü
@@ -59,15 +59,14 @@ async function searchCustomer() {
         
         // Müşteri detayları ve yeni müşteri formunu gizle
         document.getElementById('customerDetails').classList.add('d-none');
-        document.getElementById('customerNotFound').classList.add('d-none');
         document.getElementById('newCustomerForm').classList.add('d-none');
         
         if (data.success && data.customer) {
             // Müşteri bulunduysa detayları göster
             showCustomerDetails(data.customer);
         } else {
-            // Müşteri bulunamadıysa yeni müşteri seçeneğini göster
-            document.getElementById('customerNotFound').classList.remove('d-none');
+            // Müşteri bulunamadıysa direk yeni müşteri formunu göster
+            showNewCustomerForm(phone); // Telefon numarasını parametre olarak gönder
         }
         
     } catch (error) {
@@ -133,9 +132,8 @@ async function loadCustomerAddresses(customerId) {
     }
 }
 
-// Yeni müşteri formu gösterme
-function showNewCustomerForm() {
-    document.getElementById('customerNotFound').classList.add('d-none');
+// Yeni müşteri formu gösterme fonksiyonu güncellendi
+function showNewCustomerForm(phone = '') { // phone parametresi eklendi, varsayılan değeri boş string
     document.getElementById('customerDetails').classList.add('d-none');
     document.getElementById('newCustomerForm').classList.remove('d-none');
     
@@ -149,7 +147,7 @@ function showNewCustomerForm() {
     // Form alanlarını resetle
     const form = document.getElementById('newCustomerForm');
     form.querySelector('[name="new_customer_name"]').value = '';
-    form.querySelector('[name="new_customer_phone"]').value = '';
+    form.querySelector('[name="new_customer_phone"]').value = phone; // Aranan numarayı otomatik doldur
     form.querySelector('[name="new_customer_email"]').value = '';
     form.querySelector('[name="new_customer_district"]').value = '';
     form.querySelector('[name="new_customer_notes"]').value = '';
@@ -207,8 +205,8 @@ async function saveNewCustomer() {
             return;
         }
 
-        // API'ye gönder
-        const response = await fetch(`${API_URL}/customers`, {
+        // API'ye gönder - Doğru endpoint kullanımı
+        const response = await fetch(`${API_URL}/api/customers`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
