@@ -60,89 +60,78 @@ router.get('/phone/:phone', async (c) => {
 })
 
 // Yeni müşteri ekle - Güncellendi
-router.post('/', async (c) => {
-  const body = await c.req.json()
-  const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
+router.post("/", async (c) => {
+  const body = await c.req.json();
+  const db = c.get("db");
+  const tenant_id = c.get("tenant_id");
   
   try {
-    // Telefon numarası temizleme
-    const phone = body.phone.replace(/\D/g, '')
-    
-    // Zorunlu alanları kontrol et
-    if (!body.name || !phone || !body.district) {
-      return c.json({ 
-        success: false, 
-        error: 'Ad, telefon ve ilçe alanları zorunludur' 
-      }, 400)
-    }
+      const phone = body.phone.replace(/\D/g, "");
+      
+      // Temel validasyon
+      if (!body.name || !phone || !body.district) {
+          return c.json({
+              success: false,
+              error: "Ad, telefon ve ilçe alanları zorunludur"
+          }, 400);
+      }
 
-    // Telefon numarası kontrolü
-    const existing = await db.prepare(`
-      SELECT id FROM customers 
-      WHERE phone = ? AND tenant_id = ? AND is_deleted = 0
-    `).bind(phone, tenant_id).first()
-    
-    if (existing) {
-      return c.json({ 
-        success: false, 
-        error: 'Bu telefon numarası zaten kayıtlı',
-        id: existing.id 
-      }, 400)
-    }
+      // Telefon kontrolü
+      const existing = await db.prepare(`
+          SELECT id FROM customers WHERE phone = ? AND tenant_id = ? AND is_deleted = 0
+      `).bind(phone, tenant_id).first();
 
-    // Yeni müşteri ekle - Tüm alanlarla
-    const result = await db.prepare(`
-      INSERT INTO customers (
-        tenant_id, 
-        name, 
-        phone, 
-        email,
-        address,
-        city,
-        district,
-        customer_type,
-        company_name,
-        tax_number,
-        notes,
-        special_dates,
-        created_at,
-        updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME('now'), DATETIME('now'))
-    `).bind(
-      tenant_id,
-      body.name,
-      phone,
-      body.email || null,
-      body.address || null,
-      body.city || 'İstanbul', // Varsayılan şehir
-      body.district,
-      body.customer_type || 'retail',
-      body.company_name || null,
-      body.tax_number || null,
-      body.notes || null,
-      body.special_dates || null
-    ).run()
+      if (existing) {
+          return c.json({
+              success: false,
+              error: "Bu telefon numarası zaten kayıtlı",
+              id: existing.id
+          }, 400);
+      }
 
-    // Eklenen müşteriyi getir
-    const customer = await db.prepare(`
-      SELECT * FROM customers WHERE id = ?
-    `).bind(result.lastRowId).first()
+      // Müşteri ekleme - SQL sorgusu düzeltildi
+      const result = await db.prepare(`
+          INSERT INTO customers (
+              tenant_id, name, phone, email, city, district, 
+              customer_type, notes, special_dates, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).bind(
+          tenant_id,
+          body.name,
+          phone,
+          body.email || null,
+          body.city || "İstanbul",
+          body.district,
+          body.customer_type || "retail",
+          body.notes || null,
+          body.special_dates || null
+      ).run();
 
-    return c.json({ 
-      success: true, 
-      customer: customer,
-      id: result.lastRowId
-    })
+      // meta.last_row_id kontrol edilmeli
+      if (!result.meta?.last_row_id) {
+          throw new Error("Müşteri kaydı oluşturulamadı");
+      }
+
+      // Yeni eklenen müşteriyi getir
+      const customer = await db.prepare(`
+          SELECT * FROM customers WHERE id = ?
+      `).bind(result.meta.last_row_id).first();
+
+      return c.json({
+          success: true,
+          customer: customer,
+          id: result.meta.last_row_id
+      });
+
   } catch (error) {
-    console.error('Müşteri kayıt hatası:', error)
-    return c.json({ 
-      success: false, 
-      error: 'Veritabanı hatası',
-      details: error.message 
-    }, 500)
+      console.error("Müşteri kayıt hatası:", error);
+      return c.json({
+          success: false,
+          error: "Müşteri kaydedilemedi",
+          message: error.message
+      }, 500);
   }
-})
+});
 
 // Müşteri detayı
 router.get('/:id', async (c) => {
