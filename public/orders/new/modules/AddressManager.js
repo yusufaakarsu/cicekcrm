@@ -106,6 +106,7 @@ class AddressManager {
         this.customerId = customerId;
         this.render();
         this.setupAddressSearch();
+        this.loadCustomerAddresses(customerId);
     }
 
     disable() {
@@ -155,6 +156,129 @@ class AddressManager {
             this.showResults(data.items || []);
         } catch (error) {
             showError('Adres araması başarısız');
+        }
+    }
+
+    async loadCustomerAddresses(customerId) {
+        try {
+            const response = await fetch(`${API_URL}/customers/${customerId}/addresses`);
+            const addresses = await response.json();
+            
+            const container = document.getElementById('savedAddresses');
+            if (!container) return;
+
+            if (addresses && addresses.length > 0) {
+                container.innerHTML = addresses.map(addr => `
+                    <div class="form-check mb-2">
+                        <input type="radio" class="form-check-input" name="delivery_address_id" 
+                               value="${addr.id}" id="addr_${addr.id}" required>
+                        <label class="form-check-label" for="addr_${addr.id}">
+                            <strong>${addr.label || 'Adres'}</strong>
+                            <small class="text-muted d-block">
+                                ${[addr.street, addr.district, addr.city].filter(Boolean).join(', ')}
+                            </small>
+                        </label>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Kayıtlı adres bulunamadı
+                    </div>
+                `;
+            }
+
+            // Add Address butonu ekle
+            container.insertAdjacentHTML('beforeend', `
+                <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addressManager.showAddressForm()">
+                    <i class="bi bi-plus-lg"></i> Yeni Adres Ekle
+                </button>
+            `);
+
+        } catch (error) {
+            console.error('Adres yükleme hatası:', error);
+            document.getElementById('savedAddresses').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle"></i> Adresler yüklenemedi
+                </div>
+            `;
+        }
+    }
+
+    showAddressForm() {
+        const container = document.getElementById('savedAddresses');
+        const existingForm = document.getElementById('newAddressForm');
+        
+        // Eğer form zaten açıksa geri dön
+        if (existingForm) return;
+
+        container.insertAdjacentHTML('beforeend', `
+            <div class="card mt-3" id="newAddressCard">
+                <div class="card-body">
+                    <form id="newAddressForm" class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label small">Adres Başlığı *</label>
+                            <input type="text" class="form-control form-control-sm" name="label" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Adres *</label>
+                            <textarea class="form-control form-control-sm" name="street" rows="2" required></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">İlçe *</label>
+                            <input type="text" class="form-control form-control-sm" name="district" required>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-check-lg"></i> Kaydet
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                    onclick="document.getElementById('newAddressCard').remove()">
+                                İptal
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `);
+
+        // Form submit event
+        document.getElementById('newAddressForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.saveAddress(e.target);
+        });
+    }
+
+    async saveAddress(form) {
+        try {
+            const formData = new FormData(form);
+            const addressData = {
+                ...Object.fromEntries(formData),
+                customer_id: this.customerId,
+                city: 'İstanbul',
+                country_code: 'TUR',
+                country_name: 'Türkiye'
+            };
+
+            const response = await fetch(`${API_URL}/customers/${this.customerId}/addresses`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(addressData)
+            });
+
+            if (!response.ok) throw new Error('Adres kaydedilemedi');
+
+            showSuccess('Adres kaydedildi');
+            
+            // Form container'ı kaldır
+            document.getElementById('newAddressCard')?.remove();
+            
+            // Adresleri yeniden yükle
+            await this.loadCustomerAddresses(this.customerId);
+
+        } catch (error) {
+            console.error('Adres kayıt hatası:', error);
+            showError('Adres kaydedilemedi');
         }
     }
 
