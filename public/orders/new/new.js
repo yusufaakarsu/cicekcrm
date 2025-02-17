@@ -176,36 +176,45 @@ class NewOrderForm {
     }
 
     async showStep(step) {
-        // Önceki adımı gizle
+        // Tüm adımları gizle
         document.querySelectorAll('.step-content').forEach(el => {
-            el.style.display = 'none';
+            if (el) el.style.display = 'none';
         });
 
         // Yeni adımı göster
         const currentStepEl = document.querySelector(`.step-content[data-step="${step}"]`);
         if (currentStepEl) {
             currentStepEl.style.display = 'block';
-
-            // Step 2'de data-step="2" olan tüm içeriği göster
-            if (step === 2) {
+            
+            // Step 2 için özel işlem
+            if (step === 2 && document.getElementById('step2')) {
                 document.getElementById('step2').style.display = 'block';
             }
             
             // Progress bar güncelle
-            const progress = ((step - 1) / (this.totalSteps - 1)) * 100;
-            document.querySelector('.progress-bar').style.width = `${progress}%`;
-            
-            // Badge'leri güncelle
-            document.querySelectorAll('.badge').forEach((badge, index) => {
-                badge.className = `badge ${index + 1 === step ? 'bg-primary' : 
-                                 index + 1 < step ? 'bg-success' : 'bg-secondary'}`;
-            });
+            this.updateProgress(step);
         }
 
         // Ürün adımında ürünleri yükle
         if (step === 3) {
             await this.loadProducts();
         }
+    }
+
+    // Progress bar güncellemesi ayrı fonksiyona alındı
+    updateProgress(step) {
+        const progress = ((step - 1) / (this.totalSteps - 1)) * 100;
+        if (this.progressBar) {
+            this.progressBar.style.width = `${progress}%`;
+        }
+
+        // Badge'leri güncelle
+        document.querySelectorAll('.badge').forEach((badge, index) => {
+            if (badge) {
+                badge.className = `badge ${index + 1 === step ? 'bg-primary' : 
+                                 index + 1 < step ? 'bg-success' : 'bg-secondary'}`;
+            }
+        });
     }
 
     // Yeni müşteri formu göster
@@ -233,45 +242,27 @@ class NewOrderForm {
                        document.querySelector('[name="phone"]')?.value;
 
             case 2: // Teslimat bilgileri
-                // Seçilen adres kontrolü - addressSelectContainer'dan kontrol et
-                const addressContainer = document.getElementById('addressSelectContainer');
-                const selectedAddressPreview = document.getElementById('selectedAddressPreview');
-                
-                // Eğer adres seçilmediyse veya gizliyse
-                if (!selectedAddressPreview || selectedAddressPreview.style.display === 'none') {
+                // Adres kontrolü
+                if (!this.selectedAddressId) {
                     showError('Lütfen teslimat adresi seçin');
                     return false;
                 }
 
-                // Alıcı bilgileri kontrolü
-                const recipientName = document.querySelector('[name="recipient_name"]');
-                const recipientPhone = document.querySelector('[name="recipient_phone"]');
-                const deliveryDate = document.querySelector('[name="delivery_date"]');
-                const timeSlot = document.querySelector('[name="delivery_time_slot"]');
+                // Form alanları kontrolü
+                const requiredFields = {
+                    'recipient_name': 'Alıcı Adı',
+                    'recipient_phone': 'Alıcı Telefon',
+                    'delivery_date': 'Teslimat Tarihi',
+                    'delivery_time_slot': 'Teslimat Saati'
+                };
 
-                // Her alan için ayrı kontrol ve hata mesajı
-                if (!recipientName?.value) {
-                    showError('Lütfen alıcı adını girin');
-                    recipientName?.focus();
-                    return false;
-                }
-
-                if (!recipientPhone?.value) {
-                    showError('Lütfen alıcı telefon numarasını girin');
-                    recipientPhone?.focus();
-                    return false;
-                }
-
-                if (!deliveryDate?.value) {
-                    showError('Lütfen teslimat tarihi seçin');
-                    deliveryDate?.focus();
-                    return false;
-                }
-
-                if (!timeSlot?.value) {
-                    showError('Lütfen teslimat saati seçin');
-                    timeSlot?.focus();
-                    return false;
+                for (const [fieldName, fieldLabel] of Object.entries(requiredFields)) {
+                    const field = document.querySelector(`[name="${fieldName}"]`);
+                    if (!field?.value) {
+                        showError(`Lütfen ${fieldLabel} alanını doldurun`);
+                        field?.focus();
+                        return false;
+                    }
                 }
 
                 return true;
@@ -424,11 +415,54 @@ class NewOrderForm {
     getTotalAmount() {
         return this.items.reduce((total, item) => total + item.total, 0);
     }
+
+    // Adres seçimi güncellemesi
+    selectSavedAddress(addressId, label, location) {
+        this.selectedAddressId = addressId; // Seçilen adresi kaydet
+        
+        const previewElement = document.getElementById('selectedAddressPreview');
+        if (previewElement) {
+            previewElement.innerHTML = `
+                <div class="alert alert-success mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${label}</strong><br>
+                            <small class="text-muted">${location}</small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="window.newOrderForm.changeAddress()">
+                            <i class="bi bi-pencil"></i> Değiştir
+                        </button>
+                    </div>
+                </div>
+            `;
+            previewElement.style.display = 'block';
+        }
+        
+        // Adres seçim alanını gizle
+        const selectArea = document.getElementById('addressSelectionArea');
+        if (selectArea) selectArea.style.display = 'none';
+    }
+
+    // Adres değiştirme
+    changeAddress() {
+        const selectArea = document.getElementById('addressSelectionArea');
+        const preview = document.getElementById('selectedAddressPreview');
+        
+        if (selectArea) selectArea.style.display = 'block';
+        if (preview) preview.style.display = 'none';
+        
+        this.selectedAddressId = null; // Seçili adresi temizle
+    }
 }
 
 // Global instance
 document.addEventListener('DOMContentLoaded', () => {
     window.newOrderForm = new NewOrderForm();
+    
+    // Global adres seçim fonksiyonu
+    window.selectSavedAddress = (addressId, label, location) => {
+        window.newOrderForm.selectSavedAddress(addressId, label, location);
+    };
 });
 
 async function proceedToStep2() {
