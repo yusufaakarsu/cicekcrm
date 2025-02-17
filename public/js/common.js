@@ -51,12 +51,20 @@ function formatCurrency(amount) {
 const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev/api';
 
 // Merkezi fetchAPI fonksiyonu 
-async function fetchAPI(endpoint) {
+async function fetchAPI(endpoint, options = {}) {
     try {
-        const response = await fetch(API_URL + endpoint);
+        const response = await fetch(API_URL + endpoint, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+        
         if (!response.ok) {
             throw new Error('API Error');
         }
+        
         return response.json();
     } catch (error) {
         console.error('API Error:', error);

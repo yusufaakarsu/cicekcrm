@@ -181,7 +181,6 @@ function setupNewCustomerForm() {
 // Yeni müşteri kaydetme fonksiyonu
 async function saveNewCustomer() {
     try {
-        // Form verilerini topla
         const formData = {
             name: document.querySelector('[name="new_customer_name"]').value,
             phone: document.querySelector('[name="new_customer_phone"]').value.replace(/\D/g, ''),
@@ -193,44 +192,23 @@ async function saveNewCustomer() {
             notes: document.querySelector('[name="new_customer_notes"]').value
         };
 
-        // Kurumsal müşteri ise ek alanları ekle
         if (formData.customer_type === 'corporate') {
             formData.tax_number = document.querySelector('[name="new_customer_tax_number"]').value;
             formData.company_name = document.querySelector('[name="new_customer_company_name"]').value;
         }
 
-        // API'ye gönder
-        const response = await fetch(`${API_URL}/customers`, {
+        const response = await fetchAPI('/customers', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify(formData)
         });
 
-        const data = await response.json();
-
-        if (data.success) {
-            // Başarılı mesajı göster
+        if (response.success) {
             showSuccess('Müşteri başarıyla kaydedildi');
-            
-            // Müşteri detaylarını göster ve ID'yi sakla
-            document.getElementById('customerId').value = data.customer.id;
-            showCustomerDetails(data.customer);
-            
-            // Yeni müşteri formunu gizle
+            document.getElementById('customerId').value = response.customer.id;
+            showCustomerDetails(response.customer);
             document.getElementById('newCustomerForm').classList.add('d-none');
         } else {
-            // Hata mesajını göster
-            showError(data.error || 'Müşteri kaydedilemedi');
-            
-            // Eğer telefon numarası zaten kayıtlıysa
-            if (data.id) {
-                document.getElementById('customerId').value = data.id;
-                const customerResponse = await fetch(`${API_URL}/customers/${data.id}`);
-                const customerData = await customerResponse.json();
-                showCustomerDetails(customerData);
-            }
+            showError(response.error || 'Müşteri kaydedilemedi');
         }
 
     } catch (error) {
