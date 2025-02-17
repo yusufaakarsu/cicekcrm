@@ -124,8 +124,8 @@ router.post('/', async (c) => {
 
     return c.json({ 
       success: true, 
-      id: result.lastRowId,
-      customer: customer
+      customer: customer,
+      id: result.lastRowId
     })
   } catch (error) {
     console.error('Müşteri kayıt hatası:', error)
