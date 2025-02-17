@@ -132,6 +132,12 @@
                                 </div>
                                 <!-- Adres Seçimi -->
                                 <div class="mb-4" id="addressSelectContainer">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0">Teslimat Adresi</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.newOrderForm.showAddressForm()">
+                                            <i class="bi bi-plus-lg"></i> Yeni Adres
+                                        </button>
+                                    </div>
                                     <!-- Adres seçici buraya gelecek -->
                                 </div>
 
@@ -238,7 +244,7 @@
                             <div class="card-body">
                                 <div class="mb-4">
                                     <label class="form-label">Ödeme Yöntemi</label>
-                                    <select class="form-select" name="payment_method" required>
+                                    <select class="form-select" name="payment_method">
                                         <option value="">Ödeme Yöntemi Seçin</option>
                                         <option value="credit_card">Kredi Kartı</option>
                                         <option value="bank_transfer">Havale/EFT</option>
@@ -281,7 +287,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../js/common.js"></script>
-    <script src="../components/address-form.js"></script>
+    <script src="../components/modal-customer-form.js"></script>
+    <script src="../components/modal-address-form.js"></script>
     <script src="../components/address-select.js"></script>
     <script src="new.js"></script>
 

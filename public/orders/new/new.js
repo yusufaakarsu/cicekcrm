@@ -6,6 +6,7 @@ class NewOrderForm {
         this.items = [];
         this.form = document.getElementById('orderForm');
         this.progressBar = document.querySelector('.progress-bar');
+        this.modalCustomerForm = null; // Modal form referansı
         
         this.init();
     }
@@ -91,12 +92,61 @@ class NewOrderForm {
                 // Step 2'ye geç
                 this.nextStep();
             } else {
-                this.showNewCustomerForm();
+                // Yeni müşteri modalını göster
+                if (!this.modalCustomerForm) {
+                    // Modal form ilk kez oluşturuluyorsa
+                    const response = await fetch('/components/modal-customer-form.html');
+                    const html = await response.text();
+                    document.body.insertAdjacentHTML('beforeend', html);
+                    
+                    this.modalCustomerForm = new bootstrap.Modal(document.getElementById('customerFormModal'));
+                    
+                    // Form submit olduğunda
+                    document.getElementById('customerFormModal').querySelector('form')
+                        .addEventListener('submit', async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.target);
+                            const customer = await this.saveNewCustomer(formData);
+                            if (customer) {
+                                this.customerId = customer.id;
+                                this.showCustomerDetails(customer);
+                                this.modalCustomerForm.hide();
+                            }
+                        });
+                }
+                
+                // Form alanlarına telefon numarasını yerleştir
+                const phoneInput = document.querySelector('#customerFormModal [name="phone"]');
+                if (phoneInput) phoneInput.value = rawPhone;
+                
+                this.modalCustomerForm.show();
             }
         } catch (error) {
             console.error('Müşteri arama hatası:', error);
             showError('Müşteri bulunamadı veya bir hata oluştu');
             this.showNewCustomerForm();
+        }
+    }
+
+    async saveNewCustomer(formData) {
+        try {
+            const response = await fetch(`${API_URL}/customers`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(Object.fromEntries(formData))
+            });
+
+            if (!response.ok) throw new Error('Müşteri kaydedilemedi');
+            
+            const result = await response.json();
+            showSuccess('Müşteri başarıyla eklendi');
+            return result.customer;
+        } catch (error) {
+            console.error('Müşteri kayıt hatası:', error);
+            showError('Müşteri kaydedilemedi');
+            return null;
         }
     }
 
@@ -246,6 +296,11 @@ class NewOrderForm {
                 const selectedAddress = document.querySelector('#selectedAddressPreview .alert-success');
                 if (!selectedAddress || selectedAddress.style.display === 'none') {
                     showError('Lütfen teslimat adresi seçin');
+                    const addNewBtn = document.createElement('button');
+                    addNewBtn.className = 'btn btn-primary mt-2';
+                    addNewBtn.textContent = 'Yeni Adres Ekle';
+                    addNewBtn.onclick = () => this.showAddressForm();
+                    document.getElementById('addressSelectContainer').appendChild(addNewBtn);
                     return false;
                 }
 
@@ -505,7 +560,61 @@ class NewOrderForm {
         this.selectedAddressId = null; // Seçili adresi temizle
     }
 
-    // Form gönderme işlemini güncelle
+    // Adres işlemleri için yeni fonksiyonlar
+    async showAddressForm(isNew = true) {
+        if (!this.addressForm) {
+            // Modal form ilk kez oluşturuluyorsa
+            const response = await fetch('/components/modal-address-form.html');
+            const html = await response.text();
+            document.body.insertAdjacentHTML('beforeend', html);
+            
+            this.addressForm = new bootstrap.Modal(document.getElementById('addressFormModal'));
+            
+            // Form submit olduğunda
+            document.getElementById('addressFormModal').querySelector('form')
+                .addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    const address = await this.saveAddress(formData);
+                    if (address) {
+                        this.selectSavedAddress(address.id, address.label, 
+                            `${address.district}, ${address.city}`);
+                        this.addressForm.hide();
+                    }
+                });
+        }
+        
+        if (!isNew) {
+            // Mevcut adresi düzenlemek için form alanlarını doldur
+            // ...
+        }
+        
+        this.addressForm.show();
+    }
+
+    async saveAddress(formData) {
+        try {
+            const response = await fetch(`${API_URL}/customers/${this.customerId}/addresses`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(Object.fromEntries(formData))
+            });
+
+            if (!response.ok) throw new Error('Adres kaydedilemedi');
+            
+            const result = await response.json();
+            showSuccess('Adres başarıyla eklendi');
+            return result.address;
+        } catch (error) {
+            console.error('Adres kayıt hatası:', error);
+            showError('Adres kaydedilemedi');
+            return null;
+        }
+    }
+
+    // Form gönderme işlemi güncellendi
     async handleSubmit(e) {
         e.preventDefault();
         
