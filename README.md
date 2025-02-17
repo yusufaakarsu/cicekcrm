@@ -386,3 +386,4 @@ cd workers/api && wrangler deploy
 - API güvenlik katmanı henüz eklenmedi
 
 
+değişiklikler
