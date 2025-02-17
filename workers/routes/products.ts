@@ -1,0 +1,56 @@
+import { Hono } from 'hono'
+
+const router = new Hono()
+
+// Tüm ürünler
+router.get('/', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    const { results } = await db.prepare(`
+      SELECT * FROM products 
+      WHERE tenant_id = ?
+      AND is_deleted = 0
+      ORDER BY name
+    `).bind(tenant_id).all()
+    
+    return c.json(results)
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500)
+  }
+})
+
+// Düşük stoklu ürünler
+router.get('/low-stock', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        p.*,
+        COALESCE(SUM(oi.quantity), 0) as reserved_quantity,
+        (p.stock - COALESCE(SUM(oi.quantity), 0)) as available_stock,
+        CASE 
+          WHEN p.stock <= p.min_stock THEN 'critical'
+          WHEN p.stock <= p.min_stock * 1.5 THEN 'warning'
+          ELSE 'ok'
+        END as stock_status
+      FROM products p
+      LEFT JOIN order_items oi ON p.id = oi.product_id
+      LEFT JOIN orders o ON oi.order_id = o.id AND o.status IN ('new', 'preparing')
+      WHERE p.tenant_id = ?
+      AND p.is_deleted = 0
+      GROUP BY p.id
+      HAVING available_stock <= p.min_stock * 1.5
+      ORDER BY available_stock ASC
+    `).bind(tenant_id).all()
+    
+    return c.json(results)
+  } catch (error) {
+    return c.json({ error: 'Database error' }, 500)
+  }
+})
+
+export default router

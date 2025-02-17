@@ -1,5 +1,5 @@
-// API URL'ini global olarak tanımla
-const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev';
+// API URL'i güncellenmiş versiyonu
+const API_URL = '/api';
 
 // Environment variables'ı doğrudan tanımla
 const CONFIG = {

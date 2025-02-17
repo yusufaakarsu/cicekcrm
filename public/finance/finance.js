@@ -8,8 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadFinanceData() {
+    const response = await fetch(`${API_URL}/finance/stats`);
     try {
-        const response = await fetch(`${API_URL}/api/finance/stats`);
         if (!response.ok) throw new Error('API Hatası');
         const data = await response.json();
 
@@ -34,8 +34,8 @@ async function loadFinanceData() {
 }
 
 async function loadRecentTransactions() {
+    const response = await fetch(`${API_URL}/finance/transactions`);
     try {
-        const response = await fetch(`${API_URL}/api/finance/transactions`);
         if (!response.ok) throw new Error('API Hatası');
         const transactions = await response.json();
 

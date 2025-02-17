@@ -41,8 +41,8 @@ function initModal() {
 }
 
 async function loadDeliveries() {
+    const response = await fetch(`${API_URL}/orders/today`);
     try {
-        const response = await fetch(`${API_URL}/orders/today`);
         const deliveries = await response.json();
         
         updateStats(deliveries);
@@ -129,13 +129,12 @@ function showDeliveryModal(delivery) {
 }
 
 async function updateDeliveryStatus(orderId, status) {
+    const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+    });
     try {
-        const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status })
-        });
-        
         if (!response.ok) throw new Error('Güncelleme başarısız');
         
     } catch (error) {

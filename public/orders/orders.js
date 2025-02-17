@@ -94,6 +94,7 @@ async function loadOrders(isInitialLoad = false) {
             }
         }
 
+        // API çağrıları güncellendi
         const response = await fetch(`${API_URL}/orders/filtered?${params.toString()}`);
         if (!response.ok) throw new Error('API Hatası');
         
@@ -412,6 +413,7 @@ function goToPage(page) {
 // Hızlı durum güncelleme
 async function quickUpdateStatus(orderId, newStatus) {
     try {
+        // API çağrıları güncellendi
         const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
             method: 'PUT',
             headers: {

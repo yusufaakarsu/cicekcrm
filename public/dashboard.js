@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadDashboardData() {
     try {
-        const response = await fetch(`${API_URL}/api/dashboard`);
+        const response = await fetch(`${API_URL}/dashboard`);
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'API Hatası');
@@ -34,6 +34,11 @@ async function loadDashboardData() {
         console.error('Dashboard hatası:', error);
         showError('Veriler yüklenemedi!');
     }
+}
+
+async function loadRecentOrders() {
+    const response = await fetch(`${API_URL}/orders/recent`);
+    // ...existing code...
 }
 
 function updateDeliveryCard(stats) {

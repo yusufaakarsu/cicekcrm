@@ -7,8 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadCustomers() {
+    const response = await fetch(`${API_URL}/customers`);
     try {
-        const response = await fetch(`${API_URL}/customers`);
         if (!response.ok) throw new Error('API Hatası');
         const customers = await response.json();
 
@@ -42,6 +42,18 @@ async function loadCustomers() {
     } catch (error) {
         console.error('Müşteriler yüklenirken hata:', error);
         showError('Müşteriler yüklenemedi!');
+    }
+}
+
+async function searchCustomer() {
+    const response = await fetch(`${API_URL}/customers/phone/${phone}`);
+    try {
+        if (!response.ok) throw new Error('API Hatası');
+        const customer = await response.json();
+        // ...existing code...
+    } catch (error) {
+        console.error('Müşteri aranırken hata:', error);
+        showError('Müşteri bulunamadı!');
     }
 }
 
@@ -101,15 +113,13 @@ async function saveCustomer() {
 }
 
 async function showCustomerDetails(customerId) {
+    const [customerResponse, ordersResponse] = await Promise.all([
+        fetch(`${API_URL}/customers/${customerId}`),
+        fetch(`${API_URL}/customers/${customerId}/orders`)
+    ]);
     try {
         detailsModal = new bootstrap.Modal(document.getElementById('customerDetailsModal'));
         
-        // Müşteri ve sipariş verilerini paralel yükle
-        const [customerResponse, ordersResponse] = await Promise.all([
-            fetch(`${API_URL}/customers/${customerId}`),
-            fetch(`${API_URL}/customers/${customerId}/orders`)
-        ]);
-
         if (!customerResponse.ok || !ordersResponse.ok) {
             throw new Error('API Hatası');
         }
