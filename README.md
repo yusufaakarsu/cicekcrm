@@ -69,40 +69,6 @@
 └── workers/                    # Backend
 ```
 
-### 2.2 Frontend Yapısı (/public)
-```
-public/
-├── calendar/                   # Takvim Modülü
-│   ├── calendar.js            # Takvim işlemleri
-│   └── index.html            # Takvim görünümü
-├── common/                    # Ortak Bileşenler
-│   ├── header.html           # Üst menü
-│   └── layout.html           # Ana şablon
-├── css/                      # Stil Dosyaları
-├── js/                       # JavaScript
-│   ├── components/          # UI Bileşenleri
-│   │   ├── address-form.js  # Adres formu
-│   │   └── address-select.js # Adres seçici
-│   └── services/            # Servis Katmanı
-│       └── address-service.js # HERE entegrasyonu
-└── modules/                  # İş Modülleri
-    ├── customers/           # Müşteri Yönetimi
-    ├── delivery/            # Teslimat Yönetimi
-    ├── finance/             # Finans Yönetimi
-    └── orders/              # Sipariş Yönetimi
-```
-
-### 2.3 Backend Yapısı (/workers)
-```
-workers/
-├── src/
-│   ├── handlers/            # API İşleyicileri
-│   ├── middleware/          # Ara Katman
-│   ├── models/             # Veri Modelleri
-│   └── utils/              # Yardımcı Fonksiyonlar
-├── worker.ts               # Ana Worker
-└── wrangler.toml          # Worker Konfigürasyonu
-```
 
 ## 3. Veritabanı Yapısı
 
