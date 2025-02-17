@@ -1,8 +1,6 @@
 class CustomerSelect {
-    constructor(containerId, manager) {
+    constructor(containerId) {
         this.container = document.getElementById(containerId);
-        this.manager = manager;
-        this.selectedCustomer = null;
         this.init();
     }
 
@@ -23,10 +21,10 @@ class CustomerSelect {
             <div id="customerInfo" class="alert alert-success" style="display:none"></div>
         `;
 
-        // Modal template'ini bir kere ekle
+        // Modal'ı bir kere oluştur
         if (!document.getElementById('customerModal')) {
             document.body.insertAdjacentHTML('beforeend', `
-                <div class="modal fade" id="customerModal" tabindex="-1">
+                <div class="modal fade" id="customerModal">
                     <div class="modal-dialog">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -52,10 +50,6 @@ class CustomerSelect {
                                             ).join('')}
                                         </select>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" class="form-control" name="email">
-                                    </div>
                                 </form>
                             </div>
                             <div class="modal-footer">
@@ -66,132 +60,88 @@ class CustomerSelect {
                     </div>
                 </div>
             `);
-            
-            this.modal = new bootstrap.Modal(document.getElementById('customerModal'));
-            this.form = document.getElementById('customerForm');
         }
-    }
 
-    setupEventListeners() {
-        const searchBtn = document.getElementById('searchCustomerBtn');
-        const phoneInput = document.getElementById('customerPhone');
-        const saveBtn = document.getElementById('saveCustomerBtn');
-
-        // Enter ile arama
-        phoneInput?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.searchCustomer(phoneInput.value);
-            }
-        });
-
-        // Butona tıklayarak arama
-        searchBtn?.addEventListener('click', () => {
-            this.searchCustomer(phoneInput.value);
-        });
-
-        // Müşteri kaydetme
-        saveBtn?.addEventListener('click', () => {
-            this.saveCustomer();
-        });
+        this.modal = new bootstrap.Modal(document.getElementById('customerModal'));
+        this.form = document.getElementById('customerForm');
     }
 
     async searchCustomer(phone) {
-        if (!phone) {
-            showError('Lütfen telefon numarası girin');
-            return;
-        }
-
         try {
             const response = await fetch(`${API_URL}/customers/search/phone/${phone}`);
-            if (!response.ok) throw new Error('API Hatası');
-            
             const data = await response.json();
             
-            if (data.found === false) {
-                // Müşteri bulunamadı - formu telefon ile doldur ve göster
+            if (!data.found) {
                 this.form.elements['phone'].value = phone;
                 this.modal.show();
                 return;
             }
 
-            this.selectCustomer(data);
-
+            this.selectCustomer(data.customer);
         } catch (error) {
-            console.error('Müşteri arama hatası:', error);
-            showError('Müşteri araması başarısız!');
+            showError('Müşteri araması başarısız');
+        }
+    }
+
+    async saveCustomer() {
+        try {
+            const formData = new FormData(this.form);
+            const response = await fetch(`${API_URL}/customers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(formData))
+            });
+
+            const result = await response.json();
+            this.modal.hide();
+            this.selectCustomer(result);
+            showSuccess('Müşteri kaydedildi');
+        } catch (error) {
+            showError('Müşteri kaydedilemedi');
         }
     }
 
     selectCustomer(customer) {
-        this.selectedCustomer = customer;
-        
-        // Müşteri bilgilerini göster
-        const infoDiv = document.getElementById('customerInfo');
-        infoDiv.style.display = 'block';
-        infoDiv.innerHTML = `
+        document.getElementById('customerInfo').innerHTML = `
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <strong>${customer.name}</strong><br>
                     <small>${formatPhoneNumber(customer.phone)}</small>
-                    ${customer.email ? `<br><small>${customer.email}</small>` : ''}
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="customerSelect.clearSelection()">
+                <button class="btn btn-sm btn-outline-danger" onclick="customerSelect.clearCustomer()">
                     <i class="bi bi-x"></i>
                 </button>
             </div>
         `;
+        document.getElementById('customerInfo').style.display = 'block';
 
-        // Event'i tetikle
+        // Event tetikle
         document.dispatchEvent(new CustomEvent('customerSelected', {
             detail: customer
         }));
     }
 
-    clearSelection() {
-        this.selectedCustomer = null;
+    clearCustomer() {
         document.getElementById('customerInfo').style.display = 'none';
         document.getElementById('customerPhone').value = '';
-        
-        // Event'i tetikle
-        document.dispatchEvent(new CustomEvent('customerSelected', {
-            detail: null
-        }));
+        document.dispatchEvent(new CustomEvent('customerSelected', { detail: null }));
     }
 
-    async saveCustomer() {
-        if (!this.form.checkValidity()) {
-            this.form.reportValidity();
-            return;
-        }
+    setupEventListeners() {
+        document.getElementById('searchCustomerBtn').addEventListener('click', () => {
+            const phone = document.getElementById('customerPhone').value;
+            if (phone) this.searchCustomer(phone);
+        });
 
-        try {
-            const formData = new FormData(this.form);
-            const data = Object.fromEntries(formData);
-
-            const response = await fetch(`${API_URL}/customers`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            });
-
-            if (!response.ok) throw new Error('API Hatası');
-
-            const result = await response.json();
-            
-            // Yeni müşteri bilgilerini al ve seç
-            const customerResponse = await fetch(`${API_URL}/customers/${result.id}`);
-            const customer = await customerResponse.json();
-            
-            this.modal.hide();
-            this.selectCustomer(customer);
-            showSuccess('Müşteri başarıyla eklendi');
-
-        } catch (error) {
-            console.error('Müşteri kayıt hatası:', error);
-            showError('Müşteri kaydedilemedi!');
-        }
+        document.getElementById('saveCustomerBtn').addEventListener('click', () => {
+            if (this.form.checkValidity()) {
+                this.saveCustomer();
+            } else {
+                this.form.reportValidity();
+            }
+        });
     }
 }
+
+// Global instance
+window.customerSelect = new CustomerSelect('customerSelectContainer');
