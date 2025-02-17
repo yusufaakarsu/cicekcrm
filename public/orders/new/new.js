@@ -65,10 +65,17 @@ class NewOrderForm {
                 this.customerId = data.customer.id;
                 this.showCustomerDetails(data.customer);
                 
-                // Adresleri yükle - AddressSelect instance'ı varsa çağır
-                if (window.addressSelect) {
-                    await window.addressSelect.loadSavedAddresses(data.customer.id);
-                }
+                // Step 2'deki müşteri özeti ve adres listesi
+                const customerSummary = document.getElementById('customerSummary');
+                customerSummary.innerHTML = `
+                    <div class="mb-2">
+                        <strong>${data.customer.name}</strong><br>
+                        <small class="text-muted">${formatPhoneNumber(data.customer.phone)}</small>
+                    </div>
+                `;
+
+                // Adresleri yükle
+                await this.loadCustomerAddresses(data.customer.id);
             } else {
                 this.showNewCustomerForm();
             }
@@ -163,6 +170,11 @@ class NewOrderForm {
         const currentStepEl = document.querySelector(`.step-content[data-step="${step}"]`);
         if (currentStepEl) {
             currentStepEl.style.display = 'block';
+
+            // Step 2'de data-step="2" olan tüm içeriği göster
+            if (step === 2) {
+                document.getElementById('step2').style.display = 'block';
+            }
             
             // Progress bar güncelle
             const progress = ((step - 1) / (this.totalSteps - 1)) * 100;
@@ -170,13 +182,8 @@ class NewOrderForm {
             
             // Badge'leri güncelle
             document.querySelectorAll('.badge').forEach((badge, index) => {
-                if (index + 1 === step) {
-                    badge.className = 'badge bg-primary';
-                } else if (index + 1 < step) {
-                    badge.className = 'badge bg-success';
-                } else {
-                    badge.className = 'badge bg-secondary';
-                }
+                badge.className = `badge ${index + 1 === step ? 'bg-primary' : 
+                                 index + 1 < step ? 'bg-success' : 'bg-secondary'}`;
             });
         }
 
@@ -348,4 +355,38 @@ function selectSavedAddress(addressId, label, location) {
     
     // Adres seçim alanını gizle
     document.getElementById('addressSelectionArea').style.display = 'none';
+}
+
+// Yeni fonksiyon: Müşteri adreslerini yükle
+async function loadCustomerAddresses(customerId) {
+    try {
+        const response = await fetch(`${API_URL}/customers/${customerId}/addresses`);
+        if (!response.ok) throw new Error('Adres getirme hatası');
+        
+        const addresses = await response.json();
+        const addressesContainer = document.getElementById('savedAddresses');
+        
+        if (addresses && addresses.length > 0) {
+            addressesContainer.innerHTML = addresses.map(address => `
+                <div class="list-group-item list-group-item-action" role="button" 
+                     onclick="selectSavedAddress(${address.id}, '${address.label}', '${address.district}, ${address.city}')">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">${address.label}</h6>
+                        ${address.is_default ? '<span class="badge bg-primary">Varsayılan</span>' : ''}
+                    </div>
+                    <p class="mb-1">${address.street || ''}</p>
+                    <small class="text-muted">${address.district}, ${address.city}</small>
+                </div>
+            `).join('');
+        } else {
+            addressesContainer.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Kayıtlı adres bulunamadı
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Adres yükleme hatası:', error);
+        showError('Adresler yüklenemedi');
+    }
 }
