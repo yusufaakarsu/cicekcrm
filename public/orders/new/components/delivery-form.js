@@ -174,6 +174,17 @@ class DeliveryForm {
             this.addressSelect[action](...args);
         }
     }
+
+    // Müşteri seçildiğinde alıcı bilgilerini doldurma fonksiyonunu kaldır
+    updateDeliveryOptions() {
+        if (orderState.customer) {
+            // Sadece kayıtlı adresleri yükle
+            const addressSelect = document.querySelector('#addressSelectContainer')?.addressSelect;
+            if (addressSelect) {
+                addressSelect.loadSavedAddresses(orderState.customer.id);
+            }
+        }
+    }
 }
 
 // Global instance

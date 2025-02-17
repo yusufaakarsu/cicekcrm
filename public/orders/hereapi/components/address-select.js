@@ -23,19 +23,26 @@ class AddressSelect {
     render() {
         this.container.innerHTML = `
             <div class="row">
-                <!-- Kayıtlı Adresler -->
-                <div class="col-12 mb-3" id="savedAddressesContainer"></div>
-
-                <!-- Yeni Adres Arama -->
+                <!-- Adres Arama -->
                 <div class="col-12">
                     <div class="input-group mb-3">
                         <input type="text" class="form-control" id="addressSearchInput" 
-                               placeholder="Yeni adres aramak için yazın...">
+                               placeholder="Adres aramak için yazın...">
                         <button class="btn btn-primary" type="button" id="addressSearchBtn">
                             <i class="bi bi-search"></i>
                         </button>
                     </div>
-                    <div id="addressSearchResults" class="list-group mb-3" style="display:none"></div>
+                </div>
+
+                <!-- Tüm Adresler Listesi -->
+                <div class="col-12">
+                    <!-- Kayıtlı Adresler -->
+                    <div id="savedAddressesContainer" class="mb-3"></div>
+                    
+                    <!-- HERE API Sonuçları -->
+                    <div id="addressSearchResults" class="list-group mb-3"></div>
+                    
+                    <!-- Seçili Adres -->
                     <div id="selectedAddress" class="alert alert-success" style="display:none"></div>
                 </div>
             </div>
@@ -101,32 +108,36 @@ class AddressSelect {
     }
 
     showResults(items) {
-        this.resultsDiv.style.display = 'block';
-
+        const resultsDiv = document.getElementById('addressSearchResults');
+        
         if (!items.length) {
-            this.resultsDiv.innerHTML = '<div class="list-group-item">Sonuç bulunamadı</div>';
+            resultsDiv.innerHTML = '<div class="list-group-item">Sonuç bulunamadı</div>';
             return;
         }
 
-        // JSON stringfy ve onclick handler düzeltmesi
-        this.resultsDiv.innerHTML = items.map(item => {
-            const safeItem = JSON.stringify(item).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            const addressContainer = this.container.id;
-            return `
-                <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${item.title}</strong><br>
-                            <small class="text-muted">${item.address.street || ''}, ${item.address.district || ''}</small>
-                        </div>
-                        <button class="btn btn-sm btn-primary" 
-                                onclick='document.querySelector("#${addressContainer}").addressSelect.selectAddress(${safeItem})'>
-                            Seç
-                        </button>
-                    </div>
+        resultsDiv.innerHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">Bulunan Adresler</h6>
                 </div>
-            `;
-        }).join('');
+                <div class="list-group list-group-flush">
+                    ${items.map(item => `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${item.title}</strong><br>
+                                    <small class="text-muted">${item.address.street || ''}, ${item.address.district || ''}</small>
+                                </div>
+                                <button class="btn btn-sm btn-primary" 
+                                        onclick="this.closest('#addressSelectContainer').addressSelect.selectAddress(${JSON.stringify(item).replace(/'/g, "\\'")}))">
+                                    Seç
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
     }
 
     selectAddress(item) {

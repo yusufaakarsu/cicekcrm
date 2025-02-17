@@ -14,8 +14,8 @@ class CustomerSelect {
     render() {
         this.container.innerHTML = `
             <div class="row g-3">
-                <!-- Telefon ile Müşteri Arama -->
-                <div class="col-md-6">
+                <!-- Sadece Telefon ile Müşteri Arama -->
+                <div class="col-12">
                     <div class="input-group">
                         <input type="tel" class="form-control" id="customerPhone" 
                                placeholder="Müşteri telefonu" maxlength="11">
@@ -24,24 +24,16 @@ class CustomerSelect {
                         </button>
                     </div>
                 </div>
-                
-                <!-- Yeni Müşteri Butonu -->
-                <div class="col-md-6">
-                    <button class="btn btn-outline-primary" type="button" id="newCustomerBtn">
-                        <i class="bi bi-person-plus"></i> Yeni Müşteri
-                    </button>
-                </div>
 
                 <!-- Seçili Müşteri Bilgileri -->
                 <div class="col-12">
                     <div id="selectedCustomerInfo" style="display:none" class="alert alert-success">
-                        <!-- Müşteri bilgileri buraya gelecek -->
                     </div>
                 </div>
             </div>
 
-            <!-- Yeni Müşteri Modal -->
-            <div class="modal fade" id="newCustomerModal" tabindex="-1">
+            <!-- Genişletilmiş Müşteri Modal -->
+            <div class="modal fade" id="newCustomerModal">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -57,6 +49,8 @@ class CustomerSelect {
                                         <option value="corporate">Kurumsal</option>
                                     </select>
                                 </div>
+
+                                <!-- Temel Bilgiler -->
                                 <div class="mb-3">
                                     <label class="form-label">Ad Soyad *</label>
                                     <input type="text" class="form-control" name="name" required>
@@ -69,6 +63,20 @@ class CustomerSelect {
                                     <label class="form-label">Email</label>
                                     <input type="email" class="form-control" name="email">
                                 </div>
+
+                                <!-- Lokasyon Bilgileri -->
+                                <div class="mb-3">
+                                    <label class="form-label">İlçe *</label>
+                                    <select class="form-control" name="district" required>
+                                        <option value="">Seçiniz</option>
+                                        <!-- İstanbul ilçeleri -->
+                                        <option value="Adalar">Adalar</option>
+                                        <option value="Arnavutköy">Arnavutköy</option>
+                                        <!-- ...diğer ilçeler... -->
+                                    </select>
+                                </div>
+
+                                <!-- Kurumsal Alanlar -->
                                 <div id="companyFields" style="display:none">
                                     <div class="mb-3">
                                         <label class="form-label">Firma Adı</label>
@@ -134,7 +142,7 @@ class CustomerSelect {
             const data = await response.json();
             
             if (data.found === false) {
-                // Müşteri bulunamadı - yeni müşteri formunu aç
+                // Müşteri bulunamadı - formu telefon ile doldur ve göster
                 this.form.elements['phone'].value = phone;
                 this.modal.show();
                 return;
