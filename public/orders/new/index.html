@@ -21,185 +21,187 @@
 
         <!-- Ana Form -->
         <div class="row">
-            <!-- Sol Kolon: Müşteri ve Teslimat -->
-            <div class="col-md-4">
-                <!-- Müşteri Arama/Bilgileri -->
-                <div class="card shadow-sm mb-3">
-                    <div class="card-header py-2">
-                        <h6 class="card-title mb-0">
-                            <i class="bi bi-person text-primary"></i> Müşteri Bilgileri
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <!-- Müşteri Arama -->
-                        <div class="input-group input-group-sm mb-3">
-                            <input type="tel" class="form-control" name="phone" placeholder="Telefon ile müşteri ara">
-                            <button class="btn btn-primary" type="button" id="searchCustomer">
-                                <i class="bi bi-search"></i>
-                            </button>
-                        </div>
-
-                        <!-- Müşteri Detayları veya Form -->
-                        <div id="customerDetails" style="display:none">
-                            <!-- JavaScript ile doldurulacak -->
-                        </div>
-
-                        <div id="customerForm" class="row g-2" style="display:none">
-                            <div class="col-12">
-                                <label class="small mb-1">Müşteri Tipi</label>
-                                <select class="form-select form-select-sm" name="customer_type">
-                                    <option value="retail">Bireysel</option>
-                                    <option value="corporate">Kurumsal</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="small mb-1">Ad Soyad</label>
-                                <input type="text" class="form-control form-control-sm" name="name">
-                            </div>
-                            <div class="col-12">
-                                <label class="small mb-1">Email</label>
-                                <input type="email" class="form-control form-control-sm" name="email">
-                            </div>
-                            <!-- Diğer müşteri alanları -->
-                            <div id="companyFields" style="display:none">
-                                <!-- Kurumsal alanlar -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Teslimat Bilgileri -->
-                <div class="card shadow-sm">
-                    <div class="card-header py-2">
-                        <h6 class="card-title mb-0">
-                            <i class="bi bi-truck text-primary"></i> Teslimat Bilgileri
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <!-- Adres Seçimi -->
-                        <div id="addressSelectContainer" class="mb-3">
-                            <!-- Adres seçici buraya gelecek -->
-                        </div>
-
-                        <!-- Alıcı ve Teslimat -->
-                        <div class="row g-2">
-                            <div class="col-12">
-                                <label class="small mb-1">Alıcı Adı</label>
-                                <input type="text" class="form-control form-control-sm" name="recipient_name">
-                            </div>
-                            <div class="col-12">
-                                <label class="small mb-1">Alıcı Telefon</label>
-                                <input type="tel" class="form-control form-control-sm" name="recipient_phone">
-                            </div>
-                            <div class="col-6">
-                                <label class="small mb-1">Teslimat Tarihi</label>
-                                <input type="date" class="form-control form-control-sm" name="delivery_date">
-                            </div>
-                            <div class="col-6">
-                                <label class="small mb-1">Saat Dilimi</label>
-                                <select class="form-select form-select-sm" name="delivery_time_slot">
-                                    <option value="">Seçiniz</option>
-                                    <option value="morning">09:00-12:00</option>
-                                    <option value="afternoon">12:00-17:00</option>
-                                    <option value="evening">17:00-21:00</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sağ Kolon: Ürünler ve Ödeme -->
-            <div class="col-md-8">
-                <!-- Ürünler -->
-                <div class="card shadow-sm mb-3">
-                    <div class="card-header py-2">
-                        <div class="d-flex justify-content-between align-items-center">
+            <form id="orderForm"> <!-- id eklendi -->
+                <!-- Sol Kolon: Müşteri ve Teslimat -->
+                <div class="col-md-4">
+                    <!-- Müşteri Arama/Bilgileri -->
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-header py-2">
                             <h6 class="card-title mb-0">
-                                <i class="bi bi-box text-primary"></i> Ürünler
+                                <i class="bi bi-person text-primary"></i> Müşteri Bilgileri
                             </h6>
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="addProductBtn">
-                                <i class="bi bi-plus-lg"></i> Ürün Ekle
-                            </button>
+                        </div>
+                        <div class="card-body">
+                            <!-- Müşteri Arama -->
+                            <div class="input-group input-group-sm mb-3">
+                                <input type="tel" class="form-control" name="phone" placeholder="Telefon ile müşteri ara">
+                                <button class="btn btn-primary" type="button" id="searchCustomer">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+
+                            <!-- Müşteri Detayları veya Form -->
+                            <div id="customerDetails" style="display:none">
+                                <!-- JavaScript ile doldurulacak -->
+                            </div>
+
+                            <div id="customerForm" class="row g-2" style="display:none">
+                                <div class="col-12">
+                                    <label class="small mb-1">Müşteri Tipi</label>
+                                    <select class="form-select form-select-sm" name="customer_type">
+                                        <option value="retail">Bireysel</option>
+                                        <option value="corporate">Kurumsal</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="small mb-1">Ad Soyad</label>
+                                    <input type="text" class="form-control form-control-sm" name="name">
+                                </div>
+                                <div class="col-12">
+                                    <label class="small mb-1">Email</label>
+                                    <input type="email" class="form-control form-control-sm" name="email">
+                                </div>
+                                <!-- Diğer müşteri alanları -->
+                                <div id="companyFields" style="display:none">
+                                    <!-- Kurumsal alanlar -->
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm mb-0" id="productTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Ürün</th>
-                                        <th style="width:100px">Adet</th>
-                                        <th style="width:120px">Fiyat</th>
-                                        <th style="width:120px">Toplam</th>
-                                        <th style="width:40px"></th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
+
+                    <!-- Teslimat Bilgileri -->
+                    <div class="card shadow-sm">
+                        <div class="card-header py-2">
+                            <h6 class="card-title mb-0">
+                                <i class="bi bi-truck text-primary"></i> Teslimat Bilgileri
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Adres Seçimi -->
+                            <div id="addressSelectContainer" class="mb-3">
+                                <!-- Adres seçici buraya gelecek -->
+                            </div>
+
+                            <!-- Alıcı ve Teslimat -->
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <label class="small mb-1">Alıcı Adı</label>
+                                    <input type="text" class="form-control form-control-sm" name="recipient_name">
+                                </div>
+                                <div class="col-12">
+                                    <label class="small mb-1">Alıcı Telefon</label>
+                                    <input type="tel" class="form-control form-control-sm" name="recipient_phone">
+                                </div>
+                                <div class="col-6">
+                                    <label class="small mb-1">Teslimat Tarihi</label>
+                                    <input type="date" class="form-control form-control-sm" name="delivery_date">
+                                </div>
+                                <div class="col-6">
+                                    <label class="small mb-1">Saat Dilimi</label>
+                                    <select class="form-select form-select-sm" name="delivery_time_slot">
+                                        <option value="">Seçiniz</option>
+                                        <option value="morning">09:00-12:00</option>
+                                        <option value="afternoon">12:00-17:00</option>
+                                        <option value="evening">17:00-21:00</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Notlar ve Ödeme -->
-                <div class="row">
-                    <div class="col-md-8">
-                        <!-- Notlar -->
-                        <div class="card shadow-sm">
-                            <div class="card-header py-2">
+                <!-- Sağ Kolon: Ürünler ve Ödeme -->
+                <div class="col-md-8">
+                    <!-- Ürünler -->
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-header py-2">
+                            <div class="d-flex justify-content-between align-items-center">
                                 <h6 class="card-title mb-0">
-                                    <i class="bi bi-card-text text-primary"></i> Notlar
+                                    <i class="bi bi-box text-primary"></i> Ürünler
                                 </h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-2">
-                                    <label class="small mb-1">Kart Mesajı</label>
-                                    <textarea class="form-control form-control-sm" name="card_message" rows="2"></textarea>
-                                </div>
-                                <div>
-                                    <label class="small mb-1">Sipariş Notu</label>
-                                    <textarea class="form-control form-control-sm" name="notes" rows="2"></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <!-- Ödeme -->
-                        <div class="card shadow-sm">
-                            <div class="card-header py-2">
-                                <h6 class="card-title mb-0">
-                                    <i class="bi bi-credit-card text-primary"></i> Ödeme
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <select class="form-select form-select-sm mb-3" name="payment_method">
-                                    <option value="">Ödeme Yöntemi</option>
-                                    <option value="credit_card">Kredi Kartı</option>
-                                    <option value="bank_transfer">Havale/EFT</option>
-                                    <option value="cash">Nakit</option>
-                                </select>
-
-                                <div class="d-flex justify-content-between small mb-2">
-                                    <span>Ara Toplam:</span>
-                                    <strong id="subtotal">₺0,00</strong>
-                                </div>
-                                <div class="d-flex justify-content-between small mb-2">
-                                    <span>Teslimat:</span>
-                                    <strong id="deliveryFee">₺50,00</strong>
-                                </div>
-                                <div class="d-flex justify-content-between fw-bold">
-                                    <span>Toplam:</span>
-                                    <strong id="total" class="text-primary">₺50,00</strong>
-                                </div>
-
-                                <button type="submit" class="btn btn-primary btn-sm w-100 mt-3">
-                                    <i class="bi bi-check-lg"></i> Siparişi Tamamla
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="addProductBtn">
+                                    <i class="bi bi-plus-lg"></i> Ürün Ekle
                                 </button>
                             </div>
                         </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0" id="productTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Ürün</th>
+                                            <th style="width:100px">Adet</th>
+                                            <th style="width:120px">Fiyat</th>
+                                            <th style="width:120px">Toplam</th>
+                                            <th style="width:40px"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notlar ve Ödeme -->
+                    <div class="row">
+                        <div class="col-md-8">
+                            <!-- Notlar -->
+                            <div class="card shadow-sm">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-card-text text-primary"></i> Notlar
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <label class="small mb-1">Kart Mesajı</label>
+                                        <textarea class="form-control form-control-sm" name="card_message" rows="2"></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="small mb-1">Sipariş Notu</label>
+                                        <textarea class="form-control form-control-sm" name="notes" rows="2"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <!-- Ödeme -->
+                            <div class="card shadow-sm">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-credit-card text-primary"></i> Ödeme
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <select class="form-select form-select-sm mb-3" name="payment_method">
+                                        <option value="">Ödeme Yöntemi</option>
+                                        <option value="credit_card">Kredi Kartı</option>
+                                        <option value="bank_transfer">Havale/EFT</option>
+                                        <option value="cash">Nakit</option>
+                                    </select>
+
+                                    <div class="d-flex justify-content-between small mb-2">
+                                        <span>Ara Toplam:</span>
+                                        <strong id="subtotal">₺0,00</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between small mb-2">
+                                        <span>Teslimat:</span>
+                                        <strong id="deliveryFee">₺50,00</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between fw-bold">
+                                        <span>Toplam:</span>
+                                        <strong id="total" class="text-primary">₺50,00</strong>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary btn-sm w-100 mt-3">
+                                        <i class="bi bi-check-lg"></i> Siparişi Tamamla
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 
