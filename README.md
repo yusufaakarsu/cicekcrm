@@ -1,5 +1,109 @@
 # Çiçek CRM Projesi
 
+## Proje Hızlı Başlangıç
+Bu bölüm AI asistanların projeyi hızlıca anlaması için eklenmiştir.
+
+### Temel Bilgiler
+- **Proje Tipi**: Çiçekçiler için CRM Sistemi
+- **Mimari**: Multi-tenant SaaS
+- **Deployment**: Cloudflare Workers + D1 Database
+
+### Anahtar Özellikler
+1. Müşteri Yönetimi (CRM Core)
+2. Sipariş & Teslimat Takibi
+3. HERE Maps Entegrasyonu
+4. Finansal Raporlama
+5. Stok Yönetimi
+
+### Teknik Stack
+```yaml
+Frontend:
+  - HTML5/CSS3
+  - Vanilla JavaScript
+  - Bootstrap 5.3.2
+  - HERE Maps API
+
+Backend:
+  - Cloudflare Workers
+  - TypeScript
+  - Hono.js
+  - SQLite (D1)
+
+Entegrasyonlar:
+  - HERE Maps Platform
+  - SMS API (Planlanan)
+  - Payment Gateway (Planlanan)
+```
+
+### Kod Organizasyonu
+```tree
+/CCRM/
+├── docs/
+│   └── database-schema.md
+├── migrations/
+│   ├── schema.sql    # Veritabanı yapısı
+│   └── data.sql      # Test verileri
+├── public/           # Frontend modülleri
+│   ├── calendar/     # Teslimat takvimi
+│   ├── common/       # Ortak bileşenler
+│   ├── customers/    # Müşteri yönetimi
+│   ├── delivery/     # Teslimat takibi
+│   ├── finance/      # Finans yönetimi
+│   └── orders/       # Sipariş yönetimi
+└── workers/          # Backend API
+```
+
+### Veritabanı İlişkileri
+```mermaid
+erDiagram
+    tenants ||--o{ customers : has
+    customers ||--o{ addresses : has
+    customers ||--o{ orders : places
+    orders ||--o{ order_items : contains
+    products ||--o{ order_items : includes
+    product_categories ||--o{ products : categorizes
+```
+
+### API Endpoint Örnekleri
+```typescript
+# Temel CRUD Operasyonları
+GET    /customers
+POST   /customers
+GET    /customers/:id
+PUT    /customers/:id
+
+# Sipariş İşlemleri
+POST   /orders
+PUT    /orders/:id/status
+GET    /orders/filtered?date=today&status=active
+
+# Adres Yönetimi (HERE Maps)
+POST   /addresses
+GET    /customers/:id/addresses
+```
+
+### İş Kuralları
+1. Multi-tenant İzolasyon
+   - Her kayıt tenant_id ile izole edilir
+   - Cross-tenant erişim engellenir
+
+2. Soft Delete
+   - Kayıtlar fiziksel silinmez
+   - is_deleted=1 ile işaretlenir
+   - Silinen müşterinin siparişleri de soft-delete
+
+3. Adres Doğrulama
+   - HERE Maps validasyonu
+   - Koordinat zorunluluğu
+   - Teslimat bölgesi kontrolü
+
+4. Sipariş Akışı
+```
+new -> preparing -> ready -> delivering -> delivered
+            ↓
+         cancelled
+```
+
 ## 1. Proje Genel Tanımlar
 
 ### 1.1 Amaç ve Hedefler
@@ -322,19 +426,3 @@ wrangler d1 execute cicek-crm-db \
 - AI destekli öneriler
 - Tedarikçi portalı
 - Marketplace entegrasyonu
-
-
-
-
-
-# silinecek
-
-cd /Users/yusuf/Downloads/kod/CCRM
-git add .
-git commit -m "10"
-git push origin development
-
-git push origin development:main
-
-cd workers
-wrangler deploy
