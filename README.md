@@ -364,7 +364,7 @@ wrangler d1 execute cicek-crm-db \
 #silinecek
 
 git add .
-git commit -m "1"
+git commit -m "2"
 git push origin development
 
 git push origin development:main
