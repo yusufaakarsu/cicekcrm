@@ -445,13 +445,15 @@ async function saveDeliveryInfo() {
     }
 }
 
-// Kategorileri yükle
+// Kategorileri yükle - güncellendi
 async function loadCategories() {
     try {
-        const data = await fetchAPI('/categories'); // endpoint güncellendi
-        const categories = data?.data || []; // API yanıt yapısına göre güncellendi
-        
-        console.log('Gelen kategori verisi:', categories);
+        // Endpoint'i değiştirdik
+        const data = await fetchAPI('/product-categories');
+        console.log('API Yanıtı:', data); // Debug için
+
+        // API yanıt yapısını kontrol et
+        const categories = Array.isArray(data) ? data : data?.categories || [];
         
         if (!Array.isArray(categories)) {
             throw new Error('Kategori verisi array değil');
@@ -481,6 +483,10 @@ async function loadCategories() {
     } catch (error) {
         console.error('Kategoriler yüklenemedi:', error);
         showError('Kategoriler yüklenemedi: ' + error.message);
+        
+        // Hata durumunda boş bir kategori listesi göster
+        const container = document.getElementById('categoryFilters');
+        container.innerHTML = '<div class="alert alert-warning">Kategoriler yüklenemedi</div>';
     }
 }
 
