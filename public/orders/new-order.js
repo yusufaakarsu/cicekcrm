@@ -1,20 +1,33 @@
 // Global state
 let currentStep = 1;
 const totalSteps = 3;
+let selectedProducts = new Map();
 
-// Sayfa yüklendiğinde
 document.addEventListener('DOMContentLoaded', async () => {
     await loadHeader();
-
-    // Event listener'ları ayarla
     setupEventListeners();
-
-    // İlk adımı göster
     showStep(1);
-
-    // Kategorileri yükle
-    await loadCategories();
+    initializeOrderForm();
 });
+
+function initializeOrderForm() {
+    // Ürün listesi container'ı ekle
+    const productStep = document.getElementById('productsStep');
+    if (productStep) {
+        const productListContainer = `
+            <div class="row mb-3" id="categoryFilters">
+                <!-- Kategoriler buraya gelecek -->
+            </div>
+            <div class="row" id="productList">
+                <!-- Ürünler buraya gelecek -->
+            </div>
+        `;
+        productStep.querySelector('.card-body').innerHTML = productListContainer;
+    }
+
+    // İlk yüklemede kategorileri ve ürünleri getir
+    loadCategories().then(() => loadProducts());
+}
 
 // Event listener'ları ayarla
 function setupEventListeners() {
