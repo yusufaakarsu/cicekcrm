@@ -492,23 +492,28 @@ async function loadProducts() {
         const products = await response.json();
         
         const container = document.getElementById('productList');
-        container.innerHTML = products.map(product => `
-            <div class="col-md-4 col-lg-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h6 class="card-title">${product.name}</h6>
-                        <p class="card-text small text-muted mb-2">${product.description || ''}</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-bold">${formatCurrency(product.retail_price)}</span>
-                            <button type="button" class="btn btn-sm btn-outline-primary" 
-                                    onclick="addProduct(${JSON.stringify(product)}); return false;">
-                                <i class="bi bi-plus-lg"></i>
-                            </button>
+        container.innerHTML = products.map(product => {
+            // Özel karakterleri escape et
+            const safeProduct = JSON.stringify(product).replace(/"/g, '&quot;');
+            
+            return `
+                <div class="col-md-4 col-lg-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">${product.name}</h6>
+                            <p class="card-text small text-muted mb-2">${product.description || ''}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">${formatCurrency(product.retail_price)}</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" 
+                                        onclick="addProduct(${safeProduct})">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
     } catch (error) {
         console.error('Ürünler yüklenemedi:', error);
@@ -518,18 +523,29 @@ async function loadProducts() {
 
 // Ürün ekle
 function addProduct(product) {
-    let quantity = 1;
-    if (selectedProducts.has(product.id)) {
-        quantity = selectedProducts.get(product.id).quantity + 1;
+    if (!product || !product.id) {
+        console.error('Geçersiz ürün:', product);
+        return;
     }
-    
-    selectedProducts.set(product.id, {
-        ...product,
-        quantity,
-        total: product.retail_price * quantity
-    });
-    
-    updateSelectedProducts();
+
+    try {
+        let quantity = 1;
+        if (selectedProducts.has(product.id)) {
+            quantity = selectedProducts.get(product.id).quantity + 1;
+        }
+        
+        selectedProducts.set(product.id, {
+            ...product,
+            quantity,
+            total: product.retail_price * quantity
+        });
+        
+        updateSelectedProducts();
+        showSuccess(`${product.name} sepete eklendi`);
+    } catch (error) {
+        console.error('Ürün eklenirken hata:', error);
+        showError('Ürün eklenemedi');
+    }
 }
 
 // Ürün çıkar
