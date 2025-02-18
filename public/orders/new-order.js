@@ -97,19 +97,32 @@ function showCustomerDetails(customer) {
     document.getElementById('customerName').textContent = customer.name;
     document.getElementById('customerPhone').textContent = formatPhoneNumber(customer.phone);
     
+    // Diğer panelleri gizle
+    document.getElementById('addressSelectionCard').classList.add('d-none');
+    document.getElementById('deliveryForm').classList.add('d-none');
+}
+
+// Adres seçimine geç
+function continueToAddress() {
+    const customerId = document.getElementById('customerId').value;
+    if (!customerId) {
+        showError('Müşteri seçilmedi!');
+        return;
+    }
+
     // Adres seçim panelini göster
     document.getElementById('addressSelectionCard').classList.remove('d-none');
     
     // Kayıtlı adresleri yükle
-    loadCustomerAddresses(customer.id);
+    loadCustomerAddresses(customerId);
 
     // Müşteri adres tipini seç
     document.getElementById('customerAddress').checked = true;
     document.getElementById('customerAddressesSection').classList.remove('d-none');
     document.getElementById('newAddressSection').classList.add('d-none');
 
-    // Teslimat formunu gizle
-    document.getElementById('deliveryForm').classList.add('d-none');
+    // Panele kaydır
+    document.getElementById('addressSelectionCard').scrollIntoView({ behavior: 'smooth' });
 }
 
 // Müşteri kayıtlı adreslerini yükle
