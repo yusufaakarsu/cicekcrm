@@ -449,14 +449,10 @@ async function saveDeliveryInfo() {
 // Kategorileri yükle
 async function loadCategories() {
     try {
-        // API yanıtını kontrol et
-        const response = await fetch(`${API_URL}/product-categories`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await fetchAPI('/categories'); // endpoint güncellendi
+        const categories = data?.data || []; // API yanıt yapısına göre güncellendi
         
-        const data = await response.json();
-        const categories = data.categories || []; // API yanıtından categories array'ini al
-        
-        console.log('Gelen kategori verisi:', categories); // Debug için
+        console.log('Gelen kategori verisi:', categories);
         
         if (!Array.isArray(categories)) {
             throw new Error('Kategori verisi array değil');
@@ -665,21 +661,11 @@ async function confirmProducts() {
 
         console.log('Gönderilecek sipariş verisi:', orderData); // Debug için
 
-        // Siparişi kaydet
-        const response = await fetch(`${API_URL}/orders`, {
+        // fetchAPI kullan
+        const result = await fetchAPI('/orders', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
             body: JSON.stringify(orderData)
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
 
         if (result.success) {
             showSuccess('Sipariş başarıyla oluşturuldu');
@@ -690,7 +676,7 @@ async function confirmProducts() {
             // Sipariş sayfasına yönlendir
             window.location.href = `/orders/${result.order.id}`;
         } else {
-            throw new Error(result.error || 'Sipariş oluşturulamadı');
+            throw new Error(result.message || 'Sipariş oluşturulamadı');
         }
 
     } catch (error) {

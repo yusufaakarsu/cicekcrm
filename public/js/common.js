@@ -48,42 +48,27 @@ function formatCurrency(amount) {
 }
 
 // API URL'i sadece production için
-const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev/api';
+const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev';
 
-// Merkezi fetchAPI fonksiyonu 
+// API çağrıları için yardımcı fonksiyon
 async function fetchAPI(endpoint, options = {}) {
-    try {
-        const url = API_URL + endpoint;
-        console.log('API Request:', {
-            url,
-            method: options.method || 'GET',
-            body: options.body
-        });
-
-        const response = await fetch(url, {
-            method: options.method || 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: options.body
-        });
-        
-        const data = await response.json();
-        console.log('API Response:', data);
-
-        // Başarılı yanıt kontrolü
-        if (response.ok && data.success !== false) {
-            return data;
+    const url = `${API_URL}${endpoint}`;
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json',
+            // Gerekirse diğer headerlar eklenebilir
         }
+    };
 
-        // Hata durumunda
-        throw new Error(data.error || data.message || 'API Error');
-
-    } catch (error) {
-        console.error('API Error:', error);
-        throw error;
+    const response = await fetch(url, { ...defaultOptions, ...options });
+    
+    // HTTP durumunu kontrol et
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Bir hata oluştu' }));
+        throw new Error(error.message || `HTTP error! status: ${response.status}`);
     }
+
+    return response.json();
 }
 
 function showLoading(element) {
