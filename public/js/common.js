@@ -14,13 +14,11 @@ const ISTANBUL_DISTRICTS = [
     'Üsküdar', 'Zeytinburnu'
 ];
 
-// Development/Production URL kontrolü
-const isDevelopment = window.location.hostname.includes('cicekcrm.pages.dev');
+// Development/Production URL kontrolü - dinamik versiyonu
+const isDevelopment = window.location.hostname.includes('pages.dev');
 
-// API ve uygulama URL'leri
-const BASE_URL = isDevelopment 
-    ? 'https://a01586e6.cicekcrm.pages.dev' 
-    : 'https://cicekcrm.pages.dev';
+// API ve uygulama URL'leri - düzeltildi
+const BASE_URL = window.location.origin; // Mevcut domaini kullan
     
 const API_URL = isDevelopment
     ? 'https://cicek-crm-api.yusufaakarsu.workers.dev/api'
