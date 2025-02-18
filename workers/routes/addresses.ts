@@ -88,8 +88,24 @@ router.post('/', async (c) => {
   const tenant_id = c.get('tenant_id')
   
   try {
-    const body = await c.json()
-    console.log('[DEBUG] Gelen adres verisi:', body)
+    // Debug raw request
+    const rawBody = await c.req.text();
+    console.log('[DEBUG] Raw request body:', rawBody);
+    
+    // Try parsing manually
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+    } catch (e) {
+      return c.json({
+        success: false,
+        error: 'JSON parse error',
+        raw: rawBody,
+        parse_error: e.message
+      }, 400);
+    }
+
+    console.log('[DEBUG] Parsed body:', body);
 
     // Zorunlu alanları kontrol et
     const required = ['customer_id', 'label', 'city', 'district', 'street', 'building_no'];
@@ -98,14 +114,19 @@ router.post('/', async (c) => {
     if (missing.length > 0) {
       return c.json({
         success: false,
-        error: 'Eksik bilgi',
-        required: required,
-        missing: missing,
-        received: body
-      }, 400)
+        error: 'Eksik veya hatalı bilgi',
+        message: `Zorunlu alanlar eksik: ${missing.join(', ')}`,
+        required,
+        missing,
+        received: body,
+        debug: {
+          content_type: c.req.header('content-type'),
+          body_type: typeof body
+        }
+      }, 400);
     }
 
-    // Adres kaydı - başlık düzeltildi
+    // SQL sorgusunu düzelt
     const result = await db.prepare(`
       INSERT INTO addresses (
         tenant_id, customer_id, label,
@@ -116,7 +137,7 @@ router.post('/', async (c) => {
         created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME('now'))
     `).bind(
-      body.tenant_id,
+      tenant_id,
       body.customer_id,
       body.label,
       body.city,
@@ -134,24 +155,28 @@ router.post('/', async (c) => {
       body.here_place_id || null
     ).run()
 
-    const address_id = result.meta?.last_row_id
+    const address_id = result.meta?.last_row_id;
     if (!address_id) {
-      throw new Error('Adres ID alınamadı')
+      throw new Error('Adres ID alınamadı');
     }
 
     return c.json({
       success: true,
       address_id: address_id,
       message: 'Adres kaydedildi'
-    })
+    });
 
   } catch (error) {
-    console.error('[Adres Kayıt Hatası]:', error)
+    console.error('[Adres Kayıt Hatası]:', error);
     return c.json({
       success: false, 
       error: 'Adres kaydedilemedi',
-      message: error.message
-    }, 500)
+      message: error.message,
+      debug: {
+        error_type: error.constructor.name,
+        stack: error.stack
+      }
+    }, 500);
   }
 })
 
