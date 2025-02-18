@@ -6,15 +6,33 @@ const router = new Hono()
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
+  const { category, search } = c.req.query()
   
   try {
-    const { results } = await db.prepare(`
+    // Temel sorgu
+    let query = `
       SELECT * FROM products 
       WHERE tenant_id = ?
       AND is_deleted = 0
-      ORDER BY name
-    `).bind(tenant_id).all()
-    
+    `
+    const params = [tenant_id]
+
+    // Kategori filtresi
+    if (category) {
+      query += ` AND category_id = ?`
+      params.push(category)
+    }
+
+    // Arama filtresi
+    if (search) {
+      query += ` AND name LIKE ?`
+      params.push(`%${search}%`)
+    }
+
+    // Sıralama
+    query += ` ORDER BY name`
+
+    const { results } = await db.prepare(query).bind(...params).all()
     return c.json(results)
   } catch (error) {
     return c.json({ error: 'Database error' }, 500)

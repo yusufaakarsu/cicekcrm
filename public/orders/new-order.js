@@ -509,45 +509,74 @@ async function loadProducts() {
         const categoryId = document.querySelector('input[name="category"]:checked').value;
         const searchQuery = document.getElementById('productSearch').value;
         
-        let url = `${API_URL}/products`;
-        // category=all geldiğinde filtre ekleme
+        // Yükleniyor göster
+        const container = document.getElementById('productList');
+        container.innerHTML = '<div class="col-12 text-center"><div class="spinner-border text-primary"></div></div>';
+        
+        // URL oluştur
+        let url = `/products`;
+        const params = new URLSearchParams();
+        
         if (categoryId && categoryId !== 'all') {
-            url += `?category=${categoryId}`;
-            if (searchQuery) url += `&search=${searchQuery}`;
-        } else if (searchQuery) {
-            url += `?search=${searchQuery}`;
+            params.append('category', categoryId);
         }
         
-        const response = await fetch(url);
-        const products = await response.json();
+        if (searchQuery.trim()) {
+            params.append('search', searchQuery.trim());
+        }
+
+        if (params.toString()) {
+            url += `?${params.toString()}`;
+        }
         
-        const container = document.getElementById('productList');
-        container.innerHTML = products.map(product => {
-            // Özel karakterleri escape et
-            const safeProduct = JSON.stringify(product).replace(/"/g, '&quot;');
-            return `
+        // API'den ürünleri al
+        const products = await fetchAPI(url);
+
+        // Sonuçları listele
+        if (products && products.length > 0) {
+            container.innerHTML = products.map(product => `
                 <div class="col-md-4 col-lg-3">
                     <div class="card h-100">
                         <div class="card-body">
                             <h6 class="card-title">${product.name}</h6>
-                            <p class="card-text small text-muted mb-2">${product.description || ''}</p>
+                            <p class="card-text small text-muted mb-2">
+                                ${product.description || ''}
+                            </p>
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="fw-bold">${formatCurrency(product.retail_price)}</span>
                                 <button type="button" class="btn btn-sm btn-outline-primary" 
-                                        onclick="addProduct(${safeProduct})">
+                                        onclick='addProduct(${JSON.stringify(product)})'>
                                     <i class="bi bi-plus-lg"></i>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
+            `).join('');
+        } else {
+            container.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        ${searchQuery ? 'Arama kriterlerine uygun ürün bulunamadı.' : 'Bu kategoride ürün bulunamadı.'}
+                    </div>
+                </div>
             `;
-        }).join('');
+        }
     } catch (error) {
         console.error('Ürünler yüklenemedi:', error);
-        showError('Ürünler yüklenemedi');
+        document.getElementById('productList').innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-danger">Ürünler yüklenirken hata oluştu</div>
+            </div>
+        `;
     }
 }
+
+// Ürün arama input listener'ı ekle
+document.getElementById('productSearch').addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => loadProducts(), 500);
+});
 
 // Ürün ekle
 function addProduct(product) {
