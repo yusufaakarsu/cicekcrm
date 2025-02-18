@@ -1,32 +1,56 @@
-// Global state
-let currentStep = 1;
-const totalSteps = 3;
-let selectedProducts = new Map();
+// Global state - en üstte tek bir yerde tanımla
+const orderState = {
+    currentStep: 1,
+    totalSteps: 3,
+    selectedProducts: new Map()
+};
 
+// Sayfa yüklendiğinde
 document.addEventListener('DOMContentLoaded', async () => {
     await loadHeader();
     setupEventListeners();
-    showStep(1);
     initializeOrderForm();
 });
 
+// Form başlatma fonksiyonu
 function initializeOrderForm() {
-    // Ürün listesi container'ı ekle
-    const productStep = document.getElementById('productsStep');
-    if (productStep) {
-        const productListContainer = `
-            <div class="row mb-3" id="categoryFilters">
-                <!-- Kategoriler buraya gelecek -->
-            </div>
-            <div class="row" id="productList">
-                <!-- Ürünler buraya gelecek -->
-            </div>
-        `;
-        productStep.querySelector('.card-body').innerHTML = productListContainer;
+    // Step 1: Müşteri arama formu
+    setupCustomerSearch();
+    
+    // Step 2: Teslimat bilgileri
+    setupDeliveryForm();
+    
+    // Step 3: Ürün seçimi
+    setupProductSelection();
+    
+    // İlk adımı göster
+    showStep(1);
+}
+
+// Adım gösterme/gizleme
+function showStep(step) {
+    if (step < 1 || step > orderState.totalSteps) return;
+    
+    // Tüm adımları gizle
+    document.querySelectorAll('.step-content').forEach(content => {
+        content.classList.add('d-none');
+    });
+
+    // İlgili adımı göster
+    const currentContent = document.getElementById(`step${step}Content`);
+    if (currentContent) {
+        currentContent.classList.remove('d-none');
+        orderState.currentStep = step;
+        
+        // Eğer ürün seçim adımındaysa ürünleri yükle
+        if (step === 3) {
+            loadCategories().then(() => loadProducts());
+        }
     }
 
-    // İlk yüklemede kategorileri ve ürünleri getir
-    loadCategories().then(() => loadProducts());
+    // UI güncellemeleri
+    updateStepperUI();
+    updateNavigationButtons();
 }
 
 // Event listener'ları ayarla
@@ -51,44 +75,20 @@ function setupEventListeners() {
     const nextButton = document.getElementById('nextButton');
     const submitButton = document.getElementById('submitButton');
 
-    if (prevButton) prevButton.addEventListener('click', () => showStep(currentStep - 1));
-    if (nextButton) nextButton.addEventListener('click', () => showStep(currentStep + 1));
+    if (prevButton) prevButton.addEventListener('click', () => showStep(orderState.currentStep - 1));
+    if (nextButton) nextButton.addEventListener('click', () => showStep(orderState.currentStep + 1));
     if (submitButton) submitButton.addEventListener('click', confirmProducts);
 }
 
-// Adım gösterme/gizleme
-function showStep(step) {
-    // Adım aralığını kontrol et
-    if (step < 1 || step > totalSteps) return;
-
-    // Önceki adımı gizle
-    document.querySelectorAll('.step-content').forEach(content => {
-        content.classList.add('d-none');
-    });
-
-    // Yeni adımı göster
-    const currentContent = document.getElementById(`step${step}Content`);
-    if (currentContent) {
-        currentContent.classList.remove('d-none');
-        currentStep = step;
-    }
-
-    // Stepper'ı güncelle
-    updateStepper();
-
-    // Button görünürlüğünü güncelle
-    updateButtons();
-}
-
 // Stepper güncelleme
-function updateStepper() {
-    for (let i = 1; i <= totalSteps; i++) {
+function updateStepperUI() {
+    for (let i = 1; i <= orderState.totalSteps; i++) {
         const stepEl = document.getElementById(`step${i}`);
         if (stepEl) {
             stepEl.classList.remove('active', 'completed');
-            if (i === currentStep) {
+            if (i === orderState.currentStep) {
                 stepEl.classList.add('active');
-            } else if (i < currentStep) {
+            } else if (i < orderState.currentStep) {
                 stepEl.classList.add('completed');
             }
         }
@@ -96,14 +96,14 @@ function updateStepper() {
 }
 
 // Buton görünürlüğünü güncelle
-function updateButtons() {
+function updateNavigationButtons() {
     const prevButton = document.getElementById('prevButton');
     const nextButton = document.getElementById('nextButton');
     const submitButton = document.getElementById('submitButton');
 
-    if (prevButton) prevButton.classList.toggle('d-none', currentStep === 1);
-    if (nextButton) nextButton.classList.toggle('d-none', currentStep === totalSteps);
-    if (submitButton) submitButton.classList.toggle('d-none', currentStep !== totalSteps);
+    if (prevButton) prevButton.classList.toggle('d-none', orderState.currentStep === 1);
+    if (nextButton) nextButton.classList.toggle('d-none', orderState.currentStep === orderState.totalSteps);
+    if (submitButton) submitButton.classList.toggle('d-none', orderState.currentStep !== orderState.totalSteps);
 }
 
 // Kategorileri yükle
