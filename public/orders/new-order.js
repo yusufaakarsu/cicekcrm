@@ -351,6 +351,7 @@ function confirmAddressAndContinue() {
             showError('Lütfen kayıtlı bir adres seçin');
             return;
         }
+        // Kayıtlı adresi olduğu gibi kullan
         selectedAddress = JSON.parse(selectedRadio.dataset.address);
     } else {
         // Yeni adres için validasyon
@@ -595,6 +596,8 @@ function updateQuantity(productId, newQuantity) {
 function updateSelectedProducts() {
     const container = document.getElementById('selectedProductsList');
     const subtotalEl = document.getElementById('subtotal');
+    const subtotalDisplayEl = document.getElementById('subtotalDisplay');
+    const totalDisplayEl = document.getElementById('totalDisplay');
     
     let html = '';
     let subtotal = 0;
@@ -628,6 +631,8 @@ function updateSelectedProducts() {
     
     container.innerHTML = html || '<tr><td colspan="5" class="text-center">Henüz ürün seçilmedi</td></tr>';
     subtotalEl.textContent = formatCurrency(subtotal);
+    subtotalDisplayEl.textContent = formatCurrency(subtotal);
+    totalDisplayEl.textContent = formatCurrency(subtotal); // Şimdilik ara toplam = toplam
 }
 
 // Ürünleri onayla ve kaydet
@@ -643,44 +648,57 @@ async function confirmProducts() {
         const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
         const customerId = document.getElementById('customerId').value;
 
-        // Önce adresi kaydet
         let deliveryAddressId;
-        try {
-            // Adres verisini hazırla
-            const addressData = {
-                tenant_id: 1,
-                customer_id: Number(customerId),
-                district: selectedAddress.address?.district,
-                street: selectedAddress.title,
-                building_no: selectedAddress.building_no,
-                floor: selectedAddress.floor,
-                apartment_no: selectedAddress.apartment_no,
-                label: selectedAddress.label || 'Teslimat Adresi'
-            };
 
-            console.log('Gönderilecek adres verisi:', addressData);
+        // Eğer seçilen adres zaten kayıtlı bir adresse
+        if (selectedAddress.id) {
+            deliveryAddressId = selectedAddress.id;
+        } else {
+            // Yeni adres ise kaydet
+            try {
+                const addressData = {
+                    tenant_id: 1,
+                    customer_id: Number(customerId),
+                    district: selectedAddress.address?.district || selectedAddress.district,
+                    street: selectedAddress.title || selectedAddress.street,
+                    building_no: selectedAddress.building_no,
+                    floor: selectedAddress.floor,
+                    apartment_no: selectedAddress.apartment_no,
+                    label: selectedAddress.label || 'Teslimat Adresi',
+                    city: 'İstanbul'
+                };
 
-            const addressResponse = await fetchAPI('/addresses', {
-                method: 'POST',
-                body: JSON.stringify(addressData)
-            });
+                console.log('Gönderilecek adres verisi:', addressData);
 
-            console.log('Adres kayıt yanıtı:', addressResponse);
+                // Zorunlu alanları kontrol et
+                if (!addressData.district || !addressData.street || !addressData.building_no) {
+                    throw new Error('Eksik adres bilgisi');
+                }
 
-            if (!addressResponse.success || !addressResponse.address_id) {
-                throw new Error('Geçersiz adres yanıtı: ' + JSON.stringify(addressResponse));
+                const addressResponse = await fetchAPI('/addresses', {
+                    method: 'POST',
+                    body: JSON.stringify(addressData)
+                });
+
+                console.log('Adres kayıt yanıtı:', addressResponse);
+
+                if (!addressResponse.success || !addressResponse.address_id) {
+                    throw new Error('Geçersiz adres yanıtı: ' + JSON.stringify(addressResponse));
+                }
+
+                deliveryAddressId = addressResponse.address_id;
+            } catch (error) {
+                console.error('Adres kayıt hatası:', error);
+                throw new Error('Adres kaydedilemedi: ' + error.message);
             }
-
-            deliveryAddressId = addressResponse.address_id;
-
-        } catch (error) {
-            console.error('Adres kayıt hatası:', error);
-            throw new Error('Adres kaydedilemedi: ' + error.message);
         }
 
         // Ara toplam hesapla
         const subtotal = Array.from(selectedProducts.values())
             .reduce((sum, p) => sum + p.total, 0);
+
+        // Ödeme yöntemini al
+        const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
 
         // Sipariş verilerini hazırla
         const orderData = {
@@ -695,7 +713,7 @@ async function confirmProducts() {
             recipient_note: deliveryInfo.recipient_note || null,
             card_message: deliveryInfo.card_message || null,
             status: 'new',
-            payment_method: 'cash',
+            payment_method: paymentMethod,
             payment_status: 'pending',
             subtotal: subtotal,
             total_amount: subtotal,
