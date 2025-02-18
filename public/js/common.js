@@ -47,42 +47,39 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
-// API URL'i güncelle
+// API temel URL'i ve endpoint'leri
 const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev/api';
-
-// Endpoint'leri düzelt
 const API_ENDPOINTS = {
-    categories: '/product-categories', // product-categories olarak düzeltildi
-    products: '/products',
-    orders: '/orders',
-    customers: '/customers'
+    CATEGORIES: '/product-categories', 
+    PRODUCTS: '/products',
+    CUSTOMERS: '/customers',
+    ORDERS: '/orders'
 };
 
-// API çağrıları için yardımcı fonksiyon güncellendi
+// API çağrıları için yardımcı fonksiyon
 async function fetchAPI(endpoint, options = {}) {
-    // Endpoint'i düzelt
-    const adjustedEndpoint = endpoint.startsWith('/categories') ? 
-        endpoint.replace('/categories', '/product-categories') : endpoint;
+    const url = `${API_URL}${endpoint}`;
+    console.log('API Request:', url);
 
-    const url = `${API_URL}${adjustedEndpoint}`;
     const defaultOptions = {
         headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
         }
     };
 
-    console.log('API Request:', url); // Debug için
+    try {
+        const response = await fetch(url, { ...defaultOptions, ...options });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-    const response = await fetch(url, { ...defaultOptions, ...options });
-    
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ 
-            message: `HTTP error! status: ${response.status}`
-        }));
-        throw new Error(error.message || `HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
     }
-
-    return response.json();
 }
 
 function showLoading(element) {

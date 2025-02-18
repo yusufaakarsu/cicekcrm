@@ -388,105 +388,114 @@ function confirmAddressAndContinue() {
 
 // Teslimat bilgilerini kaydet ve ürün seçimine geç
 async function saveDeliveryInfo() {
-    // Form validasyonu
-    const requiredFields = [
-        'deliveryDate', 
-        'recipientName', 
-        'recipientPhone'
-    ];
+    try {
+        // Form validasyonu yap
+        const requiredFields = [
+            'deliveryDate', 
+            'recipientName', 
+            'recipientPhone'
+        ];
 
-    for (const fieldId of requiredFields) {
-        const field = document.getElementById(fieldId);
-        if (!field.value) {
-            showError(`${field.previousElementSibling.textContent} alanı zorunludur`);
-            field.focus();
+        for (const fieldId of requiredFields) {
+            const field = document.getElementById(fieldId);
+            if (!field.value) {
+                showError(`${field.previousElementSibling.textContent} alanı zorunludur`);
+                field.focus();
+                return;
+            }
+        }
+
+        // Teslimat saati kontrolü
+        const timeSlot = document.querySelector('input[name="deliveryTime"]:checked');
+        if (!timeSlot) {
+            showError('Lütfen teslimat saati seçin');
             return;
         }
-    }
 
-    // Teslimat saati kontrolü
-    const timeSlot = document.querySelector('input[name="deliveryTime"]:checked');
-    if (!timeSlot) {
-        showError('Lütfen teslimat saati seçin');
-        return;
-    }
+        // Teslimat bilgilerini kaydet
+        const deliveryInfo = {
+            delivery_date: document.getElementById('deliveryDate').value,
+            delivery_time_slot: timeSlot.value,
+            recipient_name: document.getElementById('recipientName').value,
+            recipient_phone: document.getElementById('recipientPhone').value,
+            recipient_alternative_phone: document.getElementById('recipientAlternativePhone').value,
+            recipient_note: document.getElementById('recipientNote').value,
+            card_message: document.getElementById('cardMessage').value,
+        };
 
-    // Teslimat bilgilerini objede topla
-    const deliveryInfo = {
-        delivery_date: document.getElementById('deliveryDate').value,
-        delivery_time_slot: timeSlot.value,
-        recipient_name: document.getElementById('recipientName').value,
-        recipient_phone: document.getElementById('recipientPhone').value,
-        recipient_alternative_phone: document.getElementById('recipientAlternativePhone').value,
-        recipient_note: document.getElementById('recipientNote').value,
-        card_message: document.getElementById('cardMessage').value,
-    };
+        // Session storage'a kaydet
+        sessionStorage.setItem('deliveryInfo', JSON.stringify(deliveryInfo));
 
-    // Session storage'a kaydet
-    sessionStorage.setItem('deliveryInfo', JSON.stringify(deliveryInfo));
-
-    // Ürün seçim panelini göster
-    document.getElementById('productSelectionCard').classList.remove('d-none');
-    document.getElementById('selectedProductsCard').classList.remove('d-none');
-    
-    try {
-        // Kategorileri ve ürünleri yükle
-        await loadCategories();
-        await loadProducts();
+        // Ürün seçim panelini göster
+        document.getElementById('productSelectionCard').classList.remove('d-none');
+        document.getElementById('selectedProductsCard').classList.remove('d-none');
         
-        // Sayfayı ürün seçimine kaydır
-        document.getElementById('productSelectionCard').scrollIntoView({ behavior: 'smooth' });
+        // Kategorileri yükle
+        await loadCategories();
         
         // Başarı mesajı göster
         showSuccess('Teslimat bilgileri kaydedildi');
+        
+        // Sayfayı ürün seçimine kaydır
+        document.getElementById('productSelectionCard').scrollIntoView({ behavior: 'smooth' });
+
     } catch (error) {
-        console.error('Ürün yükleme hatası:', error);
-        showError('Ürünler yüklenirken bir hata oluştu');
+        console.error('Hata:', error);
+        showError('İşlem başarısız oldu: ' + error.message);
     }
 }
 
-// Kategorileri yükle - güncellendi
+// Kategorileri yükle
 async function loadCategories() {
     try {
-        // Endpoint'i değiştirdik
-        const data = await fetchAPI('/product-categories');
-        console.log('API Yanıtı:', data); // Debug için
+        // Önce container'ı temizle ve yükleniyor mesajı göster
+        const container = document.getElementById('categoryFilters');
+        container.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
 
-        // API yanıt yapısını kontrol et
-        const categories = Array.isArray(data) ? data : data?.categories || [];
-        
+        // API'den kategorileri al
+        const response = await fetchAPI('/product-categories');
+        console.log('Kategori yanıtı:', response);
+
+        // API yanıt yapısını kontrol et ve kategorileri al
+        const categories = response?.categories || response || [];
+
         if (!Array.isArray(categories)) {
-            throw new Error('Kategori verisi array değil');
+            throw new Error('Geçersiz kategori verisi');
         }
 
-        const container = document.getElementById('categoryFilters');
-        
-        // Önce mevcut kategorileri temizle
-        const existingCategories = container.querySelectorAll('input[name="category"]:not(#allCategories)');
-        existingCategories.forEach(el => el.parentElement.remove());
-        
+        // Temel "Tümü" filtresi
+        let html = `
+            <input type="radio" class="btn-check" name="category" id="category_all" 
+                   value="" checked>
+            <label class="btn btn-outline-primary" for="category_all">Tümü</label>
+        `;
+
+        // Kategorileri ekle
         categories.forEach(category => {
-            container.insertAdjacentHTML('beforeend', `
+            html += `
                 <input type="radio" class="btn-check" name="category" 
                        id="category_${category.id}" value="${category.id}">
                 <label class="btn btn-outline-primary" for="category_${category.id}">
                     ${category.name}
                 </label>
-            `);
+            `;
         });
 
-        // Kategori filtre olayını dinle
+        // HTML'i güncelle
+        container.innerHTML = html;
+
+        // Kategori değişikliğini dinle ve ilk ürünleri yükle
         document.querySelectorAll('input[name="category"]').forEach(radio => {
             radio.addEventListener('change', loadProducts);
         });
 
+        // İlk ürünleri yükle
+        await loadProducts();
+
     } catch (error) {
         console.error('Kategoriler yüklenemedi:', error);
-        showError('Kategoriler yüklenemedi: ' + error.message);
-        
-        // Hata durumunda boş bir kategori listesi göster
-        const container = document.getElementById('categoryFilters');
-        container.innerHTML = '<div class="alert alert-warning">Kategoriler yüklenemedi</div>';
+        document.getElementById('categoryFilters').innerHTML = 
+            '<div class="alert alert-warning">Kategoriler yüklenemedi</div>';
     }
 }
 
