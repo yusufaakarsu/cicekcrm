@@ -94,27 +94,14 @@ function showCustomerDetails(customer) {
     document.getElementById('customerName').textContent = customer.name;
     document.getElementById('customerPhone').textContent = formatPhoneNumber(customer.phone);
     
+    // Adres seçim panelini göster
+    document.getElementById('addressSelectionCard').classList.remove('d-none');
+    
     // Kayıtlı adresleri yükle
     loadCustomerAddresses(customer.id);
 
-    // Teslimat formunu göster
-    document.getElementById('deliveryForm').classList.remove('d-none');
-    
-    // Bugünün tarihini set et
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('deliveryDate').min = today;
-    document.getElementById('deliveryDate').value = today;
-    
-    // İlçe listesini doldur
-    const districtSelect = document.getElementById('addressDistrict');
-    districtSelect.innerHTML = '<option value="">İlçe seçin...</option>' +
-        ISTANBUL_DISTRICTS.map(district => 
-            `<option value="${district}">${district}</option>`
-        ).join('');
-
-    // Adres seçim panelini göster
-    document.getElementById('addressSelectionCard').classList.remove('d-none');
-    loadCustomerAddresses(customer.id);
+    // Teslimat formunu GİZLE (önceden show yapıyorduk)
+    document.getElementById('deliveryForm').classList.add('d-none');
 }
 
 // Müşteri kayıtlı adreslerini yükle
