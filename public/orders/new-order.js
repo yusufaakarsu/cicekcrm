@@ -638,21 +638,23 @@ async function confirmProducts() {
     }
 
     try {
-        // Session storage'dan bilgileri al
         const deliveryInfo = JSON.parse(sessionStorage.getItem('deliveryInfo'));
         const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
         const customerId = document.getElementById('customerId').value;
-
-        // Adres ID kontrolü
-        let deliveryAddressId;
-
         const addressType = document.querySelector('input[name="addressType"]:checked').value;
         
-        if (addressType === 'customer' && selectedAddress.id) {
-            // Kayıtlı adres seçildiyse direkt ID'yi kullan
-            deliveryAddressId = selectedAddress.id;
+        // Adres ID kontrolü - düzeltildi
+        let deliveryAddressId;
+        
+        if (addressType === 'customer') {
+            // Kayıtlı adres seçilmişse
+            const selectedRadio = document.querySelector('input[name="savedAddress"]:checked');
+            if (!selectedRadio) {
+                throw new Error('Lütfen kayıtlı bir adres seçin');
+            }
+            deliveryAddressId = selectedRadio.value;
         } else {
-            // Yeni adres ise kaydet
+            // Yeni adres kaydı
             try {
                 const addressData = {
                     tenant_id: 1,
