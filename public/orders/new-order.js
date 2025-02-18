@@ -656,16 +656,32 @@ async function confirmProducts() {
         } else {
             // Yeni adres kaydı
             try {
+                const buildingNo = document.getElementById('addressBuildingNo').value;
+                const floor = document.getElementById('addressFloor').value;
+                const apartmentNo = document.getElementById('addressApartmentNo').value;
+                const addressLabel = document.getElementById('addressLabel').value;
+
+                if (!buildingNo || !floor || !apartmentNo) {
+                    throw new Error('Lütfen bina no, kat ve daire no bilgilerini girin');
+                }
+
+                const addressDetail = document.getElementById('selectedAddressDetail');
+                const selectedHereAddress = JSON.parse(addressDetail.dataset.selectedAddress);
+
+                // Adres verilerini düzgün formatta hazırla
                 const addressData = {
                     tenant_id: 1,
                     customer_id: Number(customerId),
-                    district: selectedAddress.address?.district,
-                    street: selectedAddress.title,
-                    building_no: selectedAddress.building_no,
-                    floor: selectedAddress.floor,
-                    apartment_no: selectedAddress.apartment_no,
-                    label: selectedAddress.label || 'Teslimat Adresi'
+                    label: addressLabel || 'Teslimat Adresi',
+                    city: 'İstanbul',
+                    district: selectedHereAddress.address.district,
+                    street: selectedHereAddress.title.split(',')[0], // İlk kısmı sokak olarak al
+                    building_no: buildingNo,
+                    floor: floor,
+                    apartment_no: apartmentNo
                 };
+
+                console.log('Gönderilecek adres verisi:', addressData);
 
                 const addressResponse = await fetchAPI('/addresses', {
                     method: 'POST',
@@ -673,7 +689,7 @@ async function confirmProducts() {
                 });
 
                 if (!addressResponse.success) {
-                    throw new Error('Adres kaydedilemedi');
+                    throw new Error('Adres kaydedilemedi: ' + (addressResponse.error || ''));
                 }
 
                 deliveryAddressId = addressResponse.address_id;
