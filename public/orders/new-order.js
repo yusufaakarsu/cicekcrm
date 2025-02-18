@@ -1,20 +1,21 @@
-// Global state
+// Global state - en üstte tek bir yerde tanımla
 const orderState = {
-    customerId: null,
-    customer: null
+    currentStep: 1,
+    totalSteps: 3,
+    selectedProducts: new Map()
 };
 
-// Sayfa yüklendiğinde sadece header ve müşteri arama
-document.addEventListener('DOMContentLoaded', async () => {
-    await loadHeader();
+// Sayfa yüklendiğinde
+document.addEventListener('DOMContentLoaded', () => {
+    loadHeader();
     setupCustomerSearch();
 });
 
-// Müşteri arama kurulumu
+// Müşteri arama
 function setupCustomerSearch() {
     const searchInput = document.getElementById('customerSearch');
     const searchButton = document.getElementById('searchCustomer');
-
+    
     if (searchInput && searchButton) {
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -22,11 +23,15 @@ function setupCustomerSearch() {
                 searchCustomer();
             }
         });
-        searchButton.addEventListener('click', searchCustomer);
+        
+        searchButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            searchCustomer();
+        });
     }
 }
 
-// Müşteri arama
+// Müşteri arama fonksiyonu
 async function searchCustomer() {
     const phoneInput = document.getElementById('customerSearch');
     const searchButton = document.getElementById('searchCustomer');
@@ -36,88 +41,62 @@ async function searchCustomer() {
         showError('Lütfen telefon numarası girin');
         return;
     }
-
+    
     try {
-        // Yükleniyor durumu
         searchButton.disabled = true;
         searchButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
         
-        // API'den müşteriyi ara
-        const data = await fetchAPI(`/customers/phone/${phone}`);
+        const response = await fetchAPI(`/customers/phone/${phone}`);
         
-        if (data.success && data.customer) {
-            // Müşteri bulundu
-            orderState.customerId = data.customer.id;
-            orderState.customer = data.customer;
-            showCustomerDetails(data.customer);
+        searchButton.disabled = false;
+        searchButton.innerHTML = '<i class="bi bi-search"></i>';
+        
+        // Tüm panelleri gizle
+        hideAllPanels();
+        
+        if (response.success && response.customer) {
+            showCustomerDetails(response.customer);
         } else {
-            // Müşteri bulunamadı
             showNewCustomerForm(phone);
         }
+        
     } catch (error) {
         console.error('Müşteri arama hatası:', error);
         showError('Müşteri araması başarısız oldu');
-    } finally {
-        // Buton durumunu resetle
         searchButton.disabled = false;
         searchButton.innerHTML = '<i class="bi bi-search"></i>';
     }
 }
 
+// Tüm panelleri gizle
+function hideAllPanels() {
+    const panels = [
+        'customerDetails',
+        'newCustomerForm',
+        'addressSelectionCard',
+        'deliveryForm',
+        'productSelectionCard'
+    ];
+    
+    panels.forEach(panelId => {
+        const panel = document.getElementById(panelId);
+        if (panel) panel.classList.add('d-none');
+    });
+}
+
 // Müşteri detaylarını göster
 function showCustomerDetails(customer) {
-    const content = `
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Müşteri Bilgileri</h5>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">İsim</label>
-                        <p class="form-control-plaintext">${customer.name}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Telefon</label>
-                        <p class="form-control-plaintext">${formatPhoneNumber(customer.phone)}</p>
-                    </div>
-                </div>
-                <div class="mt-3">
-                    <button class="btn btn-primary" onclick="loadCustomerAddresses(${customer.id})">
-                        Devam Et <i class="bi bi-arrow-right"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('customerDetails').innerHTML = content;
-    document.getElementById('customerDetails').classList.remove('d-none');
-    document.getElementById('newCustomerForm').classList.add('d-none');
-}
-
-// Müşteri adreslerini yükle
-async function loadCustomerAddresses(customerId) {
-    try {
-        const addresses = await fetchAPI(`/customers/${customerId}/addresses`);
-        showAddressSelection(addresses);
-    } catch (error) {
-        console.error('Adres yükleme hatası:', error);
-        showError('Adresler yüklenemedi');
+    const detailsDiv = document.getElementById('customerDetails');
+    if (detailsDiv) {
+        detailsDiv.classList.remove('d-none');
+        document.getElementById('customerId').value = customer.id;
+        document.getElementById('customerName').textContent = customer.name;
+        document.getElementById('customerPhone').textContent = formatPhoneNumber(customer.phone);
     }
-}
-
-// Form başlatma fonksiyonu
-function initializeOrderForm() {
-    // Step 1: Müşteri arama formu
-    setupCustomerSearch();
     
-    // Step 2: Teslimat bilgileri
-    setupDeliveryForm();
-    
-    // Step 3: Ürün seçimi
-    setupProductSelection();
-    
-    // İlk adımı göster
-    showStep(1);
+    // Adres seçimine geçiş butonu göster
+    const addressButton = document.getElementById('continueToAddress');
+    if (addressButton) addressButton.classList.remove('d-none');
 }
 
 // Adım gösterme/gizleme
@@ -555,6 +534,99 @@ async function searchAddress(query) {
                         onclick='selectAddress(${JSON.stringify(item)})'>
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
+                            <div class="fw-bold">${item.title}</div>
+                            <small class="text-muted">${item.address.district}, ${item.address.city}</small>
+                        </div>
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+                </button>
+            `).join('');
+        } else {
+            resultsDiv.innerHTML = '<div class="list-group-item">Sonuç bulunamadı</div>';
+        }
+    } catch (error) {
+        console.error('Adres arama hatası:', error);
+        showError('Adres araması başarısız oldu');
+    }
+}
+
+function selectAddress(address) {
+    const detail = document.getElementById('selectedAddressDetail');
+    const text = document.getElementById('selectedAddressText');
+    
+    detail.classList.remove('d-none');
+    text.innerHTML = `
+        <p class="mb-1"><strong>${address.title}</strong></p>
+        <p class="mb-0 text-muted">${address.address.district}, ${address.address.city}</p>
+    `;
+
+    // Seçilen adresi sakla
+    detail.dataset.selectedAddress = JSON.stringify(address);
+    
+    // Arama sonuçlarını gizle
+    document.getElementById('addressSearchResults').classList.add('d-none');
+}
+
+function confirmAddress() {
+    const addressType = document.querySelector('input[name="addressType"]:checked').value;
+    let selectedAddress;
+
+    if (addressType === 'customer') {
+        const selectedRadio = document.querySelector('input[name="savedAddress"]:checked');
+        if (!selectedRadio) {
+            showError('Lütfen kayıtlı bir adres seçin');
+            return;
+        }
+        selectedAddress = JSON.parse(selectedRadio.dataset.address);
+    } else {
+        const addressDetail = document.getElementById('selectedAddressDetail');
+        if (addressDetail.classList.contains('d-none')) {
+            showError('Lütfen yeni bir adres seçin');
+            return;
+        }
+        selectedAddress = JSON.parse(addressDetail.dataset.selectedAddress);
+    }
+
+    // Teslimat formunu göster ve adres bilgilerini doldur
+    document.getElementById('deliveryForm').classList.remove('d-none');
+    sessionStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
+}
+
+// Adresi onayla ve devam et
+function confirmAddressAndContinue() {
+    const addressType = document.querySelector('input[name="addressType"]:checked').value;
+    let selectedAddress;
+
+    if (addressType === 'customer') {
+        const selectedRadio = document.querySelector('input[name="savedAddress"]:checked');
+        if (!selectedRadio) {
+            showError('Lütfen kayıtlı bir adres seçin');
+            return;
+        }
+        // Kayıtlı adresi olduğu gibi kullan
+        selectedAddress = JSON.parse(selectedRadio.dataset.address);
+    } else {
+        // Yeni adres için validasyon
+        const buildingNo = document.getElementById('addressBuildingNo').value;
+        const floor = document.getElementById('addressFloor').value;
+        const apartmentNo = document.getElementById('addressApartmentNo').value;
+
+        if (!buildingNo || !floor || !apartmentNo) {
+            showError('Lütfen bina no, kat ve daire no bilgilerini girin');
+            return;
+        }
+
+        const addressDetail = document.getElementById('selectedAddressDetail');
+        if (addressDetail.classList.contains('d-none')) {
+            showError('Lütfen bir adres seçin');
+            return;
+        }
+
+        // HERE API'den gelen adres + ek bilgiler
+        selectedAddress = {
+            ...JSON.parse(addressDetail.dataset.selectedAddress),
+            building_no: buildingNo,
+            floor: floor,
             apartment_no: apartmentNo,
             label: document.getElementById('addressLabel').value,
             directions: document.getElementById('addressDirections').value
