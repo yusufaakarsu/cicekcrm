@@ -299,7 +299,7 @@ async function searchAddress(query) {
 }
 
 function selectAddress(address) {
-    console.log('HERE API address:', address); // Debug için
+    console.log('HERE API address:', address);
 
     const detail = document.getElementById('selectedAddressDetail');
     const text = document.getElementById('selectedAddressText');
@@ -310,18 +310,20 @@ function selectAddress(address) {
         <p class="mb-0 text-muted">${address.address.district}, ${address.address.city}</p>
     `;
 
-    // HERE API verilerini sakla
-    const addressData = {
+    // Seçilen adresi sakla
+    detail.dataset.selectedAddress = JSON.stringify({
         title: address.title,
-        address: address.address,
-        position: address.position,
-        id: address.id
-    };
-
-    // Seçilen adresi JSON olarak sakla
-    detail.dataset.selectedAddress = JSON.stringify(addressData);
+        address: {
+            city: address.address.county || 'İstanbul', // county kullan
+            district: address.address.district,
+            street: address.address.street,
+            postalCode: address.address.postalCode,
+            countryCode: address.address.countryCode,
+            countryName: address.address.countryName
+        },
+        position: address.position
+    });
     
-    // Arama sonuçlarını gizle
     document.getElementById('addressSearchResults').classList.add('d-none');
 }
 
@@ -664,12 +666,17 @@ async function confirmProducts() {
                     tenant_id: 1,
                     customer_id: Number(customerId),
                     label: addressLabel || 'Teslimat Adresi',
-                    city: 'İstanbul',
+                    city: selectedHereAddress.address.city,
                     district: selectedHereAddress.address.district,
                     street: selectedHereAddress.title.split(',')[0], // İlk kısmı sokak olarak al
                     building_no: buildingNo,
                     floor: floor,
-                    apartment_no: apartmentNo
+                    apartment_no: apartmentNo,
+                    postal_code: selectedHereAddress.address.postalCode,
+                    country_code: selectedHereAddress.address.countryCode,
+                    country_name: selectedHereAddress.address.countryName,
+                    lat: selectedHereAddress.position?.lat,
+                    lng: selectedHereAddress.position?.lng
                 };
 
                 console.log('Gönderilecek adres verisi:', addressData);
