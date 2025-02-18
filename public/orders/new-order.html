@@ -267,7 +267,68 @@
                 </div>
             </div>
 
-            <!-- Devam edecek - Teslimat, Ürün ve Ödeme bilgileri eklenecek -->
+            <!-- Ürün Seçim Paneli -->
+            <div class="card mb-3 d-none" id="productSelectionCard">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">4. Ürün Seçimi</h5>
+                    <div class="input-group w-50">
+                        <input type="text" class="form-control" id="productSearch" placeholder="Ürün ara...">
+                        <button class="btn btn-outline-primary" type="button" id="searchProductBtn">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Ürün Kategorileri -->
+                    <div class="mb-3">
+                        <div class="btn-group" role="group" id="categoryFilters">
+                            <input type="radio" class="btn-check" name="category" id="allCategories" value="" checked>
+                            <label class="btn btn-outline-primary" for="allCategories">Tümü</label>
+                        </div>
+                    </div>
+
+                    <!-- Ürün Listesi -->
+                    <div class="row g-3" id="productList">
+                        <!-- Ürünler JS ile doldurulacak -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seçilen Ürünler Özeti -->
+            <div class="card mb-3 d-none" id="selectedProductsCard">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Seçilen Ürünler</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Ürün</th>
+                                    <th>Adet</th>
+                                    <th>Birim Fiyat</th>
+                                    <th>Toplam</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="selectedProductsList">
+                                <!-- Seçilen ürünler JS ile doldurulacak -->
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end fw-bold">Ara Toplam:</td>
+                                    <td colspan="2" class="fw-bold" id="subtotal">₺0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="button" class="btn btn-primary" onclick="confirmProducts()">
+                        Ürünleri Onayla ve Devam Et
+                    </button>
+                </div>
+            </div>
             
         </form>
     </div>

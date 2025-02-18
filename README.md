@@ -391,14 +391,10 @@ wrangler deploy
 ### 5.4 Database Migrations
 ```bash
 # Schema Güncelleme
-wrangler d1 execute cicek-crm-db \
-  --remote \
-  --file=./migrations/schema.sql
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/schema.sql
 
 # Test Verisi
-wrangler d1 execute cicek-crm-db \
-  --remote \
-  --file=./migrations/data.sql
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/data.sql
 ```
 
 ### 5.5 Monitoring ve Logging

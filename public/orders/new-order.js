@@ -373,3 +373,179 @@ function confirmAddressAndContinue() {
     document.getElementById('deliveryForm').classList.remove('d-none');
     document.getElementById('deliveryForm').scrollIntoView({ behavior: 'smooth' });
 }
+
+// Teslimat bilgilerini kaydet ve ürün seçimine geç
+async function saveDeliveryInfo() {
+    // ...existing validation code...
+
+    // Teslimat bilgilerini sakla
+    sessionStorage.setItem('deliveryInfo', JSON.stringify(deliveryInfo));
+
+    // Ürün seçim panelini göster
+    document.getElementById('productSelectionCard').classList.remove('d-none');
+    document.getElementById('selectedProductsCard').classList.remove('d-none');
+    
+    // Kategorileri ve ürünleri yükle
+    await loadCategories();
+    await loadProducts();
+    
+    // Sayfayı ürün seçimine kaydır
+    document.getElementById('productSelectionCard').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Kategorileri yükle
+async function loadCategories() {
+    try {
+        const response = await fetch(`${API_URL}/product-categories`);
+        const categories = await response.json();
+        
+        const container = document.getElementById('categoryFilters');
+        
+        categories.forEach(category => {
+            container.insertAdjacentHTML('beforeend', `
+                <input type="radio" class="btn-check" name="category" 
+                       id="category_${category.id}" value="${category.id}">
+                <label class="btn btn-outline-primary" for="category_${category.id}">
+                    ${category.name}
+                </label>
+            `);
+        });
+
+        // Kategori filtre olayını dinle
+        document.querySelectorAll('input[name="category"]').forEach(radio => {
+            radio.addEventListener('change', loadProducts);
+        });
+
+    } catch (error) {
+        console.error('Kategoriler yüklenemedi:', error);
+        showError('Kategoriler yüklenemedi');
+    }
+}
+
+// Seçilen ürünleri sakla
+let selectedProducts = new Map();
+
+// Ürünleri yükle
+async function loadProducts() {
+    try {
+        const categoryId = document.querySelector('input[name="category"]:checked').value;
+        const searchQuery = document.getElementById('productSearch').value;
+        
+        let url = `${API_URL}/products`;
+        if (categoryId) url += `?category=${categoryId}`;
+        if (searchQuery) url += `${categoryId ? '&' : '?'}search=${searchQuery}`;
+        
+        const response = await fetch(url);
+        const products = await response.json();
+        
+        const container = document.getElementById('productList');
+        container.innerHTML = products.map(product => `
+            <div class="col-md-4 col-lg-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="card-title">${product.name}</h6>
+                        <p class="card-text small text-muted mb-2">${product.description || ''}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">${formatCurrency(product.retail_price)}</span>
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="addProduct(${JSON.stringify(product)})">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error('Ürünler yüklenemedi:', error);
+        showError('Ürünler yüklenemedi');
+    }
+}
+
+// Ürün ekle
+function addProduct(product) {
+    let quantity = 1;
+    if (selectedProducts.has(product.id)) {
+        quantity = selectedProducts.get(product.id).quantity + 1;
+    }
+    
+    selectedProducts.set(product.id, {
+        ...product,
+        quantity,
+        total: product.retail_price * quantity
+    });
+    
+    updateSelectedProducts();
+}
+
+// Ürün çıkar
+function removeProduct(productId) {
+    selectedProducts.delete(Number(productId));
+    updateSelectedProducts();
+}
+
+// Ürün miktarını güncelle
+function updateQuantity(productId, newQuantity) {
+    if (newQuantity < 1) return;
+    
+    const product = selectedProducts.get(Number(productId));
+    if (product) {
+        product.quantity = newQuantity;
+        product.total = product.retail_price * newQuantity;
+        selectedProducts.set(Number(productId), product);
+        updateSelectedProducts();
+    }
+}
+
+// Seçilen ürünleri göster
+function updateSelectedProducts() {
+    const container = document.getElementById('selectedProductsList');
+    const subtotalEl = document.getElementById('subtotal');
+    
+    let html = '';
+    let subtotal = 0;
+    
+    selectedProducts.forEach(product => {
+        html += `
+            <tr>
+                <td>${product.name}</td>
+                <td>
+                    <div class="input-group input-group-sm" style="width: 100px">
+                        <button class="btn btn-outline-secondary" type="button"
+                                onclick="updateQuantity(${product.id}, ${product.quantity - 1})">-</button>
+                        <input type="number" class="form-control text-center" value="${product.quantity}"
+                               onchange="updateQuantity(${product.id}, this.value)">
+                        <button class="btn btn-outline-secondary" type="button"
+                                onclick="updateQuantity(${product.id}, ${product.quantity + 1})">+</button>
+                    </div>
+                </td>
+                <td>${formatCurrency(product.retail_price)}</td>
+                <td>${formatCurrency(product.total)}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" 
+                            onclick="removeProduct(${product.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        subtotal += product.total;
+    });
+    
+    container.innerHTML = html || '<tr><td colspan="5" class="text-center">Henüz ürün seçilmedi</td></tr>';
+    subtotalEl.textContent = formatCurrency(subtotal);
+}
+
+// Ürünleri onayla ve devam et
+function confirmProducts() {
+    if (selectedProducts.size === 0) {
+        showError('Lütfen en az bir ürün seçin');
+        return;
+    }
+
+    // Ürün bilgilerini sakla
+    sessionStorage.setItem('selectedProducts', JSON.stringify(Array.from(selectedProducts.values())));
+    
+    // TODO: Ödeme adımına geç
+}
