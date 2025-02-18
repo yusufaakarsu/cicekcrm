@@ -22,23 +22,38 @@ router.get('/', async (c) => {
 
 /* HERE API Response örneği:
 {
-  "items": [{
-    "title": "Ataşehir, İstanbul, Türkiye",
-    "id": "here:pds:place:792j4hfe-8a3d12ba...",  // here_place_id
-    "resultType": "district",
+    "title": "2305. Sokak, 34515, Piri Reis, Esenyurt/İstanbul, Türkiye",
+    "id": "here:af:streetsection:sRJpxGSyiXG6WTI566aVQA",
+    "resultType": "street",
     "address": {
-      "city": "İstanbul",
-      "district": "Ataşehir",
-      "postalCode": "34704",
-      "street": "Atatürk Mahallesi",
-      "countryCode": "TUR",
-      "countryName": "Türkiye"
+        "label": "2305. Sokak, 34515, Piri Reis, Esenyurt/İstanbul, Türkiye",
+        "countryCode": "TUR",
+        "countryName": "Türkiye",
+        "county": "İstanbul",
+        "city": "Esenyurt",
+        "district": "Piri Reis",
+        "street": "2305. Sokak",
+        "postalCode": "34515"
     },
     "position": {
-      "lat": 40.9909,    // lat
-      "lng": 29.1207     // lng
+        "lat": 41.02226,
+        "lng": 28.64717
+    },
+    "mapView": {
+        "west": 28.64641,
+        "south": 41.02122,
+        "east": 28.64752,
+        "north": 41.02341
+    },
+    "scoring": {
+        "queryScore": 0.99,
+        "fieldScore": {
+            "county": 1,
+            "streets": [
+                0.9
+            ]
+        }
     }
-  }]
 }
 */
 
@@ -76,44 +91,47 @@ router.post('/', async (c) => {
     const body = await c.json()
     console.log('[DEBUG] Gelen adres verisi:', body)
 
-    // Validasyon
-    if (!body.customer_id || !body.district || !body.street || !body.building_no) {
+    // Zorunlu alanları kontrol et
+    const required = ['customer_id', 'label', 'city', 'district', 'street', 'building_no'];
+    const missing = required.filter(field => !body[field]);
+    
+    if (missing.length > 0) {
       return c.json({
         success: false,
         error: 'Eksik bilgi',
-        required: ['customer_id', 'district', 'street', 'building_no'],
+        required: required,
+        missing: missing,
         received: body
       }, 400)
     }
 
-    // Adres kaydı - güncellenmiş SQL ile tüm alanları içeriyor
+    // Adres kaydı
     const result = await db.prepare(`
       INSERT INTO addresses (
-        tenant_id, customer_id, 
-        label, city, district, street,
-        building_no, floor, apartment_no,
-        postal_code, lat, lng,
-        source, here_place_id, 
+        tenant_id, customer_id, label,
+        city, district, street, building_no,
+        floor, apartment_no, postal_code,
         country_code, country_name,
+        lat, lng, source, here_place_id,
         created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME('now'))
     `).bind(
       tenant_id,
       body.customer_id,
-      body.label || 'Teslimat Adresi',
-      body.city || 'İstanbul',
-      body.district.trim(),
-      body.street.trim(),
-      body.building_no.trim(),
-      body.floor?.trim() || null,
-      body.apartment_no?.trim() || null,
+      body.label,
+      body.city,
+      body.district,
+      body.street,
+      body.building_no,
+      body.floor || null,
+      body.apartment_no || null,
       body.postal_code || null,
+      body.country_code || 'TUR',
+      body.country_name || 'Türkiye',
       body.lat || null,
       body.lng || null,
       body.source || 'manual',
-      body.here_place_id || null,
-      body.country_code || 'TUR',
-      body.country_name || 'Türkiye'
+      body.here_place_id || null
     ).run()
 
     const address_id = result.meta?.last_row_id
