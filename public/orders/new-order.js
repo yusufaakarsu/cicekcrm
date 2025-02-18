@@ -120,31 +120,29 @@ function showCustomerDetails(customer) {
 // Müşteri kayıtlı adreslerini yükle
 async function loadCustomerAddresses(customerId) {
     try {
-        // Adresleri API'den al
         const response = await fetch(`${API_URL}/customers/${customerId}/addresses`);
-        const data = await response.json();
+        const addresses = await response.json();
         
-        // Select elementini al
-        const addressSelect = document.getElementById('customerAddresses');
+        const container = document.querySelector('.saved-addresses');
         
-        // Mevcut options'ları temizle (ilk option hariç)
-        const defaultOption = addressSelect.options[0];
-        addressSelect.innerHTML = '';
-        addressSelect.appendChild(defaultOption);
-        
-        // Adresleri ekle
-        if (data && data.length > 0) {
-            data.forEach(address => {
-                const option = document.createElement('option');
-                option.value = address.id;
-                option.textContent = `${address.label} - ${address.district}`;
-                addressSelect.appendChild(option);
-            });
+        if (addresses && addresses.length > 0) {
+            container.innerHTML = addresses.map((address, index) => `
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="savedAddress" 
+                           id="address_${address.id}" value="${address.id}"
+                           data-address='${JSON.stringify(address)}'
+                           ${index === 0 ? 'checked' : ''}>
+                    <label class="form-check-label" for="address_${address.id}">
+                        <strong>${address.label || 'Adres ' + (index + 1)}</strong><br>
+                        <small class="text-muted">
+                            ${address.district}, ${address.street} ${address.building_no}
+                        </small>
+                    </label>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<div class="alert alert-info">Kayıtlı adres bulunamadı.</div>';
         }
-        
-        // Select'i göster
-        addressSelect.parentElement.classList.remove('d-none');
-        
     } catch (error) {
         console.error('Adres yükleme hatası:', error);
         showError('Adresler yüklenemedi');
@@ -400,4 +398,35 @@ function confirmAddress() {
     // Teslimat formunu göster ve adres bilgilerini doldur
     document.getElementById('deliveryForm').classList.remove('d-none');
     sessionStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
+}
+
+// Adresi onayla ve devam et
+function confirmAddressAndContinue() {
+    const addressType = document.querySelector('input[name="addressType"]:checked').value;
+    let selectedAddress;
+
+    if (addressType === 'customer') {
+        const selectedRadio = document.querySelector('input[name="savedAddress"]:checked');
+        if (!selectedRadio) {
+            showError('Lütfen kayıtlı bir adres seçin');
+            return;
+        }
+        selectedAddress = JSON.parse(selectedRadio.dataset.address);
+    } else {
+        const addressDetail = document.getElementById('selectedAddressDetail');
+        if (addressDetail.classList.contains('d-none')) {
+            showError('Lütfen yeni bir adres seçin');
+            return;
+        }
+        selectedAddress = JSON.parse(addressDetail.dataset.selectedAddress);
+    }
+
+    // Seçilen adresi sakla
+    sessionStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
+
+    // Teslimat formunu göster
+    document.getElementById('deliveryForm').classList.remove('d-none');
+    
+    // Sayfayı teslimat formuna kaydır
+    document.getElementById('deliveryForm').scrollIntoView({ behavior: 'smooth' });
 }
