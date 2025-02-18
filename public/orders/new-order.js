@@ -762,7 +762,7 @@ async function confirmProducts() {
             recipient_note: deliveryInfo.recipient_note || null,
             card_message: deliveryInfo.card_message || null,
             status: 'new',
-            payment_method: 'cash',
+            payment_method: document.getElementById('paymentMethod').value, // Güncellendi
             payment_status: 'pending',
             subtotal: subtotal,
             total_amount: subtotal,
