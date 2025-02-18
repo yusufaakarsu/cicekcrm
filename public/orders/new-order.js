@@ -722,8 +722,8 @@ async function confirmProducts() {
             sessionStorage.removeItem('deliveryInfo');
             sessionStorage.removeItem('selectedAddress');
             sessionStorage.removeItem('selectedProducts');
-            // Sipariş sayfasına yönlendir
-            window.location.href = `/orders/${result.order.id}`;
+            // Başarılı sayfasına yönlendir
+            window.location.href = `/orders/order-success.html?id=${result.order.id}`;
         } else {
             throw new Error(result.message || 'Sipariş oluşturulamadı');
         }
