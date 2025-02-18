@@ -48,7 +48,7 @@ function formatCurrency(amount) {
 }
 
 // API URL'i sadece production için
-const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev';
+const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev/api';
 
 // API çağrıları için yardımcı fonksiyon
 async function fetchAPI(endpoint, options = {}) {

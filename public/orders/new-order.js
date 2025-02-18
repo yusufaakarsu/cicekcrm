@@ -52,9 +52,8 @@ async function searchCustomer() {
         searchButton.disabled = true;
         searchButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
         
-        // API'den müşteriyi ara
-        const response = await fetch(`${API_URL}/customers/phone/${phone}`);
-        const data = await response.json();
+        // API'den müşteriyi ara - düzeltilmiş endpoint
+        const data = await fetchAPI(`/customers/phone/${phone}`);
         
         // Buton durumunu resetle
         searchButton.disabled = false;
@@ -683,4 +682,5 @@ async function confirmProducts() {
         console.error('Sipariş kayıt hatası:', error);
         showError('Sipariş kaydedilemedi: ' + error.message);
     }
+}
 }
