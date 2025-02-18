@@ -719,13 +719,32 @@ async function confirmProducts() {
         });
 
         if (result.success) {
+            // Başarı mesajı göster
             showSuccess('Sipariş başarıyla oluşturuldu');
+            
             // Session storage'ı temizle
             sessionStorage.removeItem('deliveryInfo');
             sessionStorage.removeItem('selectedAddress');
             sessionStorage.removeItem('selectedProducts');
-            // Sipariş sayfasına yönlendir
-            window.location.href = `/orders/${result.order.id}`;
+            
+            // Sipariş detaylarını göster
+            const orderDetails = `
+                <div class="alert alert-success">
+                    <h5>Sipariş No: ${result.order.id}</h5>
+                    <p>Sipariş başarıyla oluşturuldu.</p>
+                    <hr>
+                    <a href="/orders/${result.order.id}" class="btn btn-sm btn-primary">
+                        Sipariş Detaylarını Görüntüle
+                    </a>
+                </div>
+            `;
+            
+            // Detayları sayfada göster
+            const container = document.getElementById('selectedProductsCard');
+            container.innerHTML = orderDetails;
+            
+            // Sayfanın üstüne scroll
+            container.scrollIntoView({ behavior: 'smooth' });
         } else {
             throw new Error(result.message || 'Sipariş oluşturulamadı');
         }
