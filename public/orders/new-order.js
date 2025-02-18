@@ -646,30 +646,33 @@ async function confirmProducts() {
         // Önce adresi kaydet
         let deliveryAddressId;
         try {
+            // Adres verisini hazırla
             const addressData = {
                 tenant_id: 1,
                 customer_id: Number(customerId),
-                label: selectedAddress.label || 'Teslimat Adresi',
-                city: 'İstanbul',
-                district: selectedAddress.district,
-                street: selectedAddress.street,
+                district: selectedAddress.address?.district,
+                street: selectedAddress.title,
                 building_no: selectedAddress.building_no,
                 floor: selectedAddress.floor,
                 apartment_no: selectedAddress.apartment_no,
-                lat: selectedAddress.lat,
-                lng: selectedAddress.lng
+                label: selectedAddress.label || 'Teslimat Adresi'
             };
+
+            console.log('Gönderilecek adres verisi:', addressData);
 
             const addressResponse = await fetchAPI('/addresses', {
                 method: 'POST',
                 body: JSON.stringify(addressData)
             });
 
-            if (!addressResponse.success) {
-                throw new Error('Adres kaydedilemedi');
+            console.log('Adres kayıt yanıtı:', addressResponse);
+
+            if (!addressResponse.success || !addressResponse.address_id) {
+                throw new Error('Geçersiz adres yanıtı: ' + JSON.stringify(addressResponse));
             }
 
             deliveryAddressId = addressResponse.address_id;
+
         } catch (error) {
             console.error('Adres kayıt hatası:', error);
             throw new Error('Adres kaydedilemedi: ' + error.message);
