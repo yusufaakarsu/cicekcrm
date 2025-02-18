@@ -53,4 +53,29 @@ router.get('/low-stock', async (c) => {
   }
 })
 
+// Kategori endpoint'lerini products.ts'ye ekleyelim
+router.get('/product-categories', async (c) => {
+  const db = c.get('db')
+  
+  try {
+    const { results } = await db.prepare(`
+      SELECT id, tenant_id, name, description 
+      FROM product_categories 
+      WHERE is_deleted = 0 
+      ORDER BY name
+    `).all()
+    
+    return c.json({
+      success: true,
+      categories: results
+    })
+  } catch (error) {
+    console.error('Kategori listeleme hatası:', error)
+    return c.json({
+      success: false,
+      error: 'Kategoriler alınamadı'
+    }, 500)
+  }
+})
+
 export default router

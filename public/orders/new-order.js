@@ -445,32 +445,31 @@ async function saveDeliveryInfo() {
     }
 }
 
-// Kategorileri yükle
+// Kategorileri yükle - güncellendi
 async function loadCategories() {
     try {
         // Önce container'ı temizle ve yükleniyor mesajı göster
         const container = document.getElementById('categoryFilters');
         container.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
 
-        // API'den kategorileri al
-        const response = await fetchAPI('/product-categories');
+        // Endpoint'i düzelttik - /product-categories yerine /products/product-categories kullanıyoruz
+        const response = await fetchAPI('/products/product-categories');
         console.log('Kategori yanıtı:', response);
 
         // API yanıt yapısını kontrol et ve kategorileri al
-        const categories = response?.categories || response || [];
+        const categories = response?.categories || [];
 
         if (!Array.isArray(categories)) {
             throw new Error('Geçersiz kategori verisi');
         }
 
-        // Temel "Tümü" filtresi
+        // HTML oluştur
         let html = `
             <input type="radio" class="btn-check" name="category" id="category_all" 
                    value="" checked>
             <label class="btn btn-outline-primary" for="category_all">Tümü</label>
         `;
 
-        // Kategorileri ekle
         categories.forEach(category => {
             html += `
                 <input type="radio" class="btn-check" name="category" 
@@ -484,18 +483,15 @@ async function loadCategories() {
         // HTML'i güncelle
         container.innerHTML = html;
 
-        // Kategori değişikliğini dinle ve ilk ürünleri yükle
+        // Event listener'ları ekle
         document.querySelectorAll('input[name="category"]').forEach(radio => {
             radio.addEventListener('change', loadProducts);
         });
 
-        // İlk ürünleri yükle
-        await loadProducts();
-
     } catch (error) {
         console.error('Kategoriler yüklenemedi:', error);
         document.getElementById('categoryFilters').innerHTML = 
-            '<div class="alert alert-warning">Kategoriler yüklenemedi</div>';
+            '<div class="alert alert-warning">Kategoriler yüklenemedi: ' + error.message + '</div>';
     }
 }
 
