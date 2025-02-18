@@ -299,6 +299,8 @@ async function searchAddress(query) {
 }
 
 function selectAddress(address) {
+    console.log('HERE API address:', address); // Debug için
+
     const detail = document.getElementById('selectedAddressDetail');
     const text = document.getElementById('selectedAddressText');
     
@@ -308,82 +310,75 @@ function selectAddress(address) {
         <p class="mb-0 text-muted">${address.address.district}, ${address.address.city}</p>
     `;
 
-    // Seçilen adresi sakla
-    detail.dataset.selectedAddress = JSON.stringify(address);
+    // HERE API verilerini sakla
+    const addressData = {
+        title: address.title,
+        address: address.address,
+        position: address.position,
+        id: address.id
+    };
+
+    // Seçilen adresi JSON olarak sakla
+    detail.dataset.selectedAddress = JSON.stringify(addressData);
     
     // Arama sonuçlarını gizle
     document.getElementById('addressSearchResults').classList.add('d-none');
 }
 
-function confirmAddress() {
-    const addressType = document.querySelector('input[name="addressType"]:checked').value;
-    let selectedAddress;
-
-    if (addressType === 'customer') {
-        const selectedRadio = document.querySelector('input[name="savedAddress"]:checked');
-        if (!selectedRadio) {
-            showError('Lütfen kayıtlı bir adres seçin');
-            return;
-        }
-        selectedAddress = JSON.parse(selectedRadio.dataset.address);
-    } else {
-        const addressDetail = document.getElementById('selectedAddressDetail');
-        if (addressDetail.classList.contains('d-none')) {
-            showError('Lütfen yeni bir adres seçin');
-            return;
-        }
-        selectedAddress = JSON.parse(addressDetail.dataset.selectedAddress);
-    }
-
-    // Teslimat formunu göster ve adres bilgilerini doldur
-    document.getElementById('deliveryForm').classList.remove('d-none');
-    sessionStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
-}
-
-// Adresi onayla ve devam et
 function confirmAddressAndContinue() {
     const addressType = document.querySelector('input[name="addressType"]:checked').value;
     let selectedAddress;
 
-    if (addressType === 'customer') {
-        const selectedRadio = document.querySelector('input[name="savedAddress"]:checked');
-        if (!selectedRadio) {
-            showError('Lütfen kayıtlı bir adres seçin');
-            return;
-        }
-        selectedAddress = JSON.parse(selectedRadio.dataset.address);
-    } else {
-        // Yeni adres için validasyon
-        const buildingNo = document.getElementById('addressBuildingNo').value;
-        const floor = document.getElementById('addressFloor').value;
-        const apartmentNo = document.getElementById('addressApartmentNo').value;
+    try {
+        if (addressType === 'customer') {
+            // Kayıtlı adres seçimi
+            const selectedRadio = document.querySelector('input[name="savedAddress"]:checked');
+            if (!selectedRadio) {
+                throw new Error('Lütfen kayıtlı bir adres seçin');
+            }
+            selectedAddress = JSON.parse(selectedRadio.dataset.address);
+        } else {
+            // Yeni adres bilgileri
+            const buildingNo = document.getElementById('addressBuildingNo').value;
+            const floor = document.getElementById('addressFloor').value;
+            const apartmentNo = document.getElementById('addressApartmentNo').value;
+            const addressLabel = document.getElementById('addressLabel').value;
 
-        if (!buildingNo || !floor || !apartmentNo) {
-            showError('Lütfen bina no, kat ve daire no bilgilerini girin');
-            return;
+            if (!buildingNo || !floor || !apartmentNo) {
+                throw new Error('Lütfen bina no, kat ve daire no bilgilerini girin');
+            }
+
+            const addressDetail = document.getElementById('selectedAddressDetail');
+            if (!addressDetail || addressDetail.classList.contains('d-none')) {
+                throw new Error('Lütfen bir adres seçin');
+            }
+
+            const hereAddress = JSON.parse(addressDetail.dataset.selectedAddress);
+            selectedAddress = {
+                street: hereAddress.title.split(',')[0],
+                district: hereAddress.address.district,
+                city: hereAddress.address.city,
+                postal_code: hereAddress.address.postalCode,
+                country_code: hereAddress.address.countryCode,
+                country_name: hereAddress.address.countryName,
+                lat: hereAddress.position?.lat,
+                lng: hereAddress.position?.lng,
+                here_place_id: hereAddress.id,
+                building_no: buildingNo,
+                floor: floor,
+                apartment_no: apartmentNo,
+                label: addressLabel || 'Teslimat Adresi'
+            };
         }
 
-        const addressDetail = document.getElementById('selectedAddressDetail');
-        if (addressDetail.classList.contains('d-none')) {
-            showError('Lütfen bir adres seçin');
-            return;
-        }
+        // Session storage'a kaydet ve devam et
+        sessionStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
+        document.getElementById('deliveryForm').classList.remove('d-none');
+        document.getElementById('deliveryForm').scrollIntoView({ behavior: 'smooth' });
 
-        // HERE API'den gelen adres + ek bilgiler
-        selectedAddress = {
-            ...JSON.parse(addressDetail.dataset.selectedAddress),
-            building_no: buildingNo,
-            floor: floor,
-            apartment_no: apartmentNo,
-            label: document.getElementById('addressLabel').value,
-            directions: document.getElementById('addressDirections').value
-        };
+    } catch (error) {
+        showError(error.message);
     }
-
-    // Session storage'a kaydet ve devam et
-    sessionStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
-    document.getElementById('deliveryForm').classList.remove('d-none');
-    document.getElementById('deliveryForm').scrollIntoView({ behavior: 'smooth' });
 }
 
 // Teslimat bilgilerini kaydet ve ürün seçimine geç
@@ -429,16 +424,15 @@ async function saveDeliveryInfo() {
         // Ürün seçim panelini göster
         document.getElementById('productSelectionCard').classList.remove('d-none');
         document.getElementById('selectedProductsCard').classList.remove('d-none');
-        
+
         // Kategorileri yükle
         await loadCategories();
-        
+
         // Başarı mesajı göster
         showSuccess('Teslimat bilgileri kaydedildi');
         
         // Sayfayı ürün seçimine kaydır
         document.getElementById('productSelectionCard').scrollIntoView({ behavior: 'smooth' });
-
     } catch (error) {
         console.error('Hata:', error);
         showError('İşlem başarısız oldu: ' + error.message);
@@ -449,7 +443,7 @@ async function saveDeliveryInfo() {
 async function loadCategories() {
     try {
         // Önce container'ı temizle ve yükleniyor mesajı göster
-        const container = document.getElementById('categoryFilters');
+        const container = document.getElementById('categoryFilters');        
         container.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
 
         // Endpoint'i düzelttik - /product-categories yerine /products/product-categories kullanıyoruz
@@ -487,7 +481,6 @@ async function loadCategories() {
         document.querySelectorAll('input[name="category"]').forEach(radio => {
             radio.addEventListener('change', loadProducts);
         });
-
     } catch (error) {
         console.error('Kategoriler yüklenemedi:', error);
         document.getElementById('categoryFilters').innerHTML = 
@@ -515,7 +508,6 @@ async function loadProducts() {
         container.innerHTML = products.map(product => {
             // Özel karakterleri escape et
             const safeProduct = JSON.stringify(product).replace(/"/g, '&quot;');
-            
             return `
                 <div class="col-md-4 col-lg-3">
                     <div class="card h-100">
@@ -534,7 +526,6 @@ async function loadProducts() {
                 </div>
             `;
         }).join('');
-
     } catch (error) {
         console.error('Ürünler yüklenemedi:', error);
         showError('Ürünler yüklenemedi');
@@ -581,7 +572,7 @@ function removeProduct(productId) {
 // Ürün miktarını güncelle
 function updateQuantity(productId, newQuantity) {
     if (newQuantity < 1) return;
-    
+
     const product = selectedProducts.get(Number(productId));
     if (product) {
         product.quantity = newQuantity;
@@ -598,7 +589,7 @@ function updateSelectedProducts() {
     
     let html = '';
     let subtotal = 0;
-    
+
     selectedProducts.forEach(product => {
         html += `
             <tr>

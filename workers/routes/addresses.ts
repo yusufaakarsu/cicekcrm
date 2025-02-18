@@ -67,81 +67,72 @@ async function saveAddress(c) {
     // ...save to database code...
 }
 
-// Adres kaydetme endpoint'i
+// Adres kaydetme endpoint'i düzeltildi
 router.post('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
   try {
-    const body = await c.json();
-    console.log('Gelen adres verisi:', body);
+    const body = await c.json()
+    console.log('[DEBUG] Gelen adres verisi:', body)
 
-    // Validasyon ve hata kontrolü
-    if (!body.customer_id) {
-      return c.json({
-        success: false,
-        error: 'Müşteri ID gerekli'
-      }, 400);
-    }
-
-    // Eğer varolan bir adres ID'si gönderildiyse, kayıt yapmadan onu dön
-    if (body.existing_address_id) {
-      return c.json({
-        success: true,
-        address_id: body.existing_address_id
-      });
-    }
-
-    // Yeni adres için zorunlu alanları kontrol et
-    if (!body.district || !body.street || !body.building_no) {
+    // Validasyon
+    if (!body.customer_id || !body.district || !body.street || !body.building_no) {
       return c.json({
         success: false,
         error: 'Eksik bilgi',
-        required: ['district', 'street', 'building_no'],
+        required: ['customer_id', 'district', 'street', 'building_no'],
         received: body
-      }, 400);
+      }, 400)
     }
 
-    // Adresi kaydet
+    // Adres kaydı - güncellenmiş SQL ile tüm alanları içeriyor
     const result = await db.prepare(`
       INSERT INTO addresses (
-        tenant_id, customer_id, label, city, district,
-        street, building_no, floor, apartment_no,
+        tenant_id, customer_id, 
+        label, city, district, street,
+        building_no, floor, apartment_no,
+        postal_code, lat, lng,
+        source, here_place_id, 
+        country_code, country_name,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME('now'))
     `).bind(
       tenant_id,
       body.customer_id,
       body.label || 'Teslimat Adresi',
       body.city || 'İstanbul',
-      body.district,
-      body.street,
-      body.building_no,
-      body.floor || null,
-      body.apartment_no || null
-    ).run();
+      body.district.trim(),
+      body.street.trim(),
+      body.building_no.trim(),
+      body.floor?.trim() || null,
+      body.apartment_no?.trim() || null,
+      body.postal_code || null,
+      body.lat || null,
+      body.lng || null,
+      body.source || 'manual',
+      body.here_place_id || null,
+      body.country_code || 'TUR',
+      body.country_name || 'Türkiye'
+    ).run()
 
-    // Debug için sonucu logla 
-    console.log('DB Insert sonucu:', result);
-
-    const insertedId = result.meta?.last_row_id || result.lastRowId;
-    
-    if (!insertedId) {
-      throw new Error('Adres ID alınamadı');
+    const address_id = result.meta?.last_row_id
+    if (!address_id) {
+      throw new Error('Adres ID alınamadı')
     }
 
-    // Başarılı
     return c.json({
       success: true,
-      address_id: insertedId,
+      address_id: address_id,
       message: 'Adres kaydedildi'
     })
 
   } catch (error) {
-    console.error('Adres kayıt hatası:', error);
+    console.error('[Adres Kayıt Hatası]:', error)
     return c.json({
-      success: false,
-      error: 'Adres kaydedilemedi: ' + error.message
+      success: false, 
+      error: 'Adres kaydedilemedi',
+      message: error.message
     }, 500)
   }
 })
