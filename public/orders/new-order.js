@@ -310,20 +310,29 @@ function selectAddress(address) {
         <p class="mb-0 text-muted">${address.address.district}, ${address.address.city}</p>
     `;
 
-    // HERE API verilerini tam olarak sakla
+    // HERE API verilerini sakla - düzgün formatta
     detail.dataset.selectedAddress = JSON.stringify({
         title: address.title,
         id: address.id,
         address: {
-            city: address.address.city,        // Esenyurt
-            district: address.address.district, // Piri Reis
-            street: address.address.street,     // 2305. Sokak
+            city: address.address.county || address.address.city, // county veya city
+            district: address.address.district,
+            street: address.address.street,
             postalCode: address.address.postalCode,
             countryCode: address.address.countryCode,
-            countryName: address.address.countryName
+            countryName: address.address.countryName,
+            houseNumber: address.address.houseNumber
         },
-        position: address.position             // lat, lng
+        position: {
+            lat: address.position.lat,
+            lng: address.position.lng
+        }
     });
+    
+    // Bina numarası varsa otomatik doldur
+    if (address.address.houseNumber) {
+        document.getElementById('addressBuildingNo').value = address.address.houseNumber;
+    }
     
     document.getElementById('addressSearchResults').classList.add('d-none');
 }
@@ -662,20 +671,20 @@ async function confirmProducts() {
                 const addressDetail = document.getElementById('selectedAddressDetail');
                 const hereAddress = JSON.parse(addressDetail.dataset.selectedAddress);
 
-                // Adres verilerini hazırla
+                // Adres verilerini hazırla - düzeltilmiş format
                 const addressData = {
                     tenant_id: 1,
                     customer_id: Number(customerId),
                     label: addressLabel || 'Teslimat Adresi',
-                    city: hereAddress.address.city,         // Esenyurt
-                    district: hereAddress.address.district, // Piri Reis
-                    street: hereAddress.address.street,    // 2305. Sokak
-                    postal_code: hereAddress.address.postalCode,
-                    country_code: hereAddress.address.countryCode,
-                    country_name: hereAddress.address.countryName,
+                    city: hereAddress.address.city,
+                    district: hereAddress.address.district,
+                    street: hereAddress.address.street,
                     building_no: buildingNo,
                     floor: floor,
                     apartment_no: apartmentNo,
+                    postal_code: hereAddress.address.postalCode,
+                    country_code: hereAddress.address.countryCode || 'TUR',
+                    country_name: hereAddress.address.countryName || 'Türkiye',
                     lat: hereAddress.position.lat,
                     lng: hereAddress.position.lng,
                     source: 'here_api',
@@ -686,6 +695,9 @@ async function confirmProducts() {
 
                 const addressResponse = await fetchAPI('/addresses', {
                     method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify(addressData)
                 });
 

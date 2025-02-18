@@ -105,7 +105,7 @@ router.post('/', async (c) => {
       }, 400)
     }
 
-    // Adres kaydı
+    // Adres kaydı - başlık düzeltildi
     const result = await db.prepare(`
       INSERT INTO addresses (
         tenant_id, customer_id, label,
@@ -116,7 +116,7 @@ router.post('/', async (c) => {
         created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME('now'))
     `).bind(
-      tenant_id,
+      body.tenant_id,
       body.customer_id,
       body.label,
       body.city,
