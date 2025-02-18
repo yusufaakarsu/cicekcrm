@@ -671,13 +671,13 @@ async function confirmProducts() {
                 const addressDetail = document.getElementById('selectedAddressDetail');
                 const hereAddress = JSON.parse(addressDetail.dataset.selectedAddress);
 
-                // Adres verilerini hazırla - city değeri düzeltildi
+                // Adres verilerini hazırla - düzeltilmiş format
                 const addressData = {
                     tenant_id: 1,
                     customer_id: Number(customerId),
                     label: addressLabel || 'Teslimat Adresi',
-                    city: hereAddress.address.city || hereAddress.address.county, // Önce city, yoksa county
-                    district: hereAddress.address.district,
+                    city: 'İstanbul',  // Her zaman İstanbul olacak
+                    district: hereAddress.address.district, 
                     street: hereAddress.address.street,
                     building_no: buildingNo,
                     floor: floor,
