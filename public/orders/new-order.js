@@ -532,25 +532,29 @@ async function loadProducts() {
 
 // Ürün ekle
 function addProduct(product) {
-    if (!product || !product.id) {
-        console.error('Geçersiz ürün:', product);
-        return;
-    }
-
     try {
+        // Safety check
+        if (!product || typeof product !== 'object') {
+            console.error('Invalid product data:', product);
+            return;
+        }
+
+        // Parse product if it's a string
+        let productData = typeof product === 'string' ? JSON.parse(product) : product;
+
         let quantity = 1;
-        if (selectedProducts.has(product.id)) {
-            quantity = selectedProducts.get(product.id).quantity + 1;
+        if (selectedProducts.has(productData.id)) {
+            quantity = selectedProducts.get(productData.id).quantity + 1;
         }
         
-        selectedProducts.set(product.id, {
-            ...product,
+        selectedProducts.set(productData.id, {
+            ...productData,
             quantity,
-            total: product.retail_price * quantity
+            total: productData.retail_price * quantity
         });
         
         updateSelectedProducts();
-        showSuccess(`${product.name} sepete eklendi`);
+        showSuccess(`${productData.name} sepete eklendi`);
     } catch (error) {
         console.error('Ürün eklenirken hata:', error);
         showError('Ürün eklenemedi');
@@ -682,5 +686,4 @@ async function confirmProducts() {
         console.error('Sipariş kayıt hatası:', error);
         showError('Sipariş kaydedilemedi: ' + error.message);
     }
-}
 }
