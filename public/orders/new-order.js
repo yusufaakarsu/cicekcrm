@@ -1,20 +1,184 @@
+// Global state
+let currentStep = 1;
+const totalSteps = 3;
+
 // Sayfa yüklendiğinde
-document.addEventListener('DOMContentLoaded', () => {
-    // Header'ı yükle
-    loadHeader();
-    
-    // Müşteri arama dinleyicisini ekle
-    setupCustomerSearch();
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadHeader();
 
-    // Yeni müşteri formu dinleyicisini ekle
-    setupNewCustomerForm();
+    // Event listener'ları ayarla
+    setupEventListeners();
 
-    // Adres tipi değişikliği dinleyicisi
-    setupAddressTypeListeners();
+    // İlk adımı göster
+    showStep(1);
 
-    // Ürünleri başlangıçta yükle
-    loadProducts();
+    // Kategorileri yükle
+    await loadCategories();
 });
+
+// Event listener'ları ayarla
+function setupEventListeners() {
+    // Müşteri arama
+    const searchInput = document.getElementById('customerSearch');
+    const searchButton = document.getElementById('searchCustomer');
+    
+    if (searchInput && searchButton) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchCustomer();
+            }
+        });
+        
+        searchButton.addEventListener('click', searchCustomer);
+    }
+
+    // Adım kontrol butonları
+    const prevButton = document.getElementById('prevButton');
+    const nextButton = document.getElementById('nextButton');
+    const submitButton = document.getElementById('submitButton');
+
+    if (prevButton) prevButton.addEventListener('click', () => showStep(currentStep - 1));
+    if (nextButton) nextButton.addEventListener('click', () => showStep(currentStep + 1));
+    if (submitButton) submitButton.addEventListener('click', confirmProducts);
+}
+
+// Adım gösterme/gizleme
+function showStep(step) {
+    // Adım aralığını kontrol et
+    if (step < 1 || step > totalSteps) return;
+
+    // Önceki adımı gizle
+    document.querySelectorAll('.step-content').forEach(content => {
+        content.classList.add('d-none');
+    });
+
+    // Yeni adımı göster
+    const currentContent = document.getElementById(`step${step}Content`);
+    if (currentContent) {
+        currentContent.classList.remove('d-none');
+        currentStep = step;
+    }
+
+    // Stepper'ı güncelle
+    updateStepper();
+
+    // Button görünürlüğünü güncelle
+    updateButtons();
+}
+
+// Stepper güncelleme
+function updateStepper() {
+    for (let i = 1; i <= totalSteps; i++) {
+        const stepEl = document.getElementById(`step${i}`);
+        if (stepEl) {
+            stepEl.classList.remove('active', 'completed');
+            if (i === currentStep) {
+                stepEl.classList.add('active');
+            } else if (i < currentStep) {
+                stepEl.classList.add('completed');
+            }
+        }
+    }
+}
+
+// Buton görünürlüğünü güncelle
+function updateButtons() {
+    const prevButton = document.getElementById('prevButton');
+    const nextButton = document.getElementById('nextButton');
+    const submitButton = document.getElementById('submitButton');
+
+    if (prevButton) prevButton.classList.toggle('d-none', currentStep === 1);
+    if (nextButton) nextButton.classList.toggle('d-none', currentStep === totalSteps);
+    if (submitButton) submitButton.classList.toggle('d-none', currentStep !== totalSteps);
+}
+
+// Kategorileri yükle
+async function loadCategories() {
+    try {
+        const response = await fetchAPI('/products/product-categories');
+        console.log('Kategori yanıtı:', response);
+
+        if (!response.success) {
+            throw new Error('Kategoriler alınamadı');
+        }
+
+        const categories = response.categories || [];
+        const container = document.getElementById('categoryFilters');
+
+        if (container) {
+            const categoryHtml = categories.map(category => `
+                <button type="button" class="btn btn-outline-primary me-2" 
+                        onclick="filterProducts(${category.id})">
+                    ${category.name}
+                </button>
+            `).join('');
+
+            container.innerHTML = `
+                <button type="button" class="btn btn-outline-primary me-2 active" 
+                        onclick="filterProducts()">
+                    Tümü
+                </button>
+                ${categoryHtml}
+            `;
+        }
+
+        // İlk yüklemede tüm ürünleri göster
+        await loadProducts();
+
+    } catch (error) {
+        console.error('Kategoriler yüklenemedi:', error);
+        showError('Kategoriler yüklenemedi');
+    }
+}
+
+// Ürünleri yükle
+async function loadProducts(categoryId = null) {
+    try {
+        const url = categoryId 
+            ? `${API_URL}/products?category=${categoryId}`
+            : `${API_URL}/products`;
+
+        const products = await fetchAPI(url);
+        const container = document.getElementById('productList');
+
+        if (container) {
+            container.innerHTML = products.map(product => `
+                <div class="col-md-4 col-lg-3 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">${product.name}</h6>
+                            <p class="card-text small text-muted mb-2">${product.description || ''}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">${formatCurrency(product.retail_price)}</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" 
+                                        onclick="addProduct(${JSON.stringify(product).replace(/"/g, '&quot;')})">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+    } catch (error) {
+        console.error('Ürünler yüklenemedi:', error);
+        showError('Ürünler yüklenemedi');
+    }
+}
+
+// Kategori filtreleme
+function filterProducts(categoryId = null) {
+    // Aktif butonu güncelle
+    document.querySelectorAll('#categoryFilters .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+
+    // Ürünleri filtrele
+    loadProducts(categoryId);
+}
 
 // Müşteri arama işlemlerini ayarla
 function setupCustomerSearch() {
@@ -446,56 +610,6 @@ async function saveDeliveryInfo() {
     } catch (error) {
         console.error('Hata:', error);
         showError('İşlem başarısız oldu: ' + error.message);
-    }
-}
-
-// Kategorileri yükle - güncellendi
-async function loadCategories() {
-    try {
-        // Önce container'ı temizle ve yükleniyor mesajı göster
-        const container = document.getElementById('categoryFilters');
-        container.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
-
-        // Endpoint'i düzelttik - /product-categories yerine /products/product-categories kullanıyoruz
-        const response = await fetchAPI('/products/product-categories');
-        console.log('Kategori yanıtı:', response);
-
-        // API yanıt yapısını kontrol et ve kategorileri al
-        const categories = response?.categories || [];
-
-        if (!Array.isArray(categories)) {
-            throw new Error('Geçersiz kategori verisi');
-        }
-
-        // HTML oluştur
-        let html = `
-            <input type="radio" class="btn-check" name="category" id="category_all" 
-                   value="" checked>
-            <label class="btn btn-outline-primary" for="category_all">Tümü</label>
-        `;
-
-        categories.forEach(category => {
-            html += `
-                <input type="radio" class="btn-check" name="category" 
-                       id="category_${category.id}" value="${category.id}">
-                <label class="btn btn-outline-primary" for="category_${category.id}">
-                    ${category.name}
-                </label>
-            `;
-        });
-
-        // HTML'i güncelle
-        container.innerHTML = html;
-
-        // Event listener'ları ekle
-        document.querySelectorAll('input[name="category"]').forEach(radio => {
-            radio.addEventListener('change', loadProducts);
-        });
-
-    } catch (error) {
-        console.error('Kategoriler yüklenemedi:', error);
-        document.getElementById('categoryFilters').innerHTML = 
-            '<div class="alert alert-warning">Kategoriler yüklenemedi: ' + error.message + '</div>';
     }
 }
 
