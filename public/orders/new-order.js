@@ -643,15 +643,47 @@ async function confirmProducts() {
         const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
         const customerId = document.getElementById('customerId').value;
 
+        // Önce adresi kaydet
+        let deliveryAddressId;
+        try {
+            const addressData = {
+                tenant_id: 1,
+                customer_id: Number(customerId),
+                label: selectedAddress.label || 'Teslimat Adresi',
+                city: 'İstanbul',
+                district: selectedAddress.district,
+                street: selectedAddress.street,
+                building_no: selectedAddress.building_no,
+                floor: selectedAddress.floor,
+                apartment_no: selectedAddress.apartment_no,
+                lat: selectedAddress.lat,
+                lng: selectedAddress.lng
+            };
+
+            const addressResponse = await fetchAPI('/addresses', {
+                method: 'POST',
+                body: JSON.stringify(addressData)
+            });
+
+            if (!addressResponse.success) {
+                throw new Error('Adres kaydedilemedi');
+            }
+
+            deliveryAddressId = addressResponse.address_id;
+        } catch (error) {
+            console.error('Adres kayıt hatası:', error);
+            throw new Error('Adres kaydedilemedi: ' + error.message);
+        }
+
         // Ara toplam hesapla
         const subtotal = Array.from(selectedProducts.values())
             .reduce((sum, p) => sum + p.total, 0);
 
         // Sipariş verilerini hazırla
         const orderData = {
-            tenant_id: 1, // Tenant ID ekle
+            tenant_id: 1,
             customer_id: Number(customerId),
-            delivery_address_id: Number(selectedAddress.id),
+            delivery_address_id: deliveryAddressId,
             delivery_date: deliveryInfo.delivery_date,
             delivery_time_slot: deliveryInfo.delivery_time_slot,
             recipient_name: deliveryInfo.recipient_name,
@@ -663,7 +695,7 @@ async function confirmProducts() {
             payment_method: 'cash',
             payment_status: 'pending',
             subtotal: subtotal,
-            total_amount: subtotal, // Vergi ve teslimat ücreti eklenebilir
+            total_amount: subtotal,
             items: Array.from(selectedProducts.values()).map(product => ({
                 tenant_id: 1,
                 product_id: product.id,
@@ -673,9 +705,9 @@ async function confirmProducts() {
             }))
         };
 
-        console.log('Gönderilecek sipariş verisi:', orderData); // Debug için
+        console.log('Gönderilecek sipariş verisi:', orderData);
 
-        // fetchAPI kullan
+        // Siparişi kaydet
         const result = await fetchAPI('/orders', {
             method: 'POST',
             body: JSON.stringify(orderData)
