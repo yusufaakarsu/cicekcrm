@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Yeni müşteri formu dinleyicisini ekle
     setupNewCustomerForm();
+
+    // Adres tipi değişikliği dinleyicisi
+    setupAddressTypeListeners();
 });
 
 // Müşteri arama işlemlerini ayarla
@@ -100,7 +103,12 @@ function showCustomerDetails(customer) {
     // Kayıtlı adresleri yükle
     loadCustomerAddresses(customer.id);
 
-    // Teslimat formunu GİZLE (önceden show yapıyorduk)
+    // Müşteri adres tipini seç
+    document.getElementById('customerAddress').checked = true;
+    document.getElementById('customerAddressesSection').classList.remove('d-none');
+    document.getElementById('newAddressSection').classList.add('d-none');
+
+    // Teslimat formunu gizle
     document.getElementById('deliveryForm').classList.add('d-none');
 }
 
@@ -225,85 +233,16 @@ async function saveNewCustomer() {
     }
 }
 
-// Adres seçildiğinde yeni adres formunu göster/gizle
-document.getElementById('deliveryAddressSelect').addEventListener('change', function() {
-    const newAddressForm = document.getElementById('newAddressForm');
-    newAddressForm.classList.toggle('d-none', this.value !== '');
-});
-
-// Teslimat bilgilerini kaydet
-async function saveDeliveryInfo() {
-    // Form validasyonu
-    const requiredFields = [
-        'deliveryDate', 
-        'recipientName', 
-        'recipientPhone'
-    ];
-
-    for (const fieldId of requiredFields) {
-        const field = document.getElementById(fieldId);
-        if (!field.value) {
-            showError(`${field.previousElementSibling.textContent} alanı zorunludur`);
-            field.focus();
-            return;
-        }
-    }
-
-    // Teslimat saati kontrolü
-    const timeSlot = document.querySelector('input[name="deliveryTime"]:checked');
-    if (!timeSlot) {
-        showError('Lütfen teslimat saati seçin');
-        return;
-    }
-
-    // Adres kontrolü
-    const addressSelect = document.getElementById('deliveryAddressSelect');
-    const newAddressForm = document.getElementById('newAddressForm');
-    
-    if (!addressSelect.value && newAddressForm.classList.contains('d-none')) {
-        showError('Lütfen kayıtlı bir adres seçin veya yeni adres ekleyin');
-        return;
-    }
-
-    // Adres validasyonu
-    if (!addressSelect.value) {
-        const district = document.getElementById('addressDistrict').value;
-        const street = document.getElementById('addressStreet').value;
-        const buildingNo = document.getElementById('addressBuildingNo').value;
-
-        if (!district || !street || !buildingNo) {
-            showError('Lütfen adres bilgilerini eksiksiz doldurun');
-            return;
-        }
-    }
-
-    // Teslimat bilgilerini objede topla
-    const deliveryInfo = {
-        delivery_date: document.getElementById('deliveryDate').value,
-        delivery_time_slot: timeSlot.value,
-        recipient_name: document.getElementById('recipientName').value,
-        recipient_phone: document.getElementById('recipientPhone').value,
-        recipient_alternative_phone: document.getElementById('recipientAlternativePhone').value,
-        recipient_note: document.getElementById('recipientNote').value,
-        card_message: document.getElementById('cardMessage').value,
-    };
-
-    // Session storage'a kaydet
-    sessionStorage.setItem('deliveryInfo', JSON.stringify(deliveryInfo));
-
-    // Başarılı ise sonraki adıma geç
-    showSuccess('Teslimat bilgileri kaydedildi');
-    // TODO: Ürün seçim formunu göster
-}
-
 // Adres tipine göre panel değişimi
-document.querySelectorAll('input[name="addressType"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-        const isNewAddress = e.target.value === 'new';
-        document.getElementById('customerAddressesSection').classList.toggle('d-none', isNewAddress);
-        document.getElementById('newAddressSection').classList.toggle('d-none', !isNewAddress);
+function setupAddressTypeListeners() {
+    document.querySelectorAll('input[name="addressType"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const isNewAddress = e.target.value === 'new';
+            document.getElementById('customerAddressesSection').classList.toggle('d-none', isNewAddress);
+            document.getElementById('newAddressSection').classList.toggle('d-none', !isNewAddress);
+        });
     });
-});
+}
 
 // HERE API ile adres arama
 let searchTimeout;
