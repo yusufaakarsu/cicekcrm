@@ -469,10 +469,10 @@ async function loadCategories() {
             throw new Error('Geçersiz kategori verisi');
         }
 
-        // HTML oluştur
+        // HTML oluştur - düzeltildi
         let html = `
             <input type="radio" class="btn-check" name="category" id="category_all" 
-                   value="" checked>
+                   value="all" checked>
             <label class="btn btn-outline-primary" for="category_all">Tümü</label>
         `;
 
@@ -503,15 +503,20 @@ async function loadCategories() {
 // Seçilen ürünleri sakla
 let selectedProducts = new Map();
 
-// Ürünleri yükle
+// Ürünleri yükle - düzeltildi
 async function loadProducts() {
     try {
         const categoryId = document.querySelector('input[name="category"]:checked').value;
         const searchQuery = document.getElementById('productSearch').value;
         
         let url = `${API_URL}/products`;
-        if (categoryId) url += `?category=${categoryId}`;
-        if (searchQuery) url += `${categoryId ? '&' : '?'}search=${searchQuery}`;
+        // category=all geldiğinde filtre ekleme
+        if (categoryId && categoryId !== 'all') {
+            url += `?category=${categoryId}`;
+            if (searchQuery) url += `&search=${searchQuery}`;
+        } else if (searchQuery) {
+            url += `?search=${searchQuery}`;
+        }
         
         const response = await fetch(url);
         const products = await response.json();
