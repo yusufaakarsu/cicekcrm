@@ -138,6 +138,113 @@
                 </div>
             </div>
 
+            <!-- Teslimat Bilgileri Formu -->
+            <div class="card mb-3 d-none" id="deliveryForm">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Teslimat Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Teslimat Tarihi -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Teslimat Tarihi</label>
+                            <input type="date" class="form-control" id="deliveryDate" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Teslimat Saati</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="deliveryTime" id="timeMorning" value="morning" required>
+                                <label class="btn btn-outline-warning" for="timeMorning">Sabah<br>09:00-12:00</label>
+                                
+                                <input type="radio" class="btn-check" name="deliveryTime" id="timeAfternoon" value="afternoon">
+                                <label class="btn btn-outline-info" for="timeAfternoon">Öğlen<br>12:00-17:00</label>
+                                
+                                <input type="radio" class="btn-check" name="deliveryTime" id="timeEvening" value="evening">
+                                <label class="btn btn-outline-success" for="timeEvening">Akşam<br>17:00-21:00</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alıcı Bilgileri -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Alıcı Adı</label>
+                            <input type="text" class="form-control" id="recipientName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Alıcı Telefonu</label>
+                            <input type="tel" class="form-control" id="recipientPhone" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Alternatif Telefon</label>
+                            <input type="tel" class="form-control" id="recipientAlternativePhone">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Alıcı Notu</label>
+                            <input type="text" class="form-control" id="recipientNote">
+                        </div>
+                    </div>
+
+                    <!-- Kart Mesajı -->
+                    <div class="mb-3">
+                        <label class="form-label">Kart Mesajı</label>
+                        <textarea class="form-control" id="cardMessage" rows="2"></textarea>
+                    </div>
+
+                    <!-- Teslimat Adresi -->
+                    <div class="mb-3">
+                        <label class="form-label">Teslimat Adresi</label>
+                        <select class="form-select mb-2" id="deliveryAddressSelect">
+                            <option value="">Yeni Adres Ekle</option>
+                        </select>
+                        
+                        <!-- Yeni Adres Formu -->
+                        <div id="newAddressForm" class="border rounded p-3 mt-3 d-none">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">İlçe</label>
+                                    <select class="form-select" id="addressDistrict" required>
+                                        <option value="">İlçe Seçin...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Mahalle</label>
+                                    <input type="text" class="form-control" id="addressNeighborhood">
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <label class="form-label">Sokak/Cadde</label>
+                                    <input type="text" class="form-control" id="addressStreet">
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Bina No</label>
+                                    <input type="text" class="form-control" id="addressBuildingNo">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Kat/Daire</label>
+                                    <input type="text" class="form-control" id="addressFloor">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Adres Tarifi</label>
+                                    <input type="text" class="form-control" id="addressDirections">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="button" class="btn btn-primary" onclick="saveDeliveryInfo()">Devam Et</button>
+                </div>
+            </div>
+
             <!-- Devam edecek - Teslimat, Ürün ve Ödeme bilgileri eklenecek -->
             
         </form>

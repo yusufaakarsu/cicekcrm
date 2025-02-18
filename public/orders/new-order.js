@@ -96,6 +96,21 @@ function showCustomerDetails(customer) {
     
     // Kayıtlı adresleri yükle
     loadCustomerAddresses(customer.id);
+
+    // Teslimat formunu göster
+    document.getElementById('deliveryForm').classList.remove('d-none');
+    
+    // Bugünün tarihini set et
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('deliveryDate').min = today;
+    document.getElementById('deliveryDate').value = today;
+    
+    // İlçe listesini doldur
+    const districtSelect = document.getElementById('addressDistrict');
+    districtSelect.innerHTML = '<option value="">İlçe seçin...</option>' +
+        ISTANBUL_DISTRICTS.map(district => 
+            `<option value="${district}">${district}</option>`
+        ).join('');
 }
 
 // Müşteri kayıtlı adreslerini yükle
@@ -219,4 +234,75 @@ async function saveNewCustomer() {
         console.error('Müşteri kayıt hatası:', error);
         showError(error.message);
     }
+}
+
+// Adres seçildiğinde yeni adres formunu göster/gizle
+document.getElementById('deliveryAddressSelect').addEventListener('change', function() {
+    const newAddressForm = document.getElementById('newAddressForm');
+    newAddressForm.classList.toggle('d-none', this.value !== '');
+});
+
+// Teslimat bilgilerini kaydet
+async function saveDeliveryInfo() {
+    // Form validasyonu
+    const requiredFields = [
+        'deliveryDate', 
+        'recipientName', 
+        'recipientPhone'
+    ];
+
+    for (const fieldId of requiredFields) {
+        const field = document.getElementById(fieldId);
+        if (!field.value) {
+            showError(`${field.previousElementSibling.textContent} alanı zorunludur`);
+            field.focus();
+            return;
+        }
+    }
+
+    // Teslimat saati kontrolü
+    const timeSlot = document.querySelector('input[name="deliveryTime"]:checked');
+    if (!timeSlot) {
+        showError('Lütfen teslimat saati seçin');
+        return;
+    }
+
+    // Adres kontrolü
+    const addressSelect = document.getElementById('deliveryAddressSelect');
+    const newAddressForm = document.getElementById('newAddressForm');
+    
+    if (!addressSelect.value && newAddressForm.classList.contains('d-none')) {
+        showError('Lütfen kayıtlı bir adres seçin veya yeni adres ekleyin');
+        return;
+    }
+
+    // Adres validasyonu
+    if (!addressSelect.value) {
+        const district = document.getElementById('addressDistrict').value;
+        const street = document.getElementById('addressStreet').value;
+        const buildingNo = document.getElementById('addressBuildingNo').value;
+
+        if (!district || !street || !buildingNo) {
+            showError('Lütfen adres bilgilerini eksiksiz doldurun');
+            return;
+        }
+    }
+
+    // Teslimat bilgilerini objede topla
+    const deliveryInfo = {
+        delivery_date: document.getElementById('deliveryDate').value,
+        delivery_time_slot: timeSlot.value,
+        recipient_name: document.getElementById('recipientName').value,
+        recipient_phone: document.getElementById('recipientPhone').value,
+        recipient_alternative_phone: document.getElementById('recipientAlternativePhone').value,
+        recipient_note: document.getElementById('recipientNote').value,
+        card_message: document.getElementById('cardMessage').value,
+    };
+
+    // Session storage'a kaydet
+    sessionStorage.setItem('deliveryInfo', JSON.stringify(deliveryInfo));
+
+    // Başarılı ise sonraki adıma geç
+    showSuccess('Teslimat bilgileri kaydedildi');
+    // TODO: Ürün seçim formunu göster
 }
