@@ -11,6 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Adres tipi değişikliği dinleyicisi
     setupAddressTypeListeners();
+
+    // Ürünleri başlangıçta yükle
+    loadProducts();
 });
 
 // Müşteri arama işlemlerini ayarla
@@ -751,3 +754,59 @@ async function confirmProducts() {
         showError('Sipariş kaydedilemedi: ' + error.message);
     }
 }
+
+// Adım durumu ve yönetimi
+let currentStep = 1;
+const totalSteps = 3;
+
+// Adım kontrolü
+function nextStep() {
+    if (currentStep < totalSteps) {
+        document.getElementById(`step${currentStep}`).classList.add('completed');
+        document.getElementById(`step${currentStep + 1}`).classList.add('active');
+        
+        // Önceki adımı gizle, sonraki adımı göster
+        document.getElementById(`step${currentStep}Content`).classList.add('d-none');
+        document.getElementById(`step${currentStep + 1}Content`).classList.remove('d-none');
+        
+        currentStep++;
+        
+        // Geri butonunu göster
+        document.getElementById('prevButton').classList.remove('d-none');
+        
+        // Son adımda ise "İleri" yerine "Tamamla" göster
+        if (currentStep === totalSteps) {
+            document.getElementById('nextButton').classList.add('d-none');
+            document.getElementById('submitButton').classList.remove('d-none');
+        }
+    }
+}
+
+function prevStep() {
+    if (currentStep > 1) {
+        document.getElementById(`step${currentStep}`).classList.remove('active');
+        document.getElementById(`step${currentStep - 1}`).classList.remove('completed');
+        
+        // Şimdiki adımı gizle, önceki adımı göster
+        document.getElementById(`step${currentStep}Content`).classList.add('d-none');
+        document.getElementById(`step${currentStep - 1}Content`).classList.remove('d-none');
+        
+        currentStep--;
+        
+        // İlk adımda ise geri butonunu gizle
+        if (currentStep === 1) {
+            document.getElementById('prevButton').classList.add('d-none');
+        }
+        
+        // "Tamamla" butonunu gizle, "İleri" butonunu göster
+        document.getElementById('nextButton').classList.remove('d-none');
+        document.getElementById('submitButton').classList.add('d-none');
+    }
+}
+
+// HTML düzenlemeleri için: Ürün listesi container'ı ekle
+document.getElementById('productsStep').querySelector('.card-body').innerHTML += `
+    <div class="row" id="productList">
+        <!-- Ürünler buraya yüklenecek -->
+    </div>
+`;
