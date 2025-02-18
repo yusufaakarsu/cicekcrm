@@ -138,6 +138,68 @@
                 </div>
             </div>
 
+            <!-- Adres Seçim Paneli -->
+            <div class="card mb-4 d-none" id="addressSelectionCard">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">2. Teslimat Adresi</h5>
+                    <div class="btn-group">
+                        <input type="radio" class="btn-check" name="addressType" id="customerAddress" value="customer" checked>
+                        <label class="btn btn-outline-primary" for="customerAddress">Müşteri Adresi</label>
+                        
+                        <input type="radio" class="btn-check" name="addressType" id="newAddress" value="new">
+                        <label class="btn btn-outline-primary" for="newAddress">Yeni Adres</label>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Kayıtlı Adresler -->
+                    <div id="customerAddressesSection">
+                        <div class="row" id="savedAddressesList">
+                            <!-- Adresler JS ile doldurulacak -->
+                        </div>
+                    </div>
+
+                    <!-- Yeni Adres Arama -->
+                    <div id="newAddressSection" class="d-none">
+                        <div class="mb-3">
+                            <label class="form-label">Adres Ara</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="addressSearchInput" 
+                                       placeholder="Mahalle, cadde veya sokak adı girin...">
+                                <button class="btn btn-primary" type="button" id="searchAddressBtn">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- HERE API Sonuçları -->
+                        <div id="addressSearchResults" class="list-group mb-3 d-none">
+                            <!-- Sonuçlar JS ile doldurulacak -->
+                        </div>
+
+                        <!-- Seçilen Adres Detayı -->
+                        <div id="selectedAddressDetail" class="border rounded p-3 d-none">
+                            <h6 class="mb-3">Seçilen Adres</h6>
+                            <div class="mb-2" id="selectedAddressText"></div>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="addressLabel" 
+                                           placeholder="Adres etiketi (örn: Ev, İş)">
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="addressDirections" 
+                                           placeholder="Adres tarifi">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="button" class="btn btn-primary" onclick="confirmAddress()">
+                        Adresi Onayla ve Devam Et
+                    </button>
+                </div>
+            </div>
+
             <!-- Teslimat Bilgileri Formu -->
             <div class="card mb-3 d-none" id="deliveryForm">
                 <div class="card-header">

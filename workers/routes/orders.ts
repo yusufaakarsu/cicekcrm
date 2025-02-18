@@ -240,6 +240,100 @@ router.put('/:id/cancel', async (c) => {
   }
 })
 
+// Sipariş teslimat bilgilerini kaydet
+router.post("/delivery", async (c) => {
+  const body = await c.req.json();
+  const db = c.get("db");
+  const tenant_id = c.get("tenant_id");
+
+  try {
+    // Zorunlu alanları kontrol et
+    const required = ['delivery_date', 'delivery_time_slot', 'recipient_name', 'recipient_phone'];
+    for (const field of required) {
+      if (!body[field]) {
+        return c.json({
+          success: false,
+          error: `${field} alanı zorunludur`
+        }, 400);
+      }
+    }
+
+    // Adres bilgisi kontrolü
+    if (!body.address_id && !body.new_address) {
+      return c.json({
+        success: false, 
+        error: "Teslimat adresi gereklidir"
+      }, 400);
+    }
+
+    // Yeni adres varsa önce onu kaydet
+    let delivery_address_id = body.address_id;
+    if (body.new_address) {
+      const addressResult = await db.prepare(`
+        INSERT INTO addresses (
+          tenant_id, customer_id, district, city, street, building_no, 
+          label, neighborhood, floor, directions, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        tenant_id,
+        body.customer_id,
+        body.new_address.district,
+        'İstanbul',
+        body.new_address.street,
+        body.new_address.building_no,
+        'Teslimat Adresi',
+        body.new_address.neighborhood || null,
+        body.new_address.floor || null,
+        body.new_address.directions || null
+      ).run();
+
+      if (!addressResult.success) {
+        throw new Error("Adres kaydedilemedi");
+      }
+
+      delivery_address_id = addressResult.meta?.last_row_id;
+    }
+
+    // Sipariş teslimat bilgilerini oluştur
+    const result = await db.prepare(`
+      INSERT INTO orders (
+        tenant_id, customer_id, delivery_date, delivery_time_slot,
+        recipient_name, recipient_phone, recipient_alternative_phone,
+        recipient_note, card_message, delivery_address_id,
+        status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', datetime('now'), datetime('now'))
+    `).bind(
+      tenant_id,
+      body.customer_id,
+      body.delivery_date,
+      body.delivery_time_slot,
+      body.recipient_name,
+      body.recipient_phone,
+      body.recipient_alternative_phone || null,
+      body.recipient_note || null,
+      body.card_message || null,
+      delivery_address_id
+    ).run();
+
+    if (!result.success) {
+      throw new Error("Sipariş oluşturulamadı");
+    }
+
+    return c.json({
+      success: true,
+      order_id: result.meta?.last_row_id
+    });
+
+  } catch (error) {
+    console.error("Teslimat bilgileri kaydedilemedi:", error);
+    return c.json({
+      success: false,
+      error: "Teslimat bilgileri kaydedilemedi",
+      details: error.message
+    }, 500);
+  }
+});
+
 // Helper function: Sipariş sayısını getir
 async function getOrdersCount(db: D1Database, tenant_id: number, status?: string, date_filter?: string, start_date?: string, end_date?: string) {
   let countQuery = `

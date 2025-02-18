@@ -111,6 +111,10 @@ function showCustomerDetails(customer) {
         ISTANBUL_DISTRICTS.map(district => 
             `<option value="${district}">${district}</option>`
         ).join('');
+
+    // Adres seçim panelini göster
+    document.getElementById('addressSelectionCard').classList.remove('d-none');
+    loadCustomerAddresses(customer.id);
 }
 
 // Müşteri kayıtlı adreslerini yükle
@@ -305,4 +309,95 @@ async function saveDeliveryInfo() {
     // Başarılı ise sonraki adıma geç
     showSuccess('Teslimat bilgileri kaydedildi');
     // TODO: Ürün seçim formunu göster
+}
+
+// Adres tipine göre panel değişimi
+document.querySelectorAll('input[name="addressType"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        const isNewAddress = e.target.value === 'new';
+        document.getElementById('customerAddressesSection').classList.toggle('d-none', isNewAddress);
+        document.getElementById('newAddressSection').classList.toggle('d-none', !isNewAddress);
+    });
+});
+
+// HERE API ile adres arama
+let searchTimeout;
+document.getElementById('addressSearchInput').addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => searchAddress(e.target.value), 500);
+});
+
+async function searchAddress(query) {
+    if (!query || query.length < 3) return;
+
+    try {
+        const geocodingUrl = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(query + ' İstanbul')}&apiKey=${CONFIG.HERE_API_KEY}&lang=tr`;
+        const response = await fetch(geocodingUrl);
+        const data = await response.json();
+
+        const resultsDiv = document.getElementById('addressSearchResults');
+        resultsDiv.classList.remove('d-none');
+
+        if (data.items && data.items.length > 0) {
+            resultsDiv.innerHTML = data.items.map(item => `
+                <button type="button" class="list-group-item list-group-item-action"
+                        onclick='selectAddress(${JSON.stringify(item)})'>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold">${item.title}</div>
+                            <small class="text-muted">${item.address.district}, ${item.address.city}</small>
+                        </div>
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+                </button>
+            `).join('');
+        } else {
+            resultsDiv.innerHTML = '<div class="list-group-item">Sonuç bulunamadı</div>';
+        }
+    } catch (error) {
+        console.error('Adres arama hatası:', error);
+        showError('Adres araması başarısız oldu');
+    }
+}
+
+function selectAddress(address) {
+    const detail = document.getElementById('selectedAddressDetail');
+    const text = document.getElementById('selectedAddressText');
+    
+    detail.classList.remove('d-none');
+    text.innerHTML = `
+        <p class="mb-1"><strong>${address.title}</strong></p>
+        <p class="mb-0 text-muted">${address.address.district}, ${address.address.city}</p>
+    `;
+
+    // Seçilen adresi sakla
+    detail.dataset.selectedAddress = JSON.stringify(address);
+    
+    // Arama sonuçlarını gizle
+    document.getElementById('addressSearchResults').classList.add('d-none');
+}
+
+function confirmAddress() {
+    const addressType = document.querySelector('input[name="addressType"]:checked').value;
+    let selectedAddress;
+
+    if (addressType === 'customer') {
+        const selectedRadio = document.querySelector('input[name="savedAddress"]:checked');
+        if (!selectedRadio) {
+            showError('Lütfen kayıtlı bir adres seçin');
+            return;
+        }
+        selectedAddress = JSON.parse(selectedRadio.dataset.address);
+    } else {
+        const addressDetail = document.getElementById('selectedAddressDetail');
+        if (addressDetail.classList.contains('d-none')) {
+            showError('Lütfen yeni bir adres seçin');
+            return;
+        }
+        selectedAddress = JSON.parse(addressDetail.dataset.selectedAddress);
+    }
+
+    // Teslimat formunu göster ve adres bilgilerini doldur
+    document.getElementById('deliveryForm').classList.remove('d-none');
+    sessionStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
 }
