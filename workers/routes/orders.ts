@@ -334,94 +334,88 @@ router.post("/delivery", async (c) => {
   }
 });
 
-// Yeni sipariş oluşturma endpoint'i
+// Yeni sipariş oluşturma endpoint'i düzeltildi
 router.post('/', async (c) => {
   const db = c.get('db');
+  const tenant_id = c.get('tenant_id');
   
   try {
     const body = await c.req.json();
+    console.log('[DEBUG] Gelen sipariş verisi:', body);
 
     // Veri doğrulama
     if (!body.customer_id || !body.delivery_date || !body.items?.length) {
       return c.json({ 
         success: false, 
-        message: 'Eksik veya hatalı bilgi' 
+        error: 'Eksik veya hatalı bilgi',
+        received: body
       }, 400);
     }
 
-    // DB transaction başlat
-    await db.prepare('BEGIN TRANSACTION').run();
+    // 1. Siparişi oluştur
+    const orderResult = await db.prepare(`
+      INSERT INTO orders (
+        tenant_id, customer_id, delivery_address_id,
+        status, delivery_date, delivery_time_slot,
+        recipient_name, recipient_phone, recipient_alternative_phone,
+        recipient_note, card_message,
+        subtotal, total_amount, payment_method, payment_status,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME('now'), DATETIME('now'))
+    `).bind(
+      tenant_id,
+      body.customer_id,
+      body.delivery_address_id,
+      body.status || 'new',
+      body.delivery_date,
+      body.delivery_time_slot,
+      body.recipient_name,
+      body.recipient_phone,
+      body.recipient_alternative_phone,
+      body.recipient_note,
+      body.card_message,
+      body.subtotal,
+      body.total_amount,
+      body.payment_method || 'cash',
+      body.payment_status || 'pending'
+    ).run();
 
-    try {
-      // Siparişi oluştur
-      const orderResult = await db.prepare(`
-        INSERT INTO orders (
-          tenant_id, customer_id, status, delivery_date, delivery_time_slot,
-          recipient_name, recipient_phone, recipient_alternative_phone,
-          recipient_note, card_message, delivery_address_id,
-          subtotal, total_amount, payment_method, payment_status,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME('now'), DATETIME('now'))
+    const orderId = orderResult.meta?.last_row_id;
+    if (!orderId) throw new Error('Sipariş ID alınamadı');
+
+    // 2. Sipariş kalemlerini ekle
+    const insertPromises = body.items.map(item => 
+      db.prepare(`
+        INSERT INTO order_items (
+          tenant_id, order_id, product_id, 
+          quantity, unit_price, cost_price
+        ) VALUES (?, ?, ?, ?, ?, ?)
       `).bind(
-        body.tenant_id,
-        body.customer_id,
-        body.status || 'new',
-        body.delivery_date,
-        body.delivery_time_slot,
-        body.recipient_name,
-        body.recipient_phone,
-        body.recipient_alternative_phone || null,
-        body.recipient_note || null,
-        body.card_message || null,
-        body.delivery_address_id,
-        body.subtotal,
-        body.total_amount,
-        body.payment_method || 'cash',
-        body.payment_status || 'pending'
-      ).run();
+        tenant_id,
+        orderId,
+        item.product_id,
+        item.quantity,
+        item.unit_price,
+        item.cost_price || 0
+      ).run()
+    );
 
-      const orderId = orderResult.meta?.last_row_id;
-      if (!orderId) throw new Error('Sipariş ID oluşturulamadı');
+    await Promise.all(insertPromises);
 
-      // Sipariş kalemlerini ekle
-      for (const item of body.items) {
-        await db.prepare(`
-          INSERT INTO order_items (
-            tenant_id, order_id, product_id, quantity, 
-            unit_price, cost_price
-          ) VALUES (?, ?, ?, ?, ?, ?)
-        `).bind(
-          body.tenant_id,
-          orderId,
-          item.product_id,
-          item.quantity,
-          item.unit_price,
-          item.cost_price || 0
-        ).run();
+    return c.json({
+      success: true,
+      message: 'Sipariş başarıyla oluşturuldu',
+      order: {
+        id: orderId
       }
-
-      // Transaction'ı commit et
-      await db.prepare('COMMIT').run();
-
-      return c.json({
-        success: true,
-        message: 'Sipariş başarıyla oluşturuldu',
-        order: {
-          id: orderId
-        }
-      });
-
-    } catch (error) {
-      // Hata durumunda rollback yap
-      await db.prepare('ROLLBACK').run();
-      throw error;
-    }
+    });
 
   } catch (error) {
-    console.error('Sipariş oluşturma hatası:', error);
+    console.error('[Sipariş Hatası]:', error);
     return c.json({
       success: false,
-      message: 'Sipariş oluşturulamadı: ' + error.message
+      error: 'Sipariş oluşturulamadı',
+      message: error.message
     }, 500);
   }
 });
