@@ -9,6 +9,9 @@ CREATE TABLE product_types (
     is_stock_tracked BOOLEAN DEFAULT 1, -- stok takibi yapılacak mı?
     default_unit_id INTEGER,  -- varsayılan birim
     is_active BOOLEAN DEFAULT 1,
+    stock_tracked BOOLEAN DEFAULT 1,  -- Bu tip ürünler stok takibi yapılacak mı?
+    recipe_required BOOLEAN DEFAULT 0, -- Bu tip ürünler için reçete zorunlu mu?
+    cost_tracked BOOLEAN DEFAULT 1,    -- Maliyet takibi yapılacak mı?
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (default_unit_id) REFERENCES stock_units(id)
 );

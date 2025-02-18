@@ -77,3 +77,15 @@ CREATE TABLE audit_log (
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+-- Tenant settings tablosunu ekleyelim
+CREATE TABLE tenant_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id INTEGER NOT NULL,
+    require_stock BOOLEAN DEFAULT 0,      -- Stok kontrolü zorunlu mu?
+    track_recipes BOOLEAN DEFAULT 0,      -- Reçete takibi yapılsın mı?
+    track_costs BOOLEAN DEFAULT 0,        -- Maliyet takibi yapılsın mı?
+    allow_negative_stock BOOLEAN DEFAULT 0, -- Eksi stoka düşülebilir mi?
+    auto_update_prices BOOLEAN DEFAULT 0,  -- Maliyete göre fiyat güncellensin mi?
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+);

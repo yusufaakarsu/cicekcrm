@@ -51,3 +51,23 @@ BEGIN
     )
     WHERE id = NEW.recipe_id;
 END;
+
+-- Stok kontrolü için trigger
+CREATE TRIGGER check_stock_before_order
+BEFORE INSERT ON order_items
+FOR EACH ROW
+BEGIN
+    -- Tenant ayarlarını kontrol et
+    SELECT CASE 
+        WHEN (SELECT require_stock FROM tenant_settings WHERE tenant_id = NEW.tenant_id)
+             AND
+             (SELECT stock_tracked FROM product_types pt 
+              JOIN products p ON p.type_id = pt.id 
+              WHERE p.id = NEW.product_id)
+             AND 
+             (SELECT current_stock FROM products WHERE id = NEW.product_id) < NEW.quantity
+             AND
+             NOT (SELECT allow_negative_stock FROM tenant_settings WHERE tenant_id = NEW.tenant_id)
+        THEN RAISE(ABORT, 'Yetersiz stok!')
+    END;
+END;
