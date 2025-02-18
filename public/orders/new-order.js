@@ -500,8 +500,8 @@ async function loadProducts() {
                         <p class="card-text small text-muted mb-2">${product.description || ''}</p>
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="fw-bold">${formatCurrency(product.retail_price)}</span>
-                            <button class="btn btn-sm btn-outline-primary" 
-                                    onclick="addProduct(${JSON.stringify(product)})">
+                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                    onclick="addProduct(${JSON.stringify(product)}); return false;">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
