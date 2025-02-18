@@ -73,26 +73,33 @@ router.post('/', async (c) => {
   const tenant_id = c.get('tenant_id')
   
   try {
-    const body = await c.req.json()
-
-    // Debug için gelen veriyi logla
+    const body = await c.json();
     console.log('Gelen adres verisi:', body);
 
-    // Zorunlu alanları kontrol et
-    if (!body.customer_id || !body.district || !body.street || !body.building_no) {
-      console.error('Eksik veri:', {
-        customer_id: body.customer_id,
-        district: body.district,
-        street: body.street,
-        building_no: body.building_no
-      });
+    // Validasyon ve hata kontrolü
+    if (!body.customer_id) {
+      return c.json({
+        success: false,
+        error: 'Müşteri ID gerekli'
+      }, 400);
+    }
 
+    // Eğer varolan bir adres ID'si gönderildiyse, kayıt yapmadan onu dön
+    if (body.existing_address_id) {
+      return c.json({
+        success: true,
+        address_id: body.existing_address_id
+      });
+    }
+
+    // Yeni adres için zorunlu alanları kontrol et
+    if (!body.district || !body.street || !body.building_no) {
       return c.json({
         success: false,
         error: 'Eksik bilgi',
-        required: ['customer_id', 'district', 'street', 'building_no'],
+        required: ['district', 'street', 'building_no'],
         received: body
-      }, 400)
+      }, 400);
     }
 
     // Adresi kaydet

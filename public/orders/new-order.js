@@ -643,39 +643,41 @@ async function confirmProducts() {
         const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
         const customerId = document.getElementById('customerId').value;
 
-        // Önce adresi kaydet
+        // Adres ID kontrolü
         let deliveryAddressId;
-        try {
-            // Adres verisini hazırla
-            const addressData = {
-                tenant_id: 1,
-                customer_id: Number(customerId),
-                district: selectedAddress.address?.district,
-                street: selectedAddress.title,
-                building_no: selectedAddress.building_no,
-                floor: selectedAddress.floor,
-                apartment_no: selectedAddress.apartment_no,
-                label: selectedAddress.label || 'Teslimat Adresi'
-            };
 
-            console.log('Gönderilecek adres verisi:', addressData);
+        const addressType = document.querySelector('input[name="addressType"]:checked').value;
+        
+        if (addressType === 'customer' && selectedAddress.id) {
+            // Kayıtlı adres seçildiyse direkt ID'yi kullan
+            deliveryAddressId = selectedAddress.id;
+        } else {
+            // Yeni adres ise kaydet
+            try {
+                const addressData = {
+                    tenant_id: 1,
+                    customer_id: Number(customerId),
+                    district: selectedAddress.address?.district,
+                    street: selectedAddress.title,
+                    building_no: selectedAddress.building_no,
+                    floor: selectedAddress.floor,
+                    apartment_no: selectedAddress.apartment_no,
+                    label: selectedAddress.label || 'Teslimat Adresi'
+                };
 
-            const addressResponse = await fetchAPI('/addresses', {
-                method: 'POST',
-                body: JSON.stringify(addressData)
-            });
+                const addressResponse = await fetchAPI('/addresses', {
+                    method: 'POST',
+                    body: JSON.stringify(addressData)
+                });
 
-            console.log('Adres kayıt yanıtı:', addressResponse);
+                if (!addressResponse.success) {
+                    throw new Error('Adres kaydedilemedi');
+                }
 
-            if (!addressResponse.success || !addressResponse.address_id) {
-                throw new Error('Geçersiz adres yanıtı: ' + JSON.stringify(addressResponse));
+                deliveryAddressId = addressResponse.address_id;
+            } catch (error) {
+                throw new Error('Adres kaydedilemedi: ' + error.message);
             }
-
-            deliveryAddressId = addressResponse.address_id;
-
-        } catch (error) {
-            console.error('Adres kayıt hatası:', error);
-            throw new Error('Adres kaydedilemedi: ' + error.message);
         }
 
         // Ara toplam hesapla
