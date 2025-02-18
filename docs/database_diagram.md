@@ -1,3 +1,4 @@
+```mermaid
 erDiagram
     TENANT ||--o{ USER : has
     TENANT ||--o{ SUBSCRIPTION : has
@@ -32,3 +33,4 @@ erDiagram
     INVENTORY_COUNT ||--|{ INVENTORY_COUNT_ITEM : contains
     INVENTORY_COUNT_ITEM }|--|| PRODUCT : counts
     STOCK_MOVEMENT }|--|| PRODUCT : affects
+```
