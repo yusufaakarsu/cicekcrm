@@ -449,10 +449,24 @@ async function saveDeliveryInfo() {
 // Kategorileri yükle
 async function loadCategories() {
     try {
+        // API yanıtını kontrol et
         const response = await fetch(`${API_URL}/product-categories`);
-        const categories = await response.json();
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         
+        const data = await response.json();
+        const categories = data.categories || []; // API yanıtından categories array'ini al
+        
+        console.log('Gelen kategori verisi:', categories); // Debug için
+        
+        if (!Array.isArray(categories)) {
+            throw new Error('Kategori verisi array değil');
+        }
+
         const container = document.getElementById('categoryFilters');
+        
+        // Önce mevcut kategorileri temizle
+        const existingCategories = container.querySelectorAll('input[name="category"]:not(#allCategories)');
+        existingCategories.forEach(el => el.parentElement.remove());
         
         categories.forEach(category => {
             container.insertAdjacentHTML('beforeend', `
@@ -471,7 +485,7 @@ async function loadCategories() {
 
     } catch (error) {
         console.error('Kategoriler yüklenemedi:', error);
-        showError('Kategoriler yüklenemedi');
+        showError('Kategoriler yüklenemedi: ' + error.message);
     }
 }
 
@@ -619,21 +633,37 @@ async function confirmProducts() {
         const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
         const customerId = document.getElementById('customerId').value;
 
+        // Ara toplam hesapla
+        const subtotal = Array.from(selectedProducts.values())
+            .reduce((sum, p) => sum + p.total, 0);
+
         // Sipariş verilerini hazırla
         const orderData = {
-            customer_id: customerId,
-            delivery_address_id: selectedAddress.id,
-            ...deliveryInfo,
+            tenant_id: 1, // Tenant ID ekle
+            customer_id: Number(customerId),
+            delivery_address_id: Number(selectedAddress.id),
+            delivery_date: deliveryInfo.delivery_date,
+            delivery_time_slot: deliveryInfo.delivery_time_slot,
+            recipient_name: deliveryInfo.recipient_name,
+            recipient_phone: deliveryInfo.recipient_phone,
+            recipient_alternative_phone: deliveryInfo.recipient_alternative_phone || null,
+            recipient_note: deliveryInfo.recipient_note || null,
+            card_message: deliveryInfo.card_message || null,
+            status: 'new',
+            payment_method: 'cash',
+            payment_status: 'pending',
+            subtotal: subtotal,
+            total_amount: subtotal, // Vergi ve teslimat ücreti eklenebilir
             items: Array.from(selectedProducts.values()).map(product => ({
+                tenant_id: 1,
                 product_id: product.id,
                 quantity: product.quantity,
-                unit_price: product.retail_price
-            })),
-            payment_method: 'cash', // veya form'dan al
-            payment_status: 'pending',
-            subtotal: Array.from(selectedProducts.values())
-                         .reduce((sum, p) => sum + p.total, 0)
+                unit_price: product.retail_price,
+                cost_price: product.purchase_price || 0
+            }))
         };
+
+        console.log('Gönderilecek sipariş verisi:', orderData); // Debug için
 
         // Siparişi kaydet
         const response = await fetch(`${API_URL}/orders`, {
@@ -644,12 +674,21 @@ async function confirmProducts() {
             body: JSON.stringify(orderData)
         });
 
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
         const result = await response.json();
 
         if (result.success) {
             showSuccess('Sipariş başarıyla oluşturuldu');
+            // Session storage'ı temizle
+            sessionStorage.removeItem('deliveryInfo');
+            sessionStorage.removeItem('selectedAddress');
+            sessionStorage.removeItem('selectedProducts');
             // Sipariş sayfasına yönlendir
-            window.location.href = `/orders/${result.orderId}`;
+            window.location.href = `/orders/${result.order.id}`;
         } else {
             throw new Error(result.error || 'Sipariş oluşturulamadı');
         }
