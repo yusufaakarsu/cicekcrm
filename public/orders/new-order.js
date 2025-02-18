@@ -389,21 +389,61 @@ function confirmAddressAndContinue() {
 
 // Teslimat bilgilerini kaydet ve ürün seçimine geç
 async function saveDeliveryInfo() {
-    // ...existing validation code...
+    // Form validasyonu
+    const requiredFields = [
+        'deliveryDate', 
+        'recipientName', 
+        'recipientPhone'
+    ];
 
-    // Teslimat bilgilerini sakla
+    for (const fieldId of requiredFields) {
+        const field = document.getElementById(fieldId);
+        if (!field.value) {
+            showError(`${field.previousElementSibling.textContent} alanı zorunludur`);
+            field.focus();
+            return;
+        }
+    }
+
+    // Teslimat saati kontrolü
+    const timeSlot = document.querySelector('input[name="deliveryTime"]:checked');
+    if (!timeSlot) {
+        showError('Lütfen teslimat saati seçin');
+        return;
+    }
+
+    // Teslimat bilgilerini objede topla
+    const deliveryInfo = {
+        delivery_date: document.getElementById('deliveryDate').value,
+        delivery_time_slot: timeSlot.value,
+        recipient_name: document.getElementById('recipientName').value,
+        recipient_phone: document.getElementById('recipientPhone').value,
+        recipient_alternative_phone: document.getElementById('recipientAlternativePhone').value,
+        recipient_note: document.getElementById('recipientNote').value,
+        card_message: document.getElementById('cardMessage').value,
+    };
+
+    // Session storage'a kaydet
     sessionStorage.setItem('deliveryInfo', JSON.stringify(deliveryInfo));
 
     // Ürün seçim panelini göster
     document.getElementById('productSelectionCard').classList.remove('d-none');
     document.getElementById('selectedProductsCard').classList.remove('d-none');
     
-    // Kategorileri ve ürünleri yükle
-    await loadCategories();
-    await loadProducts();
-    
-    // Sayfayı ürün seçimine kaydır
-    document.getElementById('productSelectionCard').scrollIntoView({ behavior: 'smooth' });
+    try {
+        // Kategorileri ve ürünleri yükle
+        await loadCategories();
+        await loadProducts();
+        
+        // Sayfayı ürün seçimine kaydır
+        document.getElementById('productSelectionCard').scrollIntoView({ behavior: 'smooth' });
+        
+        // Başarı mesajı göster
+        showSuccess('Teslimat bilgileri kaydedildi');
+    } catch (error) {
+        console.error('Ürün yükleme hatası:', error);
+        showError('Ürünler yüklenirken bir hata oluştu');
+    }
 }
 
 // Kategorileri yükle
