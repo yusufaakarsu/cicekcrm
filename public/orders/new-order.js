@@ -606,15 +606,56 @@ function updateSelectedProducts() {
     subtotalEl.textContent = formatCurrency(subtotal);
 }
 
-// Ürünleri onayla ve devam et
-function confirmProducts() {
+// Ürünleri onayla ve kaydet
+async function confirmProducts() {
     if (selectedProducts.size === 0) {
         showError('Lütfen en az bir ürün seçin');
         return;
     }
 
-    // Ürün bilgilerini sakla
-    sessionStorage.setItem('selectedProducts', JSON.stringify(Array.from(selectedProducts.values())));
-    
-    // TODO: Ödeme adımına geç
+    try {
+        // Session storage'dan bilgileri al
+        const deliveryInfo = JSON.parse(sessionStorage.getItem('deliveryInfo'));
+        const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
+        const customerId = document.getElementById('customerId').value;
+
+        // Sipariş verilerini hazırla
+        const orderData = {
+            customer_id: customerId,
+            delivery_address_id: selectedAddress.id,
+            ...deliveryInfo,
+            items: Array.from(selectedProducts.values()).map(product => ({
+                product_id: product.id,
+                quantity: product.quantity,
+                unit_price: product.retail_price
+            })),
+            payment_method: 'cash', // veya form'dan al
+            payment_status: 'pending',
+            subtotal: Array.from(selectedProducts.values())
+                         .reduce((sum, p) => sum + p.total, 0)
+        };
+
+        // Siparişi kaydet
+        const response = await fetch(`${API_URL}/orders`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showSuccess('Sipariş başarıyla oluşturuldu');
+            // Sipariş sayfasına yönlendir
+            window.location.href = `/orders/${result.orderId}`;
+        } else {
+            throw new Error(result.error || 'Sipariş oluşturulamadı');
+        }
+
+    } catch (error) {
+        console.error('Sipariş kayıt hatası:', error);
+        showError('Sipariş kaydedilemedi: ' + error.message);
+    }
 }
