@@ -131,6 +131,8 @@ async function loadCustomerAddresses(customerId) {
                         <strong>${address.label || 'Adres ' + (index + 1)}</strong><br>
                         <small class="text-muted">
                             ${address.district}, ${address.street} ${address.building_no}
+                            ${address.floor ? 'Kat:' + address.floor : ''} 
+                            ${address.apartment_no ? 'No:' + address.apartment_no : ''}
                         </small>
                     </label>
                 </div>
@@ -339,20 +341,35 @@ function confirmAddressAndContinue() {
         }
         selectedAddress = JSON.parse(selectedRadio.dataset.address);
     } else {
-        const addressDetail = document.getElementById('selectedAddressDetail');
-        if (addressDetail.classList.contains('d-none')) {
-            showError('Lütfen yeni bir adres seçin');
+        // Yeni adres için validasyon
+        const buildingNo = document.getElementById('addressBuildingNo').value;
+        const floor = document.getElementById('addressFloor').value;
+        const apartmentNo = document.getElementById('addressApartmentNo').value;
+
+        if (!buildingNo || !floor || !apartmentNo) {
+            showError('Lütfen bina no, kat ve daire no bilgilerini girin');
             return;
         }
-        selectedAddress = JSON.parse(addressDetail.dataset.selectedAddress);
+
+        const addressDetail = document.getElementById('selectedAddressDetail');
+        if (addressDetail.classList.contains('d-none')) {
+            showError('Lütfen bir adres seçin');
+            return;
+        }
+
+        // HERE API'den gelen adres + ek bilgiler
+        selectedAddress = {
+            ...JSON.parse(addressDetail.dataset.selectedAddress),
+            building_no: buildingNo,
+            floor: floor,
+            apartment_no: apartmentNo,
+            label: document.getElementById('addressLabel').value,
+            directions: document.getElementById('addressDirections').value
+        };
     }
 
-    // Seçilen adresi sakla
+    // Session storage'a kaydet ve devam et
     sessionStorage.setItem('selectedAddress', JSON.stringify(selectedAddress));
-
-    // Teslimat formunu göster
     document.getElementById('deliveryForm').classList.remove('d-none');
-    
-    // Sayfayı teslimat formuna kaydır
     document.getElementById('deliveryForm').scrollIntoView({ behavior: 'smooth' });
 }

@@ -50,12 +50,21 @@ VALUES
 -- Addresses tablosunu güncelleyelim
 DELETE FROM addresses;
 INSERT INTO addresses (
-    id, tenant_id, customer_id, label, city, district, street, building_no, 
+    id, tenant_id, customer_id, label, city, district, 
+    street, building_no, floor, apartment_no,
     postal_code, lat, lng, is_default, source
 ) VALUES 
-    (1, 1, 1, 'Ahmet Yılmaz Ev', 'İstanbul', 'Beşiktaş', 'Beşiktaş Mah.', '1', '34353', 41.0419, 29.00575, 1, 'manual'),
-    (2, 1, 2, 'Mehmet İş', 'İstanbul', 'Kadıköy', 'Kadıköy Mah.', '2', '34734', 40.9905, 29.0306, 1, 'manual'),
-    (3, 1, 3, 'Ayşe Ev', 'İstanbul', 'Üsküdar', 'Üsküdar Cad.', '3', '34672', 41.0275, 29.0156, 1, 'manual');
+    (1, 1, 1, 'Ahmet Yılmaz Ev', 'İstanbul', 'Beşiktaş', 
+     'Beşiktaş Mah.', '1', '3', '12',
+     '34353', 41.0419, 29.00575, 1, 'manual'),
+    
+    (2, 1, 2, 'Mehmet İş', 'İstanbul', 'Kadıköy', 
+     'Kadıköy Mah.', '2', '5', '15',
+     '34734', 40.9905, 29.0306, 1, 'manual'),
+    
+    (3, 1, 3, 'Ayşe Ev', 'İstanbul', 'Üsküdar', 
+     'Üsküdar Cad.', '3', '2', '8',
+     '34672', 41.0275, 29.0156, 1, 'manual');
 
 -- Sipariş verileri
 DELETE FROM orders;

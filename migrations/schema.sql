@@ -225,6 +225,8 @@ CREATE TABLE addresses (
     postal_code TEXT,
     street TEXT,
     building_no TEXT,
+    floor TEXT,           -- Kat bilgisi eklendi
+    apartment_no TEXT,    -- Daire no eklendi
     lat DECIMAL(10,8),
     lng DECIMAL(11,8),
     is_default BOOLEAN DEFAULT 0, -- Varsayılan adres mi?

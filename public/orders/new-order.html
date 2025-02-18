@@ -171,15 +171,29 @@
                         <!-- Seçilen Adres Detayı -->
                         <div id="selectedAddressDetail" class="border rounded p-3 d-none">
                             <h6 class="mb-3">Seçilen Adres</h6>
-                            <div class="mb-2" id="selectedAddressText"></div>
-                            <div class="row g-2">
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control" id="addressLabel" 
-                                           placeholder="Adres etiketi (örn: Ev, İş)">
+                            <div class="mb-3" id="selectedAddressText"></div>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Bina No</label>
+                                    <input type="text" class="form-control" id="addressBuildingNo" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Kat</label>
+                                    <input type="text" class="form-control" id="addressFloor" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Daire No</label>
+                                    <input type="text" class="form-control" id="addressApartmentNo" required>
                                 </div>
                                 <div class="col-md-6">
+                                    <label class="form-label">Adres Etiketi</label>
+                                    <input type="text" class="form-control" id="addressLabel" 
+                                           placeholder="Örn: Ev, İş">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Adres Tarifi</label>
                                     <input type="text" class="form-control" id="addressDirections" 
-                                           placeholder="Adres tarifi">
+                                           placeholder="Ek açıklama">
                                 </div>
                             </div>
                         </div>
