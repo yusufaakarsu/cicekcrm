@@ -764,7 +764,7 @@ async function confirmProducts() {
                     <h5>Sipariş No: ${result.order.id}</h5>
                     <p>Sipariş başarıyla oluşturuldu.</p>
                     <hr>
-                    <a href="/orders/${result.order.id}" class="btn btn-sm btn-primary">
+                    <a href="/orders/order-detail.html?id=${result.order.id}" class="btn btn-sm btn-primary">
                         Sipariş Detaylarını Görüntüle
                     </a>
                 </div>
