@@ -14,6 +14,18 @@ const ISTANBUL_DISTRICTS = [
     'Üsküdar', 'Zeytinburnu'
 ];
 
+// Development/Production URL kontrolü
+const isDevelopment = window.location.hostname.includes('cicekcrm.pages.dev');
+
+// API ve uygulama URL'leri
+const BASE_URL = isDevelopment 
+    ? 'https://a01586e6.cicekcrm.pages.dev' 
+    : 'https://cicekcrm.pages.dev';
+    
+const API_URL = isDevelopment
+    ? 'https://cicek-crm-api.yusufaakarsu.workers.dev/api'
+    : 'https://api.cicekcrm.com/api';
+
 // Header yükleme fonksiyonu
 async function loadHeader() {
     try {
@@ -48,7 +60,6 @@ function formatCurrency(amount) {
 }
 
 // API temel URL'i ve endpoint'leri
-const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev/api';
 const API_ENDPOINTS = {
     CATEGORIES: '/product-categories', 
     PRODUCTS: '/products',
