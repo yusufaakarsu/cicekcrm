@@ -1,269 +1,17 @@
-// Global state - en üstte tek bir yerde tanımla
-const orderState = {
-    currentStep: 1,
-    totalSteps: 3,
-    selectedProducts: new Map()
-};
-
 // Sayfa yüklendiğinde
 document.addEventListener('DOMContentLoaded', () => {
+    // Header'ı yükle
     loadHeader();
+    
+    // Müşteri arama dinleyicisini ekle
     setupCustomerSearch();
+
+    // Yeni müşteri formu dinleyicisini ekle
+    setupNewCustomerForm();
+
+    // Adres tipi değişikliği dinleyicisi
+    setupAddressTypeListeners();
 });
-
-// Müşteri arama
-function setupCustomerSearch() {
-    const searchInput = document.getElementById('customerSearch');
-    const searchButton = document.getElementById('searchCustomer');
-    
-    if (searchInput && searchButton) {
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                searchCustomer();
-            }
-        });
-        
-        searchButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            searchCustomer();
-        });
-    }
-}
-
-// Müşteri arama fonksiyonu
-async function searchCustomer() {
-    const phoneInput = document.getElementById('customerSearch');
-    const searchButton = document.getElementById('searchCustomer');
-    const phone = phoneInput.value.trim().replace(/\D/g, '');
-    
-    if (!phone) {
-        showError('Lütfen telefon numarası girin');
-        return;
-    }
-    
-    try {
-        searchButton.disabled = true;
-        searchButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-        
-        const response = await fetchAPI(`/customers/phone/${phone}`);
-        
-        searchButton.disabled = false;
-        searchButton.innerHTML = '<i class="bi bi-search"></i>';
-        
-        // Tüm panelleri gizle
-        hideAllPanels();
-        
-        if (response.success && response.customer) {
-            showCustomerDetails(response.customer);
-        } else {
-            showNewCustomerForm(phone);
-        }
-        
-    } catch (error) {
-        console.error('Müşteri arama hatası:', error);
-        showError('Müşteri araması başarısız oldu');
-        searchButton.disabled = false;
-        searchButton.innerHTML = '<i class="bi bi-search"></i>';
-    }
-}
-
-// Tüm panelleri gizle
-function hideAllPanels() {
-    const panels = [
-        'customerDetails',
-        'newCustomerForm',
-        'addressSelectionCard',
-        'deliveryForm',
-        'productSelectionCard'
-    ];
-    
-    panels.forEach(panelId => {
-        const panel = document.getElementById(panelId);
-        if (panel) panel.classList.add('d-none');
-    });
-}
-
-// Müşteri detaylarını göster
-function showCustomerDetails(customer) {
-    const detailsDiv = document.getElementById('customerDetails');
-    if (detailsDiv) {
-        detailsDiv.classList.remove('d-none');
-        document.getElementById('customerId').value = customer.id;
-        document.getElementById('customerName').textContent = customer.name;
-        document.getElementById('customerPhone').textContent = formatPhoneNumber(customer.phone);
-    }
-    
-    // Adres seçimine geçiş butonu göster
-    const addressButton = document.getElementById('continueToAddress');
-    if (addressButton) addressButton.classList.remove('d-none');
-}
-
-// Adım gösterme/gizleme
-function showStep(step) {
-    if (step < 1 || step > orderState.totalSteps) return;
-    
-    // Tüm adımları gizle
-    document.querySelectorAll('.step-content').forEach(content => {
-        content.classList.add('d-none');
-    });
-
-    // İlgili adımı göster
-    const currentContent = document.getElementById(`step${step}Content`);
-    if (currentContent) {
-        currentContent.classList.remove('d-none');
-        orderState.currentStep = step;
-        
-        // Eğer ürün seçim adımındaysa ürünleri yükle
-        if (step === 3) {
-            loadCategories().then(() => loadProducts());
-        }
-    }
-
-    // UI güncellemeleri
-    updateStepperUI();
-    updateNavigationButtons();
-}
-
-// Event listener'ları ayarla
-function setupEventListeners() {
-    // Müşteri arama
-    const searchInput = document.getElementById('customerSearch');
-    const searchButton = document.getElementById('searchCustomer');
-    
-    if (searchInput && searchButton) {
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                searchCustomer();
-            }
-        });
-        
-        searchButton.addEventListener('click', searchCustomer);
-    }
-
-    // Adım kontrol butonları
-    const prevButton = document.getElementById('prevButton');
-    const nextButton = document.getElementById('nextButton');
-    const submitButton = document.getElementById('submitButton');
-
-    if (prevButton) prevButton.addEventListener('click', () => showStep(orderState.currentStep - 1));
-    if (nextButton) nextButton.addEventListener('click', () => showStep(orderState.currentStep + 1));
-    if (submitButton) submitButton.addEventListener('click', confirmProducts);
-}
-
-// Stepper güncelleme
-function updateStepperUI() {
-    for (let i = 1; i <= orderState.totalSteps; i++) {
-        const stepEl = document.getElementById(`step${i}`);
-        if (stepEl) {
-            stepEl.classList.remove('active', 'completed');
-            if (i === orderState.currentStep) {
-                stepEl.classList.add('active');
-            } else if (i < orderState.currentStep) {
-                stepEl.classList.add('completed');
-            }
-        }
-    }
-}
-
-// Buton görünürlüğünü güncelle
-function updateNavigationButtons() {
-    const prevButton = document.getElementById('prevButton');
-    const nextButton = document.getElementById('nextButton');
-    const submitButton = document.getElementById('submitButton');
-
-    if (prevButton) prevButton.classList.toggle('d-none', orderState.currentStep === 1);
-    if (nextButton) nextButton.classList.toggle('d-none', orderState.currentStep === orderState.totalSteps);
-    if (submitButton) submitButton.classList.toggle('d-none', orderState.currentStep !== orderState.totalSteps);
-}
-
-// Kategorileri yükle
-async function loadCategories() {
-    try {
-        const response = await fetchAPI('/products/product-categories');
-        console.log('Kategori yanıtı:', response);
-
-        if (!response.success) {
-            throw new Error('Kategoriler alınamadı');
-        }
-
-        const categories = response.categories || [];
-        const container = document.getElementById('categoryFilters');
-
-        if (container) {
-            const categoryHtml = categories.map(category => `
-                <button type="button" class="btn btn-outline-primary me-2" 
-                        onclick="filterProducts(${category.id})">
-                    ${category.name}
-                </button>
-            `).join('');
-
-            container.innerHTML = `
-                <button type="button" class="btn btn-outline-primary me-2 active" 
-                        onclick="filterProducts()">
-                    Tümü
-                </button>
-                ${categoryHtml}
-            `;
-        }
-
-        // İlk yüklemede tüm ürünleri göster
-        await loadProducts();
-
-    } catch (error) {
-        console.error('Kategoriler yüklenemedi:', error);
-        showError('Kategoriler yüklenemedi');
-    }
-}
-
-// Ürünleri yükle
-async function loadProducts(categoryId = null) {
-    try {
-        const url = categoryId 
-            ? `${API_URL}/products?category=${categoryId}`
-            : `${API_URL}/products`;
-
-        const products = await fetchAPI(url);
-        const container = document.getElementById('productList');
-
-        if (container) {
-            container.innerHTML = products.map(product => `
-                <div class="col-md-4 col-lg-3 mb-3">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h6 class="card-title">${product.name}</h6>
-                            <p class="card-text small text-muted mb-2">${product.description || ''}</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold">${formatCurrency(product.retail_price)}</span>
-                                <button type="button" class="btn btn-sm btn-outline-primary" 
-                                        onclick="addProduct(${JSON.stringify(product).replace(/"/g, '&quot;')})">
-                                    <i class="bi bi-plus-lg"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-    } catch (error) {
-        console.error('Ürünler yüklenemedi:', error);
-        showError('Ürünler yüklenemedi');
-    }
-}
-
-// Kategori filtreleme
-function filterProducts(categoryId = null) {
-    // Aktif butonu güncelle
-    document.querySelectorAll('#categoryFilters .btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-
-    // Ürünleri filtrele
-    loadProducts(categoryId);
-}
 
 // Müşteri arama işlemlerini ayarla
 function setupCustomerSearch() {
@@ -603,7 +351,6 @@ function confirmAddressAndContinue() {
             showError('Lütfen kayıtlı bir adres seçin');
             return;
         }
-        // Kayıtlı adresi olduğu gibi kullan
         selectedAddress = JSON.parse(selectedRadio.dataset.address);
     } else {
         // Yeni adres için validasyon
@@ -695,6 +442,56 @@ async function saveDeliveryInfo() {
     } catch (error) {
         console.error('Hata:', error);
         showError('İşlem başarısız oldu: ' + error.message);
+    }
+}
+
+// Kategorileri yükle - güncellendi
+async function loadCategories() {
+    try {
+        // Önce container'ı temizle ve yükleniyor mesajı göster
+        const container = document.getElementById('categoryFilters');
+        container.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+
+        // Endpoint'i düzelttik - /product-categories yerine /products/product-categories kullanıyoruz
+        const response = await fetchAPI('/products/product-categories');
+        console.log('Kategori yanıtı:', response);
+
+        // API yanıt yapısını kontrol et ve kategorileri al
+        const categories = response?.categories || [];
+
+        if (!Array.isArray(categories)) {
+            throw new Error('Geçersiz kategori verisi');
+        }
+
+        // HTML oluştur
+        let html = `
+            <input type="radio" class="btn-check" name="category" id="category_all" 
+                   value="" checked>
+            <label class="btn btn-outline-primary" for="category_all">Tümü</label>
+        `;
+
+        categories.forEach(category => {
+            html += `
+                <input type="radio" class="btn-check" name="category" 
+                       id="category_${category.id}" value="${category.id}">
+                <label class="btn btn-outline-primary" for="category_${category.id}">
+                    ${category.name}
+                </label>
+            `;
+        });
+
+        // HTML'i güncelle
+        container.innerHTML = html;
+
+        // Event listener'ları ekle
+        document.querySelectorAll('input[name="category"]').forEach(radio => {
+            radio.addEventListener('change', loadProducts);
+        });
+
+    } catch (error) {
+        console.error('Kategoriler yüklenemedi:', error);
+        document.getElementById('categoryFilters').innerHTML = 
+            '<div class="alert alert-warning">Kategoriler yüklenemedi: ' + error.message + '</div>';
     }
 }
 
@@ -798,8 +595,6 @@ function updateQuantity(productId, newQuantity) {
 function updateSelectedProducts() {
     const container = document.getElementById('selectedProductsList');
     const subtotalEl = document.getElementById('subtotal');
-    const subtotalDisplayEl = document.getElementById('subtotalDisplay');
-    const totalDisplayEl = document.getElementById('totalDisplay');
     
     let html = '';
     let subtotal = 0;
@@ -833,8 +628,6 @@ function updateSelectedProducts() {
     
     container.innerHTML = html || '<tr><td colspan="5" class="text-center">Henüz ürün seçilmedi</td></tr>';
     subtotalEl.textContent = formatCurrency(subtotal);
-    subtotalDisplayEl.textContent = formatCurrency(subtotal);
-    totalDisplayEl.textContent = formatCurrency(subtotal); // Şimdilik ara toplam = toplam
 }
 
 // Ürünleri onayla ve kaydet
@@ -850,57 +643,44 @@ async function confirmProducts() {
         const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
         const customerId = document.getElementById('customerId').value;
 
+        // Önce adresi kaydet
         let deliveryAddressId;
+        try {
+            // Adres verisini hazırla
+            const addressData = {
+                tenant_id: 1,
+                customer_id: Number(customerId),
+                district: selectedAddress.address?.district,
+                street: selectedAddress.title,
+                building_no: selectedAddress.building_no,
+                floor: selectedAddress.floor,
+                apartment_no: selectedAddress.apartment_no,
+                label: selectedAddress.label || 'Teslimat Adresi'
+            };
 
-        // Eğer seçilen adres zaten kayıtlı bir adresse
-        if (selectedAddress.id) {
-            deliveryAddressId = selectedAddress.id;
-        } else {
-            // Yeni adres ise kaydet
-            try {
-                const addressData = {
-                    tenant_id: 1,
-                    customer_id: Number(customerId),
-                    district: selectedAddress.address?.district || selectedAddress.district,
-                    street: selectedAddress.title || selectedAddress.street,
-                    building_no: selectedAddress.building_no,
-                    floor: selectedAddress.floor,
-                    apartment_no: selectedAddress.apartment_no,
-                    label: selectedAddress.label || 'Teslimat Adresi',
-                    city: 'İstanbul'
-                };
+            console.log('Gönderilecek adres verisi:', addressData);
 
-                console.log('Gönderilecek adres verisi:', addressData);
+            const addressResponse = await fetchAPI('/addresses', {
+                method: 'POST',
+                body: JSON.stringify(addressData)
+            });
 
-                // Zorunlu alanları kontrol et
-                if (!addressData.district || !addressData.street || !addressData.building_no) {
-                    throw new Error('Eksik adres bilgisi');
-                }
+            console.log('Adres kayıt yanıtı:', addressResponse);
 
-                const addressResponse = await fetchAPI('/addresses', {
-                    method: 'POST',
-                    body: JSON.stringify(addressData)
-                });
-
-                console.log('Adres kayıt yanıtı:', addressResponse);
-
-                if (!addressResponse.success || !addressResponse.address_id) {
-                    throw new Error('Geçersiz adres yanıtı: ' + JSON.stringify(addressResponse));
-                }
-
-                deliveryAddressId = addressResponse.address_id;
-            } catch (error) {
-                console.error('Adres kayıt hatası:', error);
-                throw new Error('Adres kaydedilemedi: ' + error.message);
+            if (!addressResponse.success || !addressResponse.address_id) {
+                throw new Error('Geçersiz adres yanıtı: ' + JSON.stringify(addressResponse));
             }
+
+            deliveryAddressId = addressResponse.address_id;
+
+        } catch (error) {
+            console.error('Adres kayıt hatası:', error);
+            throw new Error('Adres kaydedilemedi: ' + error.message);
         }
 
         // Ara toplam hesapla
         const subtotal = Array.from(selectedProducts.values())
             .reduce((sum, p) => sum + p.total, 0);
-
-        // Ödeme yöntemini al
-        const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
 
         // Sipariş verilerini hazırla
         const orderData = {
@@ -915,7 +695,7 @@ async function confirmProducts() {
             recipient_note: deliveryInfo.recipient_note || null,
             card_message: deliveryInfo.card_message || null,
             status: 'new',
-            payment_method: paymentMethod,
+            payment_method: 'cash',
             payment_status: 'pending',
             subtotal: subtotal,
             total_amount: subtotal,
@@ -942,8 +722,8 @@ async function confirmProducts() {
             sessionStorage.removeItem('deliveryInfo');
             sessionStorage.removeItem('selectedAddress');
             sessionStorage.removeItem('selectedProducts');
-            // Başarılı sayfasına yönlendir
-            window.location.href = `/orders/order-success.html?id=${result.order.id}`;
+            // Sipariş sayfasına yönlendir
+            window.location.href = `/orders/${result.order.id}`;
         } else {
             throw new Error(result.message || 'Sipariş oluşturulamadı');
         }
@@ -953,59 +733,3 @@ async function confirmProducts() {
         showError('Sipariş kaydedilemedi: ' + error.message);
     }
 }
-
-// Adım durumu ve yönetimi
-let currentStep = 1;
-const totalSteps = 3;
-
-// Adım kontrolü
-function nextStep() {
-    if (currentStep < totalSteps) {
-        document.getElementById(`step${currentStep}`).classList.add('completed');
-        document.getElementById(`step${currentStep + 1}`).classList.add('active');
-        
-        // Önceki adımı gizle, sonraki adımı göster
-        document.getElementById(`step${currentStep}Content`).classList.add('d-none');
-        document.getElementById(`step${currentStep + 1}Content`).classList.remove('d-none');
-        
-        currentStep++;
-        
-        // Geri butonunu göster
-        document.getElementById('prevButton').classList.remove('d-none');
-        
-        // Son adımda ise "İleri" yerine "Tamamla" göster
-        if (currentStep === totalSteps) {
-            document.getElementById('nextButton').classList.add('d-none');
-            document.getElementById('submitButton').classList.remove('d-none');
-        }
-    }
-}
-
-function prevStep() {
-    if (currentStep > 1) {
-        document.getElementById(`step${currentStep}`).classList.remove('active');
-        document.getElementById(`step${currentStep - 1}`).classList.remove('completed');
-        
-        // Şimdiki adımı gizle, önceki adımı göster
-        document.getElementById(`step${currentStep}Content`).classList.add('d-none');
-        document.getElementById(`step${currentStep - 1}Content`).classList.remove('d-none');
-        
-        currentStep--;
-        
-        // İlk adımda ise geri butonunu gizle
-        if (currentStep === 1) {
-            document.getElementById('prevButton').classList.add('d-none');
-        }
-        
-        // "Tamamla" butonunu gizle, "İleri" butonunu göster
-        document.getElementById('nextButton').classList.remove('d-none');
-        document.getElementById('submitButton').classList.add('d-none');
-    }
-}
-
-// HTML düzenlemeleri için: Ürün listesi container'ı ekle
-document.getElementById('productsStep').querySelector('.card-body').innerHTML += `
-    <div class="row" id="productList">
-        <!-- Ürünler buraya yüklenecek -->
-    </div>
-`;
