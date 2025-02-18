@@ -6,16 +6,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadOrderDetails() {
     try {
         // URL'den sipariş ID'sini al
-        const orderId = window.location.pathname.split('/').pop();
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('id');
         
-        // Sipariş detaylarını API'den çek
+        if (!orderId) {
+            throw new Error('Sipariş ID bulunamadı');
+        }
+        
+        // Doğru API endpoint'ini kullan
         const order = await fetchAPI(`/orders/${orderId}/details`);
         
         if (!order) {
             throw new Error('Sipariş bulunamadı');
         }
 
-        // Detay sayfasını oluştur
         document.getElementById('orderDetail').innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>Sipariş #${order.id}</h2>
