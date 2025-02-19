@@ -89,3 +89,20 @@ CREATE TABLE tenant_settings (
     auto_update_prices BOOLEAN DEFAULT 0,  -- Maliyete göre fiyat güncellensin mi?
     FOREIGN KEY (tenant_id) REFERENCES tenants(id)
 );
+
+-- Teslimat bölgeleri tablosu
+CREATE TABLE delivery_regions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id INTEGER NOT NULL,
+    name TEXT NOT NULL,             -- Kadıköy, Beşiktaş vs.
+    parent_id INTEGER,              -- Üst bölge (örn: Anadolu Yakası)
+    base_fee DECIMAL(10,2),         -- Temel teslimat ücreti
+    min_order DECIMAL(10,2),        -- Minimum sipariş tutarı
+    delivery_notes TEXT,            -- Teslimat notları
+    is_active BOOLEAN DEFAULT 1,    -- Bölge aktif mi?
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    FOREIGN KEY (parent_id) REFERENCES delivery_regions(id)
+);
+
+

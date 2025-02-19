@@ -15,135 +15,135 @@ DROP VIEW IF EXISTS delivery_stats;
 
 PRAGMA foreign_keys = ON;
 
--- Tablolar
-CREATE TABLE
-    tenants (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        domain TEXT UNIQUE,
-        contact_email TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
+-- Tüm schema tek dosyada (foreign key kontrolleri olmadan)
 
-DROP TABLE IF EXISTS customers;
+-- 1. Core Tables
+CREATE TABLE tenants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    domain TEXT UNIQUE,
+    contact_email TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
-CREATE TABLE
-    customers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tenant_id INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        email TEXT CHECK (email LIKE '%@%._%'),
-        phone TEXT NOT NULL,
-        address TEXT,
-        city TEXT,
-        district TEXT,
-        notes TEXT,
-        customer_type TEXT CHECK (customer_type IN ('retail', 'corporate')) DEFAULT 'retail',
-        tax_number TEXT,
-        company_name TEXT,
-        special_dates TEXT,
-        is_deleted BOOLEAN DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (tenant_id) REFERENCES tenants (id) ON DELETE CASCADE
-    );
+CREATE TABLE users (
+    -- ...existing code...
+);
 
-DROP TABLE IF EXISTS product_categories;
+CREATE TABLE tenant_users (
+    -- ...existing code...
+);
 
-CREATE TABLE
-    product_categories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tenant_id INTEGER NOT NULL DEFAULT 0,
-        name TEXT NOT NULL,
-        description TEXT,
-        is_deleted BOOLEAN DEFAULT 0,
-        FOREIGN KEY (tenant_id) REFERENCES tenants (id) ON DELETE CASCADE
-    );
+-- 2. Product & Stock Tables
+CREATE TABLE product_types (
+    -- ...existing code...
+);
 
-DROP TABLE IF EXISTS products;
+CREATE TABLE products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id INTEGER NOT NULL,
+    category_id INTEGER,
+    name TEXT NOT NULL,
+    description TEXT,
+    purchase_price DECIMAL(10, 2) NOT NULL,
+    retail_price DECIMAL(10, 2) NOT NULL,
+    wholesale_price DECIMAL(10, 2),
+    stock INTEGER DEFAULT 0,
+    min_stock INTEGER DEFAULT 5,
+    is_deleted BOOLEAN DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
-CREATE TABLE
-    products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tenant_id INTEGER NOT NULL,
-        category_id INTEGER,
-        name TEXT NOT NULL,
-        description TEXT,
-        purchase_price DECIMAL(10, 2) NOT NULL,
-        retail_price DECIMAL(10, 2) NOT NULL,
-        wholesale_price DECIMAL(10, 2),
-        stock INTEGER DEFAULT 0,
-        min_stock INTEGER DEFAULT 5,
-        is_deleted BOOLEAN DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (category_id) REFERENCES product_categories (id),
-        FOREIGN KEY (tenant_id) REFERENCES tenants (id) ON DELETE CASCADE
-    );
+-- 3. Customer Tables
+CREATE TABLE customers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT CHECK (email LIKE '%@%._%'),
+    phone TEXT NOT NULL,
+    address TEXT,
+    city TEXT,
+    district TEXT,
+    notes TEXT,
+    customer_type TEXT CHECK (customer_type IN ('retail', 'corporate')) DEFAULT 'retail',
+    tax_number TEXT,
+    company_name TEXT,
+    special_dates TEXT,
+    is_deleted BOOLEAN DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
-DROP TABLE IF EXISTS suppliers;
+CREATE TABLE addresses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id INTEGER NOT NULL,
+    customer_id INTEGER NOT NULL,
+    label TEXT NOT NULL,
+    country_code TEXT DEFAULT 'TUR',
+    country_name TEXT DEFAULT 'Türkiye',
+    city TEXT NOT NULL,
+    district TEXT NOT NULL,
+    postal_code TEXT,
+    street TEXT,
+    building_no TEXT,
+    floor TEXT,
+    apartment_no TEXT,
+    lat DECIMAL(10,8),
+    lng DECIMAL(11,8),
+    is_default BOOLEAN DEFAULT 0,
+    is_deleted BOOLEAN DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    source TEXT DEFAULT 'manual',
+    here_place_id TEXT
+);
 
-CREATE TABLE
-    suppliers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tenant_id INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        contact_name TEXT,
-        phone TEXT NOT NULL,
-        email TEXT CHECK (email LIKE '%@%._%'),
-        address TEXT,
-        tax_number TEXT CHECK (
-            tax_number IS NULL
-            OR tax_number GLOB '[0-9]*'
-        ),
-        notes TEXT,
-        is_deleted BOOLEAN DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (tenant_id) REFERENCES tenants (id) ON DELETE CASCADE
-    );
-
-DROP TABLE IF EXISTS orders;
-
-CREATE TABLE
-    orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tenant_id INTEGER NOT NULL,
-        customer_id INTEGER NOT NULL,
-        status TEXT CHECK (
-            status IN (
-                'new',
-                'preparing',
-                'ready',
-                'delivering',
-                'delivered',
-                'cancelled'
-            )
-        ) DEFAULT 'new',
-        delivery_date DATETIME NOT NULL,
-        delivery_time_slot TEXT CHECK (
-            delivery_time_slot IN ('morning', 'afternoon', 'evening')
-        ),
-        delivery_notes TEXT,
-        delivery_status TEXT CHECK (
-            delivery_status IN (
-                'pending',
-                'assigned',
-                'on_way',
-                'completed',
-                'failed'
-            )
-        ) DEFAULT 'pending',
-        courier_notes TEXT,
-        recipient_name TEXT NOT NULL,
-        recipient_phone TEXT NOT NULL,
-        recipient_note TEXT,
-        card_message TEXT,
-        recipient_alternative_phone TEXT,
-        subtotal DECIMAL(10, 2) NOT NULL,
-        delivery_fee DECIMAL(10, 2) DEFAULT 0,
-        distance_fee DECIMAL(10, 2) DEFAULT 0,
-        discount_amount DECIMAL(10, 2) DEFAULT 0,
-        discount_code TEXT,
+-- 4. Order Tables
+CREATE TABLE orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id INTEGER NOT NULL,
+    customer_id INTEGER NOT NULL,
+    status TEXT CHECK (
+        status IN (
+            'new',
+            'preparing',
+            'ready',
+            'delivering',
+            'delivered',
+            'cancelled'
+        )
+    ) DEFAULT 'new',
+    delivery_date DATETIME NOT NULL,
+    delivery_time_slot TEXT CHECK (
+        delivery_time_slot IN ('morning', 'afternoon', 'evening')
+    ),
+    delivery_notes TEXT,
+    delivery_status TEXT CHECK (
+        delivery_status IN (
+            'pending',
+            'assigned',
+            'on_way',
+            'completed',
+            'failed'
+        )
+    ) DEFAULT 'pending',
+    courier_notes TEXT,
+    recipient_name TEXT NOT NULL,
+    recipient_phone TEXT NOT NULL,
+    recipient_note TEXT,
+    card_message TEXT,
+    recipient_alternative_phone TEXT,
+    subtotal DECIMAL(10, 2) NOT NULL,
+    delivery_fee DECIMAL(10, 2) DEFAULT 0,
+    distance_fee DECIMAL(10, 2) DEFAULT 0,
+    discount_amount DECIMAL(10, 2) DEFAULT 0,
+    discount_code TEXT,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    cost_price DECIMAL(10, 2) DEFAULT 0,
+    profit_margin DECIMAL(5, 2) DEFAULT 0,
+    payment_status TEXT CHECK (payment_status IN ('pending', 'paid', 'refunded')) DEFAULT 'pending',
+    payment_method TEXT CHECK (
+        payment_method IN ('cash', 'credit_card', 'bank_transfer')
         total_amount DECIMAL(10, 2) NOT NULL,
         cost_price DECIMAL(10, 2) DEFAULT 0,
         profit_margin DECIMAL(5, 2) DEFAULT 0,

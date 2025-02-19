@@ -1,0 +1,26 @@
+# Core schema yükle
+wrangler d1 execute ccrm-db --remote --file=./migrations/001_core_schema.sql --remote
+
+# Stok ve ürün tabloları 
+wrangler d1 execute ccrm-db --remote --file=./migrations/002_stock.sql --remote
+wrangler d1 execute ccrm-db --remote --file=./migrations/003_products.sql --remote
+
+# Müşteri ve sipariş tabloları
+wrangler d1 execute ccrm-db --remote --file=./migrations/004_customers.sql --remote
+wrangler d1 execute ccrm-db --remote --file=./migrations/005_orders.sql --remote
+
+# İndeksler yükle
+wrangler d1 execute ccrm-db --remote --file=./migrations/100_indexes.sql --remote
+
+# View'ları yükle 
+wrangler d1 execute ccrm-db --remote --file=./migrations/200_views.sql --remote
+
+# Trigger'ları yükle
+wrangler d1 execute ccrm-db --remote --file=./migrations/300_triggers.sql --remote
+
+# Örnek verileri yükle (opsiyonel - sadece development için)
+wrangler d1 execute ccrm-db --remote --file=./migrations/401_seed_base.sql --remote
+wrangler d1 execute ccrm-db --remote --file=./migrations/402_seed_regions.sql --remote  
+wrangler d1 execute ccrm-db --remote --file=./migrations/403_seed_customers.sql --remote
+wrangler d1 execute ccrm-db --remote --file=./migrations/404_seed_products.sql --remote
+wrangler d1 execute ccrm-db --remote --file=./migrations/405_seed_orders.sql --remote

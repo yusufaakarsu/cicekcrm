@@ -32,3 +32,7 @@ CREATE INDEX idx_orders_customer ON orders(customer_id);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_delivery_date ON orders(delivery_date);
 CREATE INDEX idx_orders_payment ON orders(payment_status);
+
+-- Region indeksi
+CREATE INDEX idx_delivery_regions_tenant ON delivery_regions(tenant_id);
+CREATE INDEX idx_delivery_regions_parent ON delivery_regions(parent_id);

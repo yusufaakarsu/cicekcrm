@@ -43,10 +43,12 @@ CREATE TABLE orders (
     notes TEXT,
     created_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    delivery_region_id INTEGER,     -- Teslimat bölgesi
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (customer_id) REFERENCES customers(id),
     FOREIGN KEY (delivery_address_id) REFERENCES addresses(id),
-    FOREIGN KEY (created_by) REFERENCES users(id)
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (delivery_region_id) REFERENCES delivery_regions(id)
 );
 
 CREATE TABLE order_items (
@@ -64,3 +66,6 @@ CREATE TABLE order_items (
     FOREIGN KEY (product_id) REFERENCES products(id),
     FOREIGN KEY (recipe_id) REFERENCES recipes(id)
 );
+
+-- Region indeksi
+CREATE INDEX idx_orders_region ON orders(delivery_region_id);
