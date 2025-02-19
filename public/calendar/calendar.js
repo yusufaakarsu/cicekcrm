@@ -238,42 +238,60 @@ async function loadMonthData() {
 async function loadDayData() {
     try {
         const date = formatDateISO(state.currentDate);
-        console.log('Gün verileri yükleniyor:', date); // Debug
+        console.log('Gün verileri yükleniyor:', date);
 
-        const response = await fetch(`${API_URL}/orders/filtered?start_date=${date}&end_date=${date}&per_page=1000`);
+        // delivery_date parametresi eklendi
+        const response = await fetch(`${API_URL}/orders/filtered?start_date=${date}&end_date=${date}&date_filter=delivery_date&per_page=1000`);
         if (!response.ok) throw new Error('API Hatası: ' + response.status);
         
         const data = await response.json();
-        console.log('Günlük sipariş sayısı:', data.orders.length); // Debug
 
         // Gün görünümünü güncelle
         ['morning', 'afternoon', 'evening'].forEach(slot => {
-            const orders = data.orders.filter(order => order.delivery_time_slot === slot);
+            const orders = data.orders.filter(order => 
+                // Teslimat tarihi kontrolü eklendi
+                order.delivery_time_slot === slot && 
+                order.delivery_date.split(' ')[0] === date
+            );
+            
             const container = document.getElementById(`${slot}-deliveries`);
             
             if (container) {
                 if (orders.length > 0) {
                     container.innerHTML = orders.map(order => `
-                        <div class="card mb-2 border-${order.status === 'delivered' ? 'success' : 'primary'}">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="mb-0">${order.recipient_name}</h6>
-                                    ${getStatusBadge(order.status)}
+                        <div class="card mb-2">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">${order.recipient_name}</h6>
+                                        <div class="small text-muted mb-1">
+                                            <i class="bi bi-geo-alt"></i> ${order.delivery_address}
+                                        </div>
+                                        <div class="small">
+                                            <i class="bi bi-phone"></i> ${order.recipient_phone}
+                                        </div>
+                                        ${order.card_message ? 
+                                            `<div class="small text-primary mt-1">
+                                                <i class="bi bi-chat-quote"></i> ${order.card_message}
+                                            </div>` : ''
+                                        }
+                                    </div>
+                                    <div>
+                                        ${getStatusBadge(order.status)}
+                                    </div>
                                 </div>
-                                <div class="small text-muted mb-1">${order.delivery_address}</div>
-                                <div class="small"><i class="bi bi-telephone"></i> ${order.recipient_phone}</div>
-                                ${order.card_message ? `<div class="small text-primary mt-1"><i class="bi bi-chat-quote"></i> ${order.card_message}</div>` : ''}
                             </div>
                         </div>
                     `).join('');
                 } else {
-                    container.innerHTML = '<div class="text-center text-muted">Teslimat yok</div>';
+                    container.innerHTML = '<div class="text-center text-muted py-3">Bu saatte teslimat yok</div>';
                 }
             }
         });
 
     } catch (error) {
         console.error('Gün verileri yüklenirken hata:', error);
+        showError('Veriler yüklenemedi');
     }
 }
 
