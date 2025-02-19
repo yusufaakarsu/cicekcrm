@@ -287,3 +287,28 @@ body {
     color: #6c757d;
     font-size: 0.875rem;
 }
+
+/* Finans sayfaları için header margin düzeltmesi */
+body[data-page="finance"] #header {
+    margin-bottom: 1rem;
+}
+
+body[data-page="finance"] .container-fluid {
+    padding-top: 4.5rem;  /* Header yüksekliği + extra padding */
+}
+
+/* Finans kartları için ek stiller */
+body[data-page="finance"] .card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: none;
+}
+
+body[data-page="finance"] .card-header {
+    background-color: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+/* Form grupları için margin */
+body[data-page="finance"] .form-group {
+    margin-bottom: 1rem;
+}
