@@ -95,7 +95,7 @@ router.get('/:id/details', async (c) => {
   }
 })
 
-// Filtrelenmiş siparişler - SQL güncellendi
+// Filtrelenmiş siparişler - SQL düzeltildi
 router.get('/filtered', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -107,8 +107,8 @@ router.get('/filtered', async (c) => {
         o.*,
         c.name as customer_name,
         c.phone as customer_phone,
-        a.district as delivery_district,
         GROUP_CONCAT(p.name || ' x' || oi.quantity) as items,
+        a.district as delivery_district,
         COALESCE(o.total_amount, 0) as total_amount,
         COALESCE(o.payment_status, 'pending') as payment_status
       FROM orders o
@@ -117,7 +117,6 @@ router.get('/filtered', async (c) => {
       LEFT JOIN order_items oi ON o.id = oi.order_id
       LEFT JOIN products p ON oi.product_id = p.id
       WHERE o.tenant_id = ?
-      AND o.is_deleted = 0
     `
     
     const params: any[] = [tenant_id]
@@ -128,7 +127,7 @@ router.get('/filtered', async (c) => {
       params.push(status)
     }
 
-    // Tarih filtresi
+    // Tarih filtresi - düzeltildi
     if (date_filter) {
       switch (date_filter) {
         case 'today':
@@ -143,13 +142,16 @@ router.get('/filtered', async (c) => {
         case 'month':
           baseQuery += ` AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', 'now')`
           break
+        case 'custom':
+          if (start_date && end_date) {
+            baseQuery += ` AND DATE(o.delivery_date) BETWEEN DATE(?) AND DATE(?)`
+            // Tarihleri SQLite formatına çevir (YYYY-MM-DD)
+            const startDate = start_date.split(' ')[0]
+            const endDate = end_date.split(' ')[0]
+            params.push(startDate, endDate)
+          }
+          break
       }
-    } else if (start_date && end_date) {
-      baseQuery += ` 
-        AND DATETIME(o.delivery_date) >= DATETIME(?)
-        AND DATETIME(o.delivery_date) <= DATETIME(?)
-      `
-      params.push(start_date, end_date)
     }
 
     // Grup ve sıralama
@@ -157,12 +159,6 @@ router.get('/filtered', async (c) => {
 
     // Sıralama
     switch(sort) {
-      case 'id_asc':
-        baseQuery += ` ORDER BY o.id ASC`
-        break
-      case 'id_desc':
-        baseQuery += ` ORDER BY o.id DESC`
-        break
       case 'date_asc':
         baseQuery += ` ORDER BY o.delivery_date ASC, o.id ASC`
         break
@@ -170,10 +166,10 @@ router.get('/filtered', async (c) => {
         baseQuery += ` ORDER BY o.delivery_date DESC, o.id DESC`
         break
       case 'amount_asc':
-        baseQuery += ` ORDER BY o.total_amount ASC, o.id DESC`
+        baseQuery += ` ORDER BY COALESCE(o.total_amount, 0) ASC, o.id DESC`
         break
       case 'amount_desc':
-        baseQuery += ` ORDER BY o.total_amount DESC, o.id DESC`
+        baseQuery += ` ORDER BY COALESCE(o.total_amount, 0) DESC, o.id DESC`
         break
       default:
         baseQuery += ` ORDER BY o.id DESC`
@@ -186,11 +182,24 @@ router.get('/filtered', async (c) => {
     const offset = (pageNum - 1) * perPage
     params.push(perPage, offset)
 
-    const { results: orders } = await db.prepare(baseQuery).bind(...params).all()
-    const total = await getOrdersCount(db, tenant_id, status, date_filter, start_date, end_date)
+    // Debug log
+    console.log('SQL Query:', baseQuery)
+    console.log('Params:', params)
+
+    const { results } = await db.prepare(baseQuery).bind(...params).all()
+    
+    // Toplam kayıt sayısı için ayrı sorgu
+    const { total } = await db.prepare(`
+      SELECT COUNT(DISTINCT o.id) as total 
+      FROM orders o 
+      WHERE o.tenant_id = ?
+      ${status ? 'AND o.status = ?' : ''}
+      ${date_filter === 'today' ? 'AND DATE(o.delivery_date) = DATE(\'now\')' : ''}
+    `).bind(tenant_id, ...(status ? [status] : [])).first() as any
 
     return c.json({
-      orders: orders || [],
+      success: true,
+      orders: results || [],
       total,
       page: pageNum,
       per_page: perPage,
@@ -198,7 +207,12 @@ router.get('/filtered', async (c) => {
     })
 
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Orders query error:', error)
+    return c.json({ 
+      success: false,
+      error: 'Database error',
+      details: error.message 
+    }, 500)
   }
 })
 

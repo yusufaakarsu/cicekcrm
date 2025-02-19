@@ -68,29 +68,20 @@ async function loadOrders(isInitialLoad = false) {
             params.append('status', status);
         }
 
-        // Tarih filtresi
+        // Tarih filtresi - düzeltildi
         const dateFilter = document.getElementById('dateFilter').value;
         if (dateFilter && dateFilter !== 'all') {
+            params.append('date_filter', dateFilter);
+            
             if (dateFilter === 'custom') {
                 const startDate = document.getElementById('startDate').value;
                 const endDate = document.getElementById('endDate').value;
                 
                 if (startDate && endDate) {
-                    // Tarihleri biçimlendir ve son tarihi günün sonuna ayarla
-                    const formattedStartDate = startDate + ' 00:00:00';
-                    const formattedEndDate = endDate + ' 23:59:59';
-                    
-                    params.append('start_date', formattedStartDate);
-                    params.append('end_date', formattedEndDate);
-                    
-                    // Debug
-                    console.log('Tarih Aralığı:', {
-                        start: formattedStartDate,
-                        end: formattedEndDate
-                    });
+                    // Tarihleri doğru formatta gönder
+                    params.append('start_date', startDate);
+                    params.append('end_date', endDate);
                 }
-            } else {
-                params.append('date_filter', dateFilter);
             }
         }
 
