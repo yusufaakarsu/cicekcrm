@@ -44,3 +44,6 @@ coverage/
 .cache/
 .temp/
 
+# Copilot context files
+.copilot/
+

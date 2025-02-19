@@ -1,3 +1,12 @@
+drop table if exists tenants;
+drop table if exists users;
+drop table if exists tenant_users;
+drop table if exists subscription_plans;
+drop table if exists tenant_subscriptions;
+drop table if exists audit_log;
+drop table if exists tenant_settings;
+drop table if exists delivery_regions;
+
 CREATE TABLE tenants (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,

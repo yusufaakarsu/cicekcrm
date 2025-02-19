@@ -54,3 +54,29 @@ CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_type ON invoices(type);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
 CREATE INDEX IF NOT EXISTS idx_invoices_due_date ON invoices(due_date);
+
+-- İndeksler
+CREATE INDEX IF NOT EXISTS idx_supplier_invoices_tenant ON supplier_invoices(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_supplier_invoices_supplier ON supplier_invoices(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_supplier_invoices_status ON supplier_invoices(payment_status);
+CREATE INDEX IF NOT EXISTS idx_supplier_invoices_dates ON supplier_invoices(invoice_date, due_date);
+
+-- Tedarikçi indeksleri
+CREATE INDEX IF NOT EXISTS idx_suppliers_tenant ON suppliers(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_suppliers_name ON suppliers(name);
+CREATE INDEX IF NOT EXISTS idx_suppliers_phone ON suppliers(phone);
+CREATE INDEX IF NOT EXISTS idx_suppliers_active ON suppliers(is_active);
+
+-- Tedarikçi fatura indeksleri
+CREATE INDEX IF NOT EXISTS idx_supplier_invoices_tenant ON supplier_invoices(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_supplier_invoices_supplier ON supplier_invoices(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_supplier_invoices_status ON supplier_invoices(payment_status);
+CREATE INDEX IF NOT EXISTS idx_supplier_invoices_dates ON supplier_invoices(invoice_date, due_date);
+CREATE INDEX IF NOT EXISTS idx_supplier_invoice_items_invoice ON supplier_invoice_items(supplier_invoice_id);
+CREATE INDEX IF NOT EXISTS idx_supplier_invoice_items_product ON supplier_invoice_items(product_id);
+
+-- Tedarikçi sipariş indeksleri
+CREATE INDEX IF NOT EXISTS idx_supplier_orders_tenant ON supplier_orders(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_supplier_orders_supplier ON supplier_orders(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_supplier_orders_status ON supplier_orders(status);
+CREATE INDEX IF NOT EXISTS idx_supplier_orders_dates ON supplier_orders(order_date, expected_date);

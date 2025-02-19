@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>ÇiçekCRM Veritabanı Detaylı Dokümantasyon</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+        .diagram { margin: 20px 0; background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .table-details { font-size: 0.9em; }
+        .code-block { background: #f8f9fa; padding: 15px; border-radius: 8px; }
+        .nav-pills .nav-link.active { background-color: #0d6efd; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 8px; }
+        .navbar-fixed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1200;
+            background: white;
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px 0;
+        }
+        body { padding-top: 60px; }
+        .table-list { font-size: 0.85em; }
+
+        /* Tam ekran içerik için yeni stiller */
+        .container-fluid {
+            padding-left: 30px;
+            padding-right: 30px;
+        }
+        
+        .navbar-fixed {
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            padding: 15px 30px;
+        }
+        
+        .nav-pills {
+            gap: 10px;
+        }
+        
+        /* Responsive düzenlemeler */
+        @media (max-width: 768px) {
+            .container-fluid {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            
+            .nav-pills {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 5px;
+            }
+            
+            .nav-pills::-webkit-scrollbar {
+                height: 3px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Üst Navigasyon -->
+    <nav class="navbar-fixed">
+        <div class="container-fluid">
+            <ul class="nav nav-pills">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#overview">Genel Bakış</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#core">Temel Tablolar</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#stock">Stok</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#products">Ürünler</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#orders">Siparişler</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#finance">Finans</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#tables">Tablo Detayları</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Ana İçerik - tam genişlik -->
+            <div class="col-12">
+                <!-- Genel Bakış -->
+                <section id="overview">
+                    <h1>ÇiçekCRM Veritabanı Yapısı</h1>
+                    
+                    <!-- Ana ERD Diagramı -->
+                    <div class="diagram mermaid">
+                        erDiagram
+                            %% Core İlişkiler
+                            TENANTS ||--o{ USERS : has
+                            TENANTS ||--o{ TENANT_SETTINGS : configures
+                            TENANTS ||--o{ AUDIT_LOG : tracks
+                            USERS }|--|| ROLES : has
+
+                            %% Ürün ve Stok İlişkileri
+                            TENANTS ||--o{ PRODUCTS : owns
+                            PRODUCTS }|--|| PRODUCT_TYPES : categorized_by
+                            PRODUCTS }|--|| PRODUCT_CATEGORIES : belongs_to
+                            PRODUCTS ||--o{ STOCK_MOVEMENTS : has
+                            PRODUCTS ||--o{ RECIPES : has
+                            RECIPES ||--o{ RECIPE_ITEMS : contains
+                            RECIPE_ITEMS }|--|| PRODUCTS : uses
+                            STOCK_MOVEMENTS }|--|| STOCK_UNITS : measured_in
+                            STOCK_MOVEMENTS }|--|| USERS : created_by
+
+                            %% Müşteri ve Adres İlişkileri
+                            TENANTS ||--o{ CUSTOMERS : manages
+                            CUSTOMERS ||--o{ ADDRESSES : has
+                            CUSTOMERS ||--o{ CUSTOMER_CONTACTS : has
+                            ADDRESSES }|--|| REGIONS : located_in
+                            REGIONS }|--|| CITIES : part_of
+
+                            %% Sipariş İlişkileri
+                            CUSTOMERS ||--o{ ORDERS : places
+                            ORDERS ||--o{ ORDER_ITEMS : contains
+                            ORDERS }|--|| ADDRESSES : delivered_to
+                            ORDERS }|--|| ORDER_STATUS : current_status
+                            ORDER_ITEMS }|--|| PRODUCTS : references
+                            ORDER_ITEMS }|--|| STOCK_UNITS : measured_in
+                            ORDERS ||--o{ ORDER_HISTORY : tracks
+                            ORDER_HISTORY }|--|| USERS : modified_by
+
+                            %% Finans İlişkileri
+                            TENANTS ||--o{ ACCOUNTS : manages
+                            ACCOUNTS ||--o{ TRANSACTIONS : records
+                            TRANSACTIONS }|--|| TRANSACTION_CATEGORIES : classified_as
+                            TRANSACTIONS }|--|| USERS : recorded_by
+                            ORDERS ||--o{ TRANSACTIONS : generates
+                            TRANSACTIONS ||--o{ INVOICES : references
+
+                            %% Tedarikçi İlişkileri
+                            TENANTS ||--o{ SUPPLIERS : works_with
+                            SUPPLIERS ||--o{ SUPPLIER_ORDERS : receives
+                            SUPPLIER_ORDERS ||--o{ PURCHASE_ORDER_ITEMS : contains
+                            SUPPLIER_ORDERS ||--o{ STOCK_MOVEMENTS : generates
+                            SUPPLIERS ||--o{ SUPPLIER_INVOICES : bills
+                            SUPPLIER_INVOICES ||--o{ TRANSACTIONS : creates
+
+                            %% Sayım ve Envanter
+                            TENANTS ||--o{ INVENTORY_COUNTS : performs
+                            INVENTORY_COUNTS ||--o{ INVENTORY_COUNT_ITEMS : lists
+                            INVENTORY_COUNT_ITEMS }|--|| PRODUCTS : counts
+                            INVENTORY_COUNT_ITEMS }|--|| STOCK_UNITS : measured_in
+                            INVENTORY_COUNTS }|--|| USERS : performed_by
+
+                            %% Denetim ve Log
+                            AUDIT_LOG }|--|| USERS : logged_by
+                            AUDIT_LOG ||--o{ AUDIT_LOG_DETAILS : contains
+                    </div>
+
+                    <!-- Temel İstatistikler -->
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5>Toplam Tablo</h5>
+                                    <h2>35+</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Diğer istatistik kartları... -->
+                    </div>
+                </section>
+
+                <!-- Temel Tablolar -->
+                <section id="core" class="mt-5">
+                    <h2>Temel Tablolar (Core)</h2>
+                    
+                    <!-- Tenants Tablosu -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Tenants Tablosu</h4>
+                        </div>
+                        <div class="card-body">
+                            <pre><code>
+CREATE TABLE tenants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    domain TEXT UNIQUE,
+    // ...tablo detayları...
+);
+                            </code></pre>
+                            
+                            <!-- Tenant İlişkileri Diagramı -->
+                            <div class="diagram mermaid">
+                                flowchart TD
+                                    T[Tenants] --> U[Users]
+                                    T --> S[Settings]
+                                    T --> P[Products]
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Diğer Core tablolar... -->
+                </section>
+
+                <!-- Stok Yönetimi -->
+                <section id="stock" class="mt-5">
+                    <h2>Stok Yönetimi (Stock)</h2>
+                    
+                    <!-- Stok Birimleri -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between">
+                            <h4>Stok Birimleri (stock_units)</h4>
+                            <span class="badge bg-primary">Core</span>
+                        </div>
+                        <div class="card-body">
+                            <!-- Birim Dönüşüm Şeması -->
+                            <div class="diagram mermaid">
+                                graph TD
+                                    KG[Kilogram] --> GR[Gram]
+                                    KG --> DKG[Dekagram]
+                                    M[Metre] --> CM[Santimetre]
+                                    M --> MM[Milimetre]
+                                    BUN[Demet] --> HBUN[Yarım Demet]
+                                    PCS[Adet] --> DOZ[Düzine]
+                            </div>
+
+                            <!-- Örnek Birim Dönüşümleri -->
+                            <div class="table-responsive mt-4">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Ana Birim</th>
+                                            <th>Dönüşüm Birimi</th>
+                                            <th>Oran</th>
+                                            <th>Örnek</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Kilogram (KG)</td>
+                                            <td>Gram (GR)</td>
+                                            <td>1:1000</td>
+                                            <td>1 KG = 1000 GR</td>
+                                        </tr>
+                                        <!-- ...diğer dönüşümler... -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stok Hareketleri -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Stok Hareketleri (stock_movements)</h4>
+                        </div>
+                        <div class="card-body">
+                            <!-- Hareket Akış Diagramı -->
+                            <div class="diagram mermaid">
+                                stateDiagram-v2
+                                    [*] --> IN: Stok Girişi
+                                    IN --> ADJUSTED: Sayım Düzeltmesi
+                                    IN --> STORED: Depoya Alındı
+                                    STORED --> OUT: Stok Çıkışı
+                                    OUT --> SOLD: Satış
+                                    OUT --> WASTE: Fire
+                                    OUT --> USED: Üretimde Kullanıldı
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sayım Sistemi -->
+                    <div class="card mb-4">
+                        <!-- ...sayım detayları... -->
+                    </div>
+                </section>
+
+                <!-- Ürün Yönetimi -->
+                <section id="products" class="mt-5">
+                    <h2>Ürün Yönetimi (Products)</h2>
+                    
+                    <!-- Ürün Kategori Yapısı -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Ürün Kategorileri</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                graph TD
+                                    A[Tüm Ürünler] --> B[Kesme Çiçekler]
+                                    A --> C[Saksı Bitkileri]
+                                    A --> D[Buketler]
+                                    B --> E[Güller]
+                                    B --> F[Papatyalar]
+                                    C --> G[İç Mekan]
+                                    C --> H[Dış Mekan]
+                                    D --> I[Gül Buketleri]
+                                    D --> J[Karma Buketler]
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reçete Sistemi -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Reçete Yapısı</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                classDiagram
+                                    class Recipe {
+                                        +String name
+                                        +Float base_cost
+                                        +Int preparation_time
+                                        +calculateTotalCost()
+                                    }
+                                    class RecipeItem {
+                                        +Int product_id
+                                        +Float quantity
+                                        +Boolean is_optional
+                                    }
+                                    Recipe "1" --> "*" RecipeItem
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Malzeme Takibi -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Malzeme-Reçete İlişkisi</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                graph TD
+                                    A[Kırmızı Gül Buketi] --> B[Kırmızı Gül x12]
+                                    A --> C[Yeşillik]
+                                    A --> D[Kurdele]
+                                    A --> E[Ambalaj]
+                                    style A fill:#f9f,stroke:#333
+                                    style B fill:#bbf,stroke:#333
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sipariş Yönetimi -->
+                <section id="orders" class="mt-5">
+                    <h2>Sipariş Yönetimi (Orders)</h2>
+                    
+                    <!-- Sipariş Durumları -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Sipariş Akışı</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                stateDiagram-v2
+                                    [*] --> NEW: Yeni Sipariş
+                                    NEW --> CONFIRMED: Onaylama
+                                    CONFIRMED --> PREPARING: Hazırlanıyor
+                                    PREPARING --> READY: Hazır
+                                    READY --> DELIVERING: Dağıtımda
+                                    DELIVERING --> DELIVERED: Teslim Edildi
+                                    DELIVERED --> [*]
+                                    NEW --> CANCELLED: İptal
+                                    CONFIRMED --> CANCELLED: İptal
+                                    style DELIVERED fill:#9f9,stroke:#333
+                                    style CANCELLED fill:#f99,stroke:#333
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Finans Yönetimi -->
+                <section id="finance" class="mt-5">
+                    <h2>Finans Yönetimi (Finance)</h2>
+                    
+                    <!-- Hesap Yapısı -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Hesap Sistemi</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                classDiagram
+                                    class Account {
+                                        +String name
+                                        +String type
+                                        +Float initial_balance
+                                        +Float current_balance
+                                        +Boolean allow_negative
+                                    }
+                                    class Transaction {
+                                        +String type
+                                        +Float amount
+                                        +DateTime date
+                                        +String description
+                                    }
+                                    Account "1" --> "*" Transaction
+                            </div>
+
+                            <!-- Hesap Tipleri Tablosu -->
+                            <div class="table-responsive mt-4">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Tip</th>
+                                            <th>Açıklama</th>
+                                            <th>Özellikler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>cash</td>
+                                            <td>Nakit Kasa</td>
+                                            <td>Günlük tahsilat/ödeme</td>
+                                        </tr>
+                                        <tr>
+                                            <td>bank</td>
+                                            <td>Banka Hesabı</td>
+                                            <td>IBAN/Hesap No</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- İşlem Kategorileri -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Kategori Ağacı</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                graph TD
+                                    IN[Gelirler] --> SALES[Satışlar]
+                                    IN --> REFUNDS[Alınan İadeler]
+                                    OUT[Giderler] --> PURCHASE[Alımlar]
+                                    OUT --> SALARY[Maaşlar]
+                                    OUT --> RENT[Kira]
+                                    style IN fill:#9f9,stroke:#333
+                                    style OUT fill:#f99,stroke:#333
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tedarikçi Yönetimi -->
+                <section id="suppliers" class="mt-5">
+                    <h2>Tedarikçi Yönetimi</h2>
+
+                    <!-- Tedarikçi İlişkileri -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Tedarikçi-Sipariş İlişkisi</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                erDiagram
+                                    SUPPLIERS ||--o{ SUPPLIER_ORDERS : places
+                                    SUPPLIERS ||--o{ SUPPLIER_INVOICES : bills
+                                    SUPPLIER_ORDERS ||--|{ PURCHASE_ORDER_ITEMS : contains
+                                    SUPPLIER_ORDERS ||--o{ STOCK_MOVEMENTS : generates
+                                    SUPPLIER_INVOICES ||--o{ TRANSACTIONS : creates
+                            </div>
+
+                            <!-- Sipariş Durumları -->
+                            <div class="diagram mermaid mt-4">
+                                stateDiagram-v2
+                                    [*] --> DRAFT: Oluştur
+                                    DRAFT --> ORDERED: Sipariş Ver
+                                    ORDERED --> PARTIAL: Kısmi Teslimat
+                                    ORDERED --> RECEIVED: Tam Teslimat
+                                    PARTIAL --> RECEIVED: Tamamla
+                                    DRAFT --> CANCELLED: İptal
+                                    ORDERED --> CANCELLED: İptal
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="security" class="mt-5">
+                    <h2>Güvenlik ve Denetim</h2>
+                    
+                    <!-- Tenant İzolasyonu -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Multi-Tenant Güvenlik</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                flowchart TB
+                                    subgraph Tenant 1
+                                        U1[Users] --> D1[Data]
+                                        S1[Settings] --> D1
+                                    end
+                                    subgraph Tenant 2
+                                        U2[Users] --> D2[Data]
+                                        S2[Settings] --> D2
+                                    end
+                                    style Tenant1 fill:#e6f3ff
+                                    style Tenant2 fill:#e6fff3
+                            </div>
+
+                            <div class="table-responsive mt-4">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Güvenlik Katmanı</th>
+                                            <th>Açıklama</th>
+                                            <th>Örnek</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Veri İzolasyonu</td>
+                                            <td>Her kayıt tenant_id ile ilişkili</td>
+                                            <td>WHERE tenant_id = ?</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Yetkilendirme</td>
+                                            <td>Role dayalı erişim kontrolü</td>
+                                            <td>user.role = 'admin'</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audit Log -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>İşlem Denetimi (Audit)</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                sequenceDiagram
+                                    participant U as User
+                                    participant A as App
+                                    participant D as Database
+                                    participant L as Audit Log
+                                    U->>A: İşlem Talebi
+                                    A->>D: Veri Değişikliği
+                                    A->>L: Değişiklik Kaydı
+                                    Note over L: Eski/Yeni Değerler
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="reporting" class="mt-5">
+                    <h2>Raporlama Sistemi</h2>
+                    
+                    <!-- Satış Analitiği -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Satış Metrikleri</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                graph LR
+                                    O[Orders] --> D[Daily]
+                                    O --> W[Weekly]
+                                    O --> M[Monthly]
+                                    D --> KPI[KPI Dashboard]
+                                    W --> KPI
+                                    M --> KPI
+                            </div>
+
+                            <!-- Örnek SQL Sorguları -->
+                            <pre class="mt-4"><code>
+-- Günlük satış raporu
+SELECT 
+    DATE(created_at) as sale_date,
+    COUNT(*) as total_orders,
+    SUM(total_amount) as revenue
+FROM orders
+WHERE tenant_id = ? 
+GROUP BY DATE(created_at)
+            </code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="customers" class="mt-5">
+                    <h2>Müşteri Yönetimi</h2>
+                    
+                    <!-- Müşteri Yapısı -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Müşteri Hiyerarşisi</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                classDiagram
+                                    class Customer {
+                                        +String name
+                                        +String type
+                                        +String phone
+                                        +String email
+                                        +updateStats()
+                                    }
+                                    class Address {
+                                        +String label
+                                        +String city
+                                        +String district
+                                        +Float lat
+                                        +Float lng
+                                    }
+                                    class CustomerContact {
+                                        +String name
+                                        +String phone
+                                        +Boolean is_primary
+                                    }
+                                    Customer "1" --> "*" Address
+                                    Customer "1" --> "*" CustomerContact
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Adres Sistemi -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Teslimat Adresleri</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                graph TD
+                                    C[Müşteri] --> H[Ev Adresi]
+                                    C --> W[İş Adresi]
+                                    C --> O[Diğer]
+                                    H --> HD[Teslimat]
+                                    W --> WD[Teslimat]
+                                    O --> OD[Teslimat]
+                                    HD --> R[Bölge Kontrolü]
+                                    WD --> R
+                                    OD --> R
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="delivery" class="mt-5">
+                    <h2>Teslimat Yönetimi</h2>
+                    
+                    <!-- Teslimat Bölgeleri -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Bölge Yapılandırması</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="diagram mermaid">
+                                graph TD
+                                    IST[İstanbul] --> EUR[Avrupa Yakası]
+                                    IST --> ASIA[Anadolu Yakası]
+                                    EUR --> BES[Beşiktaş]
+                                    EUR --> SIS[Şişli]
+                                    ASIA --> KAD[Kadıköy]
+                                    ASIA --> USK[Üsküdar]
+                                    style IST fill:#f9f,stroke:#333
+                                    style EUR fill:#bbf,stroke:#333
+                                    style ASIA fill:#bbf,stroke:#333
+                            </div>
+
+                            <!-- Bölge Ayarları Tablosu -->
+                            <div class="table-responsive mt-4">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Bölge</th>
+                                            <th>Min. Tutar</th>
+                                            <th>Teslimat Ücreti</th>
+                                            <th>Süre</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Beşiktaş</td>
+                                            <td>₺150</td>
+                                            <td>₺50</td>
+                                            <td>1-2 saat</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="tables" class="mt-5">
+                    <h2>Veritabanı Tablo Detayları</h2>
+
+                    <!-- Tablo Listesi -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Sistem Tabloları</h4>
+                        </div>
+                        <div class="card-body">
+                            <h5>Core/Tenant Tabloları</h5>
+                            <ul>
+                                <li>tenants - Firma/şube kayıtları</li>
+                                <li>tenant_settings - Firma ayarları</li>
+                                <li>tenant_users - Firma kullanıcı ilişkileri</li>
+                                <li>tenant_subscriptions - Firma abonelik bilgileri</li>
+                                <li>subscription_plans - Abonelik planları</li>
+                                <li>users - Kullanıcılar</li>
+                                <li>audit_log - Denetim kayıtları</li>
+                            </ul>
+
+                            <h5>Stok/Ürün Tabloları</h5>
+                            <ul>
+                                <li>products - Ürünler</li>
+                                <li>product_categories - Ürün kategorileri</li>
+                                <li>product_types - Ürün tipleri</li>
+                                <li>stock_units - Stok birimleri</li>
+                                <li>stock_movements - Stok hareketleri</li>
+                                <li>recipes - Ürün reçeteleri</li>
+                                <li>recipe_items - Reçete malzemeleri</li>
+                                <li>recipe_categories - Reçete kategorileri</li>
+                                <li>recipe_costs - Reçete maliyet kayıtları</li>
+                            </ul>
+
+                            <h5>Müşteri/Sipariş Tabloları</h5>
+                            <ul>
+                                <li>customers - Müşteriler</li>
+                                <li>customer_contacts - Müşteri iletişim bilgileri</li>
+                                <li>customer_preferences - Müşteri tercihleri</li>
+                                <li>addresses - Adresler</li>
+                                <li>delivery_regions - Teslimat bölgeleri</li>
+                                <li>orders - Siparişler</li>
+                                <li>order_items - Sipariş kalemleri</li>
+                                <li>order_recipes - Sipariş reçeteleri</li>
+                                <li>order_recipe_items - Sipariş reçete detayları</li>
+                            </ul>
+
+                            <h5>Tedarikçi/Alım Tabloları</h5>
+                            <ul>
+                                <li>suppliers - Tedarikçiler</li>
+                                <li>supplier_orders - Tedarikçi siparişleri</li>
+                                <li>purchase_orders - Alım siparişleri</li>
+                                <li>purchase_order_items - Alım sipariş kalemleri</li>
+                                <li>supplier_invoices - Tedarikçi faturaları</li>
+                                <li>supplier_invoice_items - Tedarikçi fatura kalemleri</li>
+                            </ul>
+
+                            <h5>Finans Tabloları</h5>
+                            <ul>
+                                <li>accounts - Hesaplar</li>
+                                <li>transactions - İşlemler</li>
+                                <li>transaction_categories - İşlem kategorileri</li>
+                                <li>invoices - Faturalar</li>
+                            </ul>
+
+                            <h5>Envanter Tabloları</h5>
+                            <ul>
+                                <li>inventory_counts - Stok sayımları</li>
+                                <li>inventory_count_items - Sayım detayları</li>
+                            </ul>
+
+                            <h5>Sistem Tabloları</h5>
+                            <ul>
+                                <li>_cf_KV - Cloudflare KV store</li>
+                                <li>sqlite_sequence - SQLite sequence</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Trigger Listesi -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Sistem Trigger'ları</h4>
+                        </div>
+                        <div class="card-body">
+                            <h5>Stok Trigger'ları</h5>
+                            <ul>
+                                <li>trg_stock_movement_update - Stok miktarı güncelleme</li>
+                                <li>trg_check_stock_availability - Stok kontrolü</li>
+                                <li>trg_update_product_last_price - Son fiyat güncelleme</li>
+                            </ul>
+
+                            <h5>Finans Trigger'ları</h5>
+                            <ul>
+                                <li>trg_update_account_balance - Hesap bakiyesi güncelleme</li>
+                                <li>trg_check_account_limit - Limit kontrolü</li>
+                            </ul>
+
+                            <h5>Denetim Trigger'ları</h5>
+                            <ul>
+                                <li>trg_audit_data_changes - Veri değişikliği kaydı</li>
+                                <li>trg_audit_login_attempts - Giriş denemeleri kaydı</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- View Listesi -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4>Sistem View'ları</h4>
+                        </div>
+                        <div class="card-body">
+                            <h5>Raporlama View'ları</h5>
+                            <ul>
+                                <li>vw_daily_sales - Günlük satış raporu</li>
+                                <li>vw_product_stock_status - Ürün stok durumu</li>
+                                <li>vw_customer_orders - Müşteri sipariş geçmişi</li>
+                                <li>vw_financial_summary - Finansal özet</li>
+                            </ul>
+
+                            <h5>Operasyonel View'lar</h5>
+                            <ul>
+                                <li>vw_active_orders - Aktif siparişler</li>
+                                <li>vw_low_stock_products - Kritik stok ürünleri</li>
+                                <li>vw_overdue_payments - Geciken ödemeler</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            flowchart: {
+                curve: 'basis'
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

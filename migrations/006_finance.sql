@@ -4,6 +4,7 @@ drop table if exists transaction_categories;
 drop table if exists transactions;
 drop table if exists invoices;
 
+-- Finansal hesaplar
 CREATE TABLE accounts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tenant_id INTEGER NOT NULL,
@@ -23,18 +24,26 @@ CREATE TABLE accounts (
     FOREIGN KEY (tenant_id) REFERENCES tenants(id)
 );
 
--- İşlem kategorileri tablosu
+-- İşlem kategorileri
 CREATE TABLE transaction_categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tenant_id INTEGER NOT NULL,
     name TEXT NOT NULL,                          -- Kategori adı
     type TEXT CHECK(type IN ('in','out')) NOT NULL, -- Giriş/Çıkış
     parent_id INTEGER,                           -- Üst kategori
-    color TEXT DEFAULT '#666666',                -- Renk kodu
+    color TEXT DEFAULT '#6c757d',                -- Renk kodu
+    is_active BOOLEAN DEFAULT 1,                 -- Aktif/Pasif
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (parent_id) REFERENCES transaction_categories(id)
 );
+
+-- Varsayılan kategorileri ekle
+INSERT INTO transaction_categories (tenant_id, name, type) VALUES 
+(1, 'Satış Gelirleri', 'in'),
+(1, 'Tedarikçi Ödemeleri', 'out'),
+(1, 'İadeler', 'out'),
+(1, 'Tedarikçi İadeleri', 'in');
 
 -- İşlemler tablosu
 CREATE TABLE transactions (
