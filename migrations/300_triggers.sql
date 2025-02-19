@@ -15,7 +15,7 @@ BEGIN
     WHERE id = NEW.product_id;
 END;
 
--- Sipariş durum güncellemesi
+-- Sipariş durum güncellemesi - düzeltildi
 CREATE TRIGGER trg_order_status_log
 AFTER UPDATE OF status ON orders
 FOR EACH ROW
@@ -24,7 +24,7 @@ BEGIN
         tenant_id,
         table_name,
         record_id,
-        action,
+        action,        -- operation değil action kullanıyoruz
         old_data,
         new_data
     ) VALUES (
@@ -37,11 +37,26 @@ BEGIN
     );
 END;
 
--- Sipariş durumu güncellendiğinde audit log
-CREATE TRIGGER audit_orders_status AFTER UPDATE ON orders 
-WHEN OLD.status != NEW.status BEGIN
-    INSERT INTO audit_log (table_name, record_id, operation, old_data, new_data)
-    VALUES ('orders', OLD.id, 'STATUS_CHANGE', OLD.status, NEW.status);
+-- Sipariş durumu güncellendiğinde audit log - düzeltildi
+CREATE TRIGGER audit_orders_status 
+AFTER UPDATE ON orders 
+WHEN OLD.status != NEW.status 
+BEGIN
+    INSERT INTO audit_log (
+        tenant_id,
+        table_name, 
+        record_id, 
+        action,      -- operation değil action kullanıyoruz
+        old_data, 
+        new_data
+    ) VALUES (
+        NEW.tenant_id,
+        'orders', 
+        OLD.id, 
+        'STATUS_CHANGE',
+        json_object('status', OLD.status),
+        json_object('status', NEW.status)
+    );
 END;
 
 -- Teslimat tarihi değiştiğinde kontrol
@@ -99,4 +114,13 @@ CREATE TRIGGER soft_delete_customer_cascade AFTER UPDATE ON customers
 WHEN NEW.is_deleted = 1 AND OLD.is_deleted = 0 BEGIN
     UPDATE addresses SET is_deleted = 1 WHERE customer_id = OLD.id;
     UPDATE orders SET is_deleted = 1 WHERE customer_id = OLD.id;
+END;
+
+-- Orders tablosundaki durum güncellemesi tetikleyicisini ekle
+CREATE TRIGGER update_orders_timestamp
+AFTER UPDATE ON orders
+BEGIN
+    UPDATE orders 
+    SET updated_at = CURRENT_TIMESTAMP
+    WHERE id = NEW.id;
 END;

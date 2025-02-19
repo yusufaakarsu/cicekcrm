@@ -2,26 +2,30 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// Tüm siparişleri listele
+// Tüm siparişleri listele - SQL güncellendi
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
   try {
     const { results } = await db.prepare(`
-      SELECT o.*, 
-             c.name as customer_name,
-             c.phone as customer_phone,
-             GROUP_CONCAT(oi.quantity || 'x ' || p.name) as items_list,
-             o.delivery_time_slot,
-             DATE(o.delivery_date) as delivery_date
+      SELECT 
+        o.*,
+        c.name as customer_name,
+        c.phone as customer_phone,
+        GROUP_CONCAT(p.name || ' x' || oi.quantity) as items_list,
+        a.district as delivery_district,
+        a.city as delivery_city,
+        COALESCE(o.total_amount, 0) as total_amount,
+        COALESCE(o.payment_status, 'pending') as payment_status
       FROM orders o
-      LEFT JOIN customers c ON o.customer_id = c.id
+      LEFT JOIN customers c ON o.customer_id = c.id 
+      LEFT JOIN addresses a ON o.delivery_address_id = a.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       LEFT JOIN products p ON oi.product_id = p.id
       WHERE o.tenant_id = ?
       GROUP BY o.id
-      ORDER BY o.delivery_date DESC
+      ORDER BY o.created_at DESC
     `).bind(tenant_id).all()
     
     return c.json(results)
@@ -49,7 +53,7 @@ router.get('/today', async (c) => {
   }
 })
 
-// Sipariş detayları
+// Sipariş detayları - SQL güncellendi 
 router.get('/:id/details', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -61,26 +65,23 @@ router.get('/:id/details', async (c) => {
         o.*,
         c.name as customer_name,
         c.phone as customer_phone,
-        a.label as delivery_address,
-        a.city as delivery_city,
         a.district as delivery_district,
+        a.city as delivery_city,
         a.street as delivery_street,
-        a.building_no,
-        a.postal_code,
-        GROUP_CONCAT(oi.quantity || 'x ' || p.name) as items,
-        CASE 
-          WHEN o.payment_method = 'credit_card' THEN 'Kredi Kartı'
-          WHEN o.payment_method = 'bank_transfer' THEN 'Havale/EFT'
-          WHEN o.payment_method = 'cash' THEN 'Nakit'
-          ELSE o.payment_method 
-        END as payment_method_text
+        GROUP_CONCAT(
+          p.name || ' x' || oi.quantity || 
+          CASE WHEN oi.notes IS NOT NULL THEN ' (' || oi.notes || ')' ELSE '' END
+        ) as items,
+        COALESCE(o.total_amount, 0) as total_amount,
+        COALESCE(o.payment_status, 'pending') as payment_status,
+        COALESCE(o.delivery_fee, 0) as delivery_fee,
+        COALESCE(o.discount_amount, 0) as discount_amount
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       LEFT JOIN addresses a ON o.delivery_address_id = a.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       LEFT JOIN products p ON oi.product_id = p.id
-      WHERE o.id = ?
-      AND o.tenant_id = ?
+      WHERE o.id = ? AND o.tenant_id = ?
       GROUP BY o.id
     `).bind(id, tenant_id).first()
 
@@ -94,7 +95,7 @@ router.get('/:id/details', async (c) => {
   }
 })
 
-// Filtrelenmiş siparişler 
+// Filtrelenmiş siparişler - SQL güncellendi
 router.get('/filtered', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -107,14 +108,16 @@ router.get('/filtered', async (c) => {
         c.name as customer_name,
         c.phone as customer_phone,
         a.district as delivery_district,
-        a.street as delivery_street,
-        GROUP_CONCAT(p.name || ' x' || oi.quantity) as items
+        GROUP_CONCAT(p.name || ' x' || oi.quantity) as items,
+        COALESCE(o.total_amount, 0) as total_amount,
+        COALESCE(o.payment_status, 'pending') as payment_status
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       LEFT JOIN addresses a ON o.delivery_address_id = a.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       LEFT JOIN products p ON oi.product_id = p.id
       WHERE o.tenant_id = ?
+      AND o.is_deleted = 0
     `
     
     const params: any[] = [tenant_id]
@@ -142,14 +145,24 @@ router.get('/filtered', async (c) => {
           break
       }
     } else if (start_date && end_date) {
-      baseQuery += ` AND DATE(o.delivery_date) BETWEEN DATE(?) AND DATE(?)`
+      baseQuery += ` 
+        AND DATETIME(o.delivery_date) >= DATETIME(?)
+        AND DATETIME(o.delivery_date) <= DATETIME(?)
+      `
       params.push(start_date, end_date)
     }
 
+    // Grup ve sıralama
     baseQuery += ` GROUP BY o.id`
 
     // Sıralama
     switch(sort) {
+      case 'id_asc':
+        baseQuery += ` ORDER BY o.id ASC`
+        break
+      case 'id_desc':
+        baseQuery += ` ORDER BY o.id DESC`
+        break
       case 'date_asc':
         baseQuery += ` ORDER BY o.delivery_date ASC, o.id ASC`
         break
@@ -157,10 +170,10 @@ router.get('/filtered', async (c) => {
         baseQuery += ` ORDER BY o.delivery_date DESC, o.id DESC`
         break
       case 'amount_asc':
-        baseQuery += ` ORDER BY o.total_amount ASC`
+        baseQuery += ` ORDER BY o.total_amount ASC, o.id DESC`
         break
       case 'amount_desc':
-        baseQuery += ` ORDER BY o.total_amount DESC`
+        baseQuery += ` ORDER BY o.total_amount DESC, o.id DESC`
         break
       default:
         baseQuery += ` ORDER BY o.id DESC`
@@ -170,34 +183,22 @@ router.get('/filtered', async (c) => {
     baseQuery += ` LIMIT ? OFFSET ?`
     const pageNum = parseInt(page)
     const perPage = parseInt(per_page)
-    params.push(perPage, (pageNum - 1) * perPage)
+    const offset = (pageNum - 1) * perPage
+    params.push(perPage, offset)
 
-    // Toplam kayıt sayısı
-    const countQuery = baseQuery.replace(
-      'SELECT o.*, c.name', 
-      'SELECT COUNT(DISTINCT o.id) as total'
-    )
-    const { total } = await db.prepare(countQuery).bind(...params).first() as any
-
-    // Kayıtları getir
-    const orders = await db.prepare(baseQuery).bind(...params).all()
+    const { results: orders } = await db.prepare(baseQuery).bind(...params).all()
+    const total = await getOrdersCount(db, tenant_id, status, date_filter, start_date, end_date)
 
     return c.json({
-      success: true,
-      orders: orders.results,
-      total: total,
+      orders: orders || [],
+      total,
       page: pageNum,
       per_page: perPage,
       total_pages: Math.ceil(total / perPage)
     })
 
   } catch (error) {
-    console.error('Orders query error:', error)
-    return c.json({ 
-      success: false, 
-      error: 'Database error',
-      details: error.message 
-    }, 500)
+    return c.json({ error: 'Database error' }, 500)
   }
 })
 
@@ -212,7 +213,7 @@ router.put('/:id/status', async (c) => {
     await db.prepare(`
       UPDATE orders 
       SET status = ?,
-          updated_at = DATETIME('now')
+          updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
       AND tenant_id = ?
     `).bind(status, id, tenant_id).run()
@@ -424,7 +425,7 @@ router.post('/', async (c) => {
   }
 });
 
-// Helper function: Sipariş sayısını getir
+// Helper function: Sipariş sayısını getir - SQL güncellendi
 async function getOrdersCount(db: D1Database, tenant_id: number, status?: string, date_filter?: string, start_date?: string, end_date?: string) {
   let countQuery = `
     SELECT COUNT(DISTINCT o.id) as total 
