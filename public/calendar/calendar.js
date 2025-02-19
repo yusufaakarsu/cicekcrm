@@ -295,6 +295,16 @@ async function loadDayData() {
     }
 }
 
+// Teslimat saati formatı
+function formatTimeSlot(slot) {
+    const slots = {
+        'morning': 'Sabah (09:00-12:00)',
+        'afternoon': 'Öğlen (12:00-17:00)',
+        'evening': 'Akşam (17:00-21:00)'
+    };
+    return slots[slot] || slot;
+}
+
 // Sipariş detaylarını göster fonksiyonu - Eklendi
 async function showOrderDetails(orderId) {
     try {
@@ -305,24 +315,45 @@ async function showOrderDetails(orderId) {
         
         // Modal içeriğini doldur
         document.querySelector('.delivery-info').innerHTML = `
-            <h6>Teslimat Bilgileri</h6>
-            <p>${formatDate(order.delivery_date)} - ${formatTimeSlot(order.delivery_time_slot)}</p>
-            <p>${order.delivery_address}</p>
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h6 class="mb-2">Teslimat Bilgileri</h6>
+                    <div class="text-muted mb-1">${formatDate(order.delivery_date)}</div>
+                    <div class="text-primary">${formatTimeSlot(order.delivery_time_slot)}</div>
+                </div>
+                <div class="text-end">
+                    ${getStatusBadge(order.status)}
+                </div>
+            </div>
+            <div class="small">
+                <i class="bi bi-geo-alt"></i> ${order.delivery_address}
+            </div>
         `;
         
         document.querySelector('.customer-info').innerHTML = `
-            <h6>Alıcı Bilgileri</h6>
-            <p>${order.recipient_name}</p>
-            <p>${order.recipient_phone}</p>
-            ${order.card_message ? `<p class="text-primary">"${order.card_message}"</p>` : ''}
+            <h6 class="mb-2">Alıcı Bilgileri</h6>
+            <div class="mb-1">
+                <i class="bi bi-person"></i> ${order.recipient_name}
+            </div>
+            <div class="mb-1">
+                <i class="bi bi-phone"></i> ${formatPhoneNumber(order.recipient_phone)}
+            </div>
+            ${order.card_message ? `
+                <div class="mt-2 p-2 bg-light rounded">
+                    <i class="bi bi-chat-quote text-primary"></i> ${order.card_message}
+                </div>` : ''
+            }
         `;
         
         document.querySelector('.order-items').innerHTML = `
-            <h6>Sipariş Detayı</h6>
-            <p>${order.items}</p>
-            <div class="d-flex justify-content-between">
-                <span>Durum: ${getStatusBadge(order.status)}</span>
-                <span>Toplam: ${formatCurrency(order.total_amount)}</span>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Sipariş Detayı</h6>
+                <span class="h6 mb-0">${formatCurrency(order.total_amount)}</span>
+            </div>
+            <div class="list-group list-group-flush small">
+                ${order.items.split(',').map(item => `
+                    <div class="list-group-item px-0">${item.trim()}</div>
+                `).join('')}
             </div>
         `;
 
