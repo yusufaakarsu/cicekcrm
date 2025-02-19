@@ -4,6 +4,8 @@ CREATE TABLE customers (
     name TEXT NOT NULL,
     email TEXT,
     phone TEXT NOT NULL,
+    city TEXT,
+    district TEXT,
     customer_type TEXT CHECK(customer_type IN ('retail','corporate')) DEFAULT 'retail',
     tax_number TEXT,
     company_name TEXT,

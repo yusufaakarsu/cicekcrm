@@ -16,6 +16,7 @@ CREATE TABLE suppliers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tenant_id INTEGER NOT NULL,
     name TEXT NOT NULL,
+    contact_name TEXT,
     email TEXT,
     phone TEXT,
     address TEXT,

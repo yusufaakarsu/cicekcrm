@@ -1,26 +1,26 @@
 # Core schema yükle
-wrangler d1 execute ccrm-db --remote --file=./migrations/001_core_schema.sql --remote
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/001_core_schema.sql
 
 # Stok ve ürün tabloları 
-wrangler d1 execute ccrm-db --remote --file=./migrations/002_stock.sql --remote
-wrangler d1 execute ccrm-db --remote --file=./migrations/003_products.sql --remote
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/002_stock.sql 
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/003_products.sql 
 
 # Müşteri ve sipariş tabloları
-wrangler d1 execute ccrm-db --remote --file=./migrations/004_customers.sql --remote
-wrangler d1 execute ccrm-db --remote --file=./migrations/005_orders.sql --remote
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/004_customers.sql 
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/005_orders.sql 
 
 # İndeksler yükle
-wrangler d1 execute ccrm-db --remote --file=./migrations/100_indexes.sql --remote
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/100_indexes.sql
 
 # View'ları yükle 
-wrangler d1 execute ccrm-db --remote --file=./migrations/200_views.sql --remote
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/200_views.sql 
 
 # Trigger'ları yükle
-wrangler d1 execute ccrm-db --remote --file=./migrations/300_triggers.sql --remote
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/300_triggers.sql 
 
 # Örnek verileri yükle (opsiyonel - sadece development için)
-wrangler d1 execute ccrm-db --remote --file=./migrations/401_seed_base.sql --remote
-wrangler d1 execute ccrm-db --remote --file=./migrations/402_seed_regions.sql --remote  
-wrangler d1 execute ccrm-db --remote --file=./migrations/403_seed_customers.sql --remote
-wrangler d1 execute ccrm-db --remote --file=./migrations/404_seed_products.sql --remote
-wrangler d1 execute ccrm-db --remote --file=./migrations/405_seed_orders.sql --remote
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/401_seed_base.sql
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/402_seed_regions.sql   
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/403_seed_customers.sql 
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/404_seed_products.sql 
+wrangler d1 execute cicek-crm-db --remote --file=/Users/yusuf/Downloads/kod/CCRM/migrations/405_seed_orders.sql 

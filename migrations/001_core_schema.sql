@@ -2,8 +2,8 @@ CREATE TABLE tenants (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     domain TEXT UNIQUE,
-    settings TEXT,  -- JSON ayarlar
     company_name TEXT,
+    contact_email TEXT, 
     logo_url TEXT,
     primary_color TEXT DEFAULT '#0d6efd',
     language TEXT DEFAULT 'tr',
