@@ -288,7 +288,7 @@ body {
     font-size: 0.875rem;
 }
 
-/* Teslimat slotları için yeni stil */
+/* Teslimat slotları için güncellenen stiller */
 .delivery-slots {
     display: flex;
     flex-direction: column;
@@ -301,16 +301,22 @@ body {
 .delivery-slots > div {
     padding: 0.25rem;
     font-size: 0.9rem;
+    transition: background-color 0.2s;
 }
 
-.delivery-slots span {
-    font-size: 1rem;
+.delivery-slots > div:hover {
+    background-color: var(--bs-gray-100);
+    border-radius: 0.25rem;
 }
 
 .delivery-count {
     font-weight: 500;
     min-width: 1.5rem;
     text-align: right;
+}
+
+.delivery-slots .bi {
+    font-size: 1.1rem;
 }
 
 /* Hover efekti */

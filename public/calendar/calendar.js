@@ -77,25 +77,7 @@ function renderMonthView() {
     const firstDay = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1);
     const lastDay = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0);
 
-    let html = `
-        <div class="delivery-legend p-3">
-            <div class="d-flex justify-content-center gap-4">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-warning">Sabah</span>
-                    <small>09:00-12:00</small>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-info">Öğlen</span>
-                    <small>12:00-17:00</small>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-success">Akşam</span>
-                    <small>17:00-21:00</small>
-                </div>
-            </div>
-        </div>
-        <div class="calendar-grid p-3">
-    `;
+    let html = '<div class="calendar-grid p-3">';
 
     // Günleri oluştur
     for (let i = 1; i <= lastDay.getDate(); i++) {
@@ -109,18 +91,19 @@ function renderMonthView() {
                         <div class="day-number">${i}</div>
                         <div class="day-name">${formatDayName(date)}</div>
                     </div>
+                    <span class="badge rounded-pill bg-light text-dark total-orders">0</span>
                 </div>
                 <div class="delivery-slots">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span>🌅</span>
+                        <span><i class="bi bi-sunrise text-warning"></i></span>
                         <span class="delivery-count">0</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <span>☀️</span>
+                        <span><i class="bi bi-sun text-info"></i></span>
                         <span class="delivery-count">0</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <span>🌙</span>
+                        <span><i class="bi bi-moon text-success"></i></span>
                         <span class="delivery-count">0</span>
                     </div>
                 </div>
@@ -196,23 +179,17 @@ async function loadMonthData() {
     try {
         const startDate = formatDateISO(new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1));
         const endDate = formatDateISO(new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0));
-        
-        console.log('Tarih aralığı:', startDate, endDate);
 
-        // date_filter parametresi ekleyelim
         const response = await fetch(`${API_URL}/orders/filtered?start_date=${startDate}&end_date=${endDate}&per_page=1000&date_filter=month`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
-        console.log('API yanıtı:', data.orders.length, 'sipariş bulundu'); // Debug
-
+        
         // Siparişleri tarihe göre grupla
         const ordersByDay = {};
         data.orders.forEach(order => {
-            // Tarihi doğru formatta al (YYYY-MM-DD)
             const deliveryDate = order.delivery_date.split(' ')[0];
             
-            // Her tarih için sayaçları başlat
             if (!ordersByDay[deliveryDate]) {
                 ordersByDay[deliveryDate] = {
                     morning: 0,
@@ -222,44 +199,33 @@ async function loadMonthData() {
                 };
             }
             
-            // Teslimat saatine göre say
             if (order.delivery_time_slot) {
                 ordersByDay[deliveryDate][order.delivery_time_slot]++;
                 ordersByDay[deliveryDate].total++;
             }
         });
 
-        console.log('Gruplanmış veriler:', ordersByDay); // Debug
-
         // Takvim günlerini güncelle
         document.querySelectorAll('.calendar-day').forEach(dayEl => {
             const date = dayEl.dataset.date;
             const dayData = ordersByDay[date] || { morning: 0, afternoon: 0, evening: 0, total: 0 };
 
-            // Toplam rozeti güncelle
-            const totalBadge = dayEl.querySelector('.badge.bg-primary');
+            // Toplam sipariş sayısı
+            const totalBadge = dayEl.querySelector('.total-orders');
             if (totalBadge) {
                 totalBadge.textContent = dayData.total;
                 if (dayData.total > 0) {
-                    totalBadge.classList.remove('bg-primary');
-                    totalBadge.classList.add('bg-success');
+                    totalBadge.classList.remove('bg-light', 'text-dark');
+                    totalBadge.classList.add('bg-primary', 'text-white');
                 }
             }
 
-            // Zaman dilimleri rozetlerini güncelle
-            const slots = dayEl.querySelectorAll('.delivery-slots .badge');
+            // Teslimat slotları
+            const slots = dayEl.querySelectorAll('.delivery-count');
             if (slots.length === 3) {
                 slots[0].textContent = dayData.morning || '0';
                 slots[1].textContent = dayData.afternoon || '0';
                 slots[2].textContent = dayData.evening || '0';
-
-                // Sıfır olanları soluk göster
-                slots.forEach((slot, index) => {
-                    const count = index === 0 ? dayData.morning : 
-                                index === 1 ? dayData.afternoon : 
-                                dayData.evening;
-                    slot.style.opacity = count > 0 ? '1' : '0.5';
-                });
             }
         });
 
