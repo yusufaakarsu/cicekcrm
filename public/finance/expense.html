@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ödeme Girişi - Finans</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body data-page="finance">
+    <!-- Header -->
+    <div id="header"></div>
+
+    <div class="container-fluid mt-4">
+        <!-- Başlık -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="bi bi-dash-circle-fill text-danger"></i> 
+                Ödeme Girişi
+            </h2>
+            <a href="index.html" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Geri
+            </a>
+        </div>
+
+        <!-- Ana İçerik -->
+        <div class="row">
+            <!-- Sol Kolon - Form -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <form id="expenseForm">
+                            <div class="row g-3">
+                                <!-- Hesap Seçimi -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Hesap</label>
+                                    <select class="form-select" name="account_id" required>
+                                        <option value="">Hesap Seçin</option>
+                                    </select>
+                                </div>
+
+                                <!-- Kategori -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Gider Kategorisi</label>
+                                    <select class="form-select" name="category_id" required>
+                                        <option value="">Kategori Seçin</option>
+                                    </select>
+                                </div>
+
+                                <!-- Tutar -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Tutar</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₺</span>
+                                        <input type="number" class="form-control" name="amount" 
+                                               required step="0.01" min="0">
+                                    </div>
+                                </div>
+
+                                <!-- Tarih -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Tarih</label>
+                                    <input type="datetime-local" class="form-control" 
+                                           name="date" required>
+                                </div>
+
+                                <!-- Açıklama -->
+                                <div class="col-12">
+                                    <label class="form-label">Açıklama</label>
+                                    <textarea class="form-control" name="description" 
+                                              rows="2" required></textarea>
+                                </div>
+
+                                <!-- Ödeme Yöntemi -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Ödeme Yöntemi</label>
+                                    <select class="form-select" name="payment_method">
+                                        <option value="cash">Nakit</option>
+                                        <option value="bank_transfer">Havale/EFT</option>
+                                        <option value="company_card">Şirket Kartı</option>
+                                    </select>
+                                </div>
+
+                                <!-- Referans No -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Fatura/Referans No</label>
+                                    <input type="text" class="form-control" name="reference_id">
+                                </div>
+
+                                <!-- Kaydet Butonu -->
+                                <div class="col-12">
+                                    <hr>
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="bi bi-check-lg"></i>
+                                        Ödemeyi Kaydet
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ Kolon - Son İşlemler -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-transparent">
+                        <h5 class="card-title mb-0">Son Ödemeler</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" id="recentExpenses">
+                            <!-- JS ile doldurulacak -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="js/finance-common.js"></script>
+    <script src="js/transactions.js"></script>
+</body>
+</html>

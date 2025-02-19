@@ -68,5 +68,3 @@ CREATE TABLE order_items (
     FOREIGN KEY (recipe_id) REFERENCES recipes(id)
 );
 
--- Region indeksi
-CREATE INDEX idx_orders_region ON orders(delivery_region_id);
