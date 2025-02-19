@@ -37,6 +37,21 @@ BEGIN
     );
 END;
 
+-- Sipariş durumu güncellendiğinde audit log
+CREATE TRIGGER audit_orders_status AFTER UPDATE ON orders 
+WHEN OLD.status != NEW.status BEGIN
+    INSERT INTO audit_log (table_name, record_id, operation, old_data, new_data)
+    VALUES ('orders', OLD.id, 'STATUS_CHANGE', OLD.status, NEW.status);
+END;
+
+-- Teslimat tarihi değiştiğinde kontrol
+CREATE TRIGGER check_delivery_date BEFORE UPDATE ON orders BEGIN
+    SELECT CASE 
+        WHEN NEW.delivery_date < date('now') 
+        THEN RAISE(ABORT, 'Geçmiş tarihli teslimat tarihi seçilemez')
+    END;
+END;
+
 -- Reçete maliyet hesaplama
 CREATE TRIGGER trg_recipe_cost_update
 AFTER INSERT ON recipe_items
@@ -70,4 +85,18 @@ BEGIN
              NOT (SELECT allow_negative_stock FROM tenant_settings WHERE tenant_id = NEW.tenant_id)
         THEN RAISE(ABORT, 'Yetersiz stok!')
     END;
+END;
+
+-- Stok hareketi kontrolü
+CREATE TRIGGER check_stock_level AFTER UPDATE ON products 
+WHEN NEW.stock < NEW.min_stock BEGIN
+    INSERT INTO notifications (type, message, related_id)
+    VALUES ('low_stock', 'Düşük stok uyarısı: ' || NEW.name, NEW.id);
+END;
+
+-- Müşteri silindiğinde adreslerini de sil
+CREATE TRIGGER soft_delete_customer_cascade AFTER UPDATE ON customers 
+WHEN NEW.is_deleted = 1 AND OLD.is_deleted = 0 BEGIN
+    UPDATE addresses SET is_deleted = 1 WHERE customer_id = OLD.id;
+    UPDATE orders SET is_deleted = 1 WHERE customer_id = OLD.id;
 END;
