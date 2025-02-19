@@ -259,7 +259,7 @@ async function loadDayData() {
             if (container) {
                 if (orders.length > 0) {
                     container.innerHTML = orders.map(order => `
-                        <div class="card mb-2">
+                        <div class="card mb-2" onclick="showOrderDetails(${order.id})" style="cursor: pointer;">
                             <div class="card-body p-2">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
@@ -292,6 +292,46 @@ async function loadDayData() {
     } catch (error) {
         console.error('Gün verileri yüklenirken hata:', error);
         showError('Veriler yüklenemedi');
+    }
+}
+
+// Sipariş detaylarını göster fonksiyonu - Eklendi
+async function showOrderDetails(orderId) {
+    try {
+        const response = await fetch(`${API_URL}/orders/${orderId}/details`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const order = await response.json();
+        
+        // Modal içeriğini doldur
+        document.querySelector('.delivery-info').innerHTML = `
+            <h6>Teslimat Bilgileri</h6>
+            <p>${formatDate(order.delivery_date)} - ${formatTimeSlot(order.delivery_time_slot)}</p>
+            <p>${order.delivery_address}</p>
+        `;
+        
+        document.querySelector('.customer-info').innerHTML = `
+            <h6>Alıcı Bilgileri</h6>
+            <p>${order.recipient_name}</p>
+            <p>${order.recipient_phone}</p>
+            ${order.card_message ? `<p class="text-primary">"${order.card_message}"</p>` : ''}
+        `;
+        
+        document.querySelector('.order-items').innerHTML = `
+            <h6>Sipariş Detayı</h6>
+            <p>${order.items}</p>
+            <div class="d-flex justify-content-between">
+                <span>Durum: ${getStatusBadge(order.status)}</span>
+                <span>Toplam: ${formatCurrency(order.total_amount)}</span>
+            </div>
+        `;
+
+        // Modalı göster
+        const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+        modal.show();
+    } catch (error) {
+        console.error('Sipariş detayları yüklenirken hata:', error);
+        showError('Sipariş detayları yüklenemedi');
     }
 }
 

@@ -235,8 +235,10 @@ body {
 
 @media (max-width: 768px) {
     .calendar-grid {
-        grid-template-columns: repeat(3, 1fr); /* Her zaman 3 kolon */
+        display: grid;
+        grid-template-columns: repeat(3, 1fr) !important; /* Zorla 3 kolon */
         gap: 0.5rem;
+        padding: 0.5rem;
     }
 
     .calendar-day {
