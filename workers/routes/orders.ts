@@ -106,13 +106,15 @@ router.get('/filtered', async (c) => {
         o.*,
         c.name as customer_name,
         c.phone as customer_phone,
-        GROUP_CONCAT(oi.quantity || 'x ' || p.name) as items
+        a.district as delivery_district,
+        a.street as delivery_street,
+        GROUP_CONCAT(p.name || ' x' || oi.quantity) as items
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
+      LEFT JOIN addresses a ON o.delivery_address_id = a.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       LEFT JOIN products p ON oi.product_id = p.id
       WHERE o.tenant_id = ?
-      AND o.is_deleted = 0
     `
     
     const params: any[] = [tenant_id]
@@ -140,24 +142,14 @@ router.get('/filtered', async (c) => {
           break
       }
     } else if (start_date && end_date) {
-      baseQuery += ` 
-        AND DATETIME(o.delivery_date) >= DATETIME(?)
-        AND DATETIME(o.delivery_date) <= DATETIME(?)
-      `
+      baseQuery += ` AND DATE(o.delivery_date) BETWEEN DATE(?) AND DATE(?)`
       params.push(start_date, end_date)
     }
 
-    // Grup ve sıralama
     baseQuery += ` GROUP BY o.id`
 
     // Sıralama
     switch(sort) {
-      case 'id_asc':
-        baseQuery += ` ORDER BY o.id ASC`
-        break
-      case 'id_desc':
-        baseQuery += ` ORDER BY o.id DESC`
-        break
       case 'date_asc':
         baseQuery += ` ORDER BY o.delivery_date ASC, o.id ASC`
         break
@@ -165,10 +157,10 @@ router.get('/filtered', async (c) => {
         baseQuery += ` ORDER BY o.delivery_date DESC, o.id DESC`
         break
       case 'amount_asc':
-        baseQuery += ` ORDER BY o.total_amount ASC, o.id DESC`
+        baseQuery += ` ORDER BY o.total_amount ASC`
         break
       case 'amount_desc':
-        baseQuery += ` ORDER BY o.total_amount DESC, o.id DESC`
+        baseQuery += ` ORDER BY o.total_amount DESC`
         break
       default:
         baseQuery += ` ORDER BY o.id DESC`
@@ -178,22 +170,34 @@ router.get('/filtered', async (c) => {
     baseQuery += ` LIMIT ? OFFSET ?`
     const pageNum = parseInt(page)
     const perPage = parseInt(per_page)
-    const offset = (pageNum - 1) * perPage
-    params.push(perPage, offset)
+    params.push(perPage, (pageNum - 1) * perPage)
 
-    const { results: orders } = await db.prepare(baseQuery).bind(...params).all()
-    const total = await getOrdersCount(db, tenant_id, status, date_filter, start_date, end_date)
+    // Toplam kayıt sayısı
+    const countQuery = baseQuery.replace(
+      'SELECT o.*, c.name', 
+      'SELECT COUNT(DISTINCT o.id) as total'
+    )
+    const { total } = await db.prepare(countQuery).bind(...params).first() as any
+
+    // Kayıtları getir
+    const orders = await db.prepare(baseQuery).bind(...params).all()
 
     return c.json({
-      orders: orders || [],
-      total,
+      success: true,
+      orders: orders.results,
+      total: total,
       page: pageNum,
       per_page: perPage,
       total_pages: Math.ceil(total / perPage)
     })
 
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Orders query error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      details: error.message 
+    }, 500)
   }
 })
 

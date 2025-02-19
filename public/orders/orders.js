@@ -159,7 +159,7 @@ function resetFilters() {
 function renderOrders(orders) {
     const tbody = document.getElementById('ordersTable');
     
-    if (!orders.length) {
+    if (!orders || orders.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" class="text-center">Sipariş bulunamadı</td></tr>';
         return;
     }
@@ -174,7 +174,7 @@ function renderOrders(orders) {
             </td>
             <td>
                 ${formatDate(order.delivery_date)}<br>
-                <small class="text-muted">${formatTimeSlot(order.delivery_time_slot)}</small>
+                <small class="text-muted">${formatDeliveryTime(order.delivery_time_slot)}</small>
             </td>
             <td>
                 <div>${order.recipient_name}</div>
@@ -197,53 +197,7 @@ function renderOrders(orders) {
                         <i class="bi bi-gear"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li>
-                            <button class="dropdown-item" onclick="showOrderDetails(${order.id})">
-                                <i class="bi bi-eye"></i> Detay
-                            </button>
-                        </li>
-                        
-                        <li><hr class="dropdown-divider"></li>
-                        
-                        <!-- Hızlı Durum Değiştirme -->
-                        ${order.status !== 'delivered' && order.status !== 'cancelled' ? `
-                            <li>
-                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'preparing')">
-                                    <i class="bi bi-box-seam"></i> Hazırlanıyor
-                                </button>
-                            </li>
-                            <li>
-                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'ready')">
-                                    <i class="bi bi-box"></i> Hazır
-                                </button>
-                            </li>
-                            <li>
-                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivering')">
-                                    <i class="bi bi-truck"></i> Yolda
-                                </button>
-                            </li>
-                            <li>
-                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivered')">
-                                    <i class="bi bi-check-circle"></i> Teslim Edildi
-                                </button>
-                            </li>
-                            
-                            <li><hr class="dropdown-divider"></li>
-                        ` : ''}
-                        
-                        <!-- Düzenleme ve İptal -->
-                        <li>
-                            <button class="dropdown-item" onclick="editOrder(${order.id})">
-                                <i class="bi bi-pencil"></i> Düzenle
-                            </button>
-                        </li>
-                        ${order.status !== 'delivered' && order.status !== 'cancelled' ? `
-                            <li>
-                                <button class="dropdown-item text-danger" onclick="confirmCancelOrder(${order.id})">
-                                    <i class="bi bi-x-circle"></i> İptal Et
-                                </button>
-                            </li>
-                        ` : ''}
+                        <!-- ...existing dropdown items... -->
                     </ul>
                 </div>
             </td>
