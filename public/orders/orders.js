@@ -197,7 +197,42 @@ function renderOrders(orders) {
                         <i class="bi bi-gear"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <!-- ...existing dropdown items... -->
+                        <li>
+                            <button class="dropdown-item" onclick="showOrderDetails(${order.id})">
+                                <i class="bi bi-eye"></i> Detay Görüntüle
+                            </button>
+                        </li>
+                        
+                        <!-- Durum Güncelleme -->
+                        <li>
+                            <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'preparing')">
+                                <i class="bi bi-box-seam"></i> Hazırlanıyor
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'ready')">
+                                <i class="bi bi-check2-square"></i> Hazır
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivering')">
+                                <i class="bi bi-truck"></i> Yolda
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivered')">
+                                <i class="bi bi-check-circle"></i> Teslim Edildi
+                            </button>
+                        </li>
+                        
+                        <li><hr class="dropdown-divider"></li>
+                        
+                        <!-- İptal -->
+                        <li>
+                            <button class="dropdown-item text-danger" onclick="confirmCancelOrder(${order.id})">
+                                <i class="bi bi-x-circle"></i> İptal Et
+                            </button>
+                        </li>
                     </ul>
                 </div>
             </td>
@@ -282,71 +317,46 @@ function fillOrderDetails(order) {
     }
 }
 
-// Sayfalama güncelleme
-function updatePagination(data) {
+// Sayfalama güncelleme - düzeltildi
+function updatePagination({ total, page, per_page }) {
     const pagination = document.getElementById('pagination');
-    const totalPages = Math.ceil(data.total / parseInt(document.querySelector('[name="per_page"]').value));
-    const currentPage = parseInt(data.page);
-
-    // Toplam sayfa sayısını sakla
-    pagination.dataset.totalPages = totalPages;
+    const totalPages = Math.ceil(total / per_page);
+    const currentPage = parseInt(page);
 
     let html = '';
     
     // Önceki sayfa
     html += `
         <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${currentPage - 1})" ${currentPage === 1 ? 'tabindex="-1"' : ''}>Önceki</a>
+            <button class="page-link" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                <i class="bi bi-chevron-left"></i>
+            </button>
         </li>
     `;
 
-    // İlk sayfa her zaman göster
-    html += `
-        <li class="page-item ${currentPage === 1 ? 'active' : ''}">
-            <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(1)">1</a>
-        </li>
-    `;
+    // Sayfa numaraları
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
 
-    // Sayfa numaraları için aralık hesapla
-    let startPage = Math.max(2, currentPage - 2);
-    let endPage = Math.min(totalPages - 1, currentPage + 2);
-
-    // Başlangıçta üç nokta
-    if (startPage > 2) {
-        html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-    }
-
-    // Orta sayfalar
     for (let i = startPage; i <= endPage; i++) {
         html += `
             <li class="page-item ${i === currentPage ? 'active' : ''}">
-                <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${i})">${i}</a>
-            </li>
-        `;
-    }
-
-    // Sonda üç nokta
-    if (endPage < totalPages - 1) {
-        html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-    }
-
-    // Son sayfa (1'den farklıysa)
-    if (totalPages > 1) {
-        html += `
-            <li class="page-item ${currentPage === totalPages ? 'active' : ''}">
-                <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${totalPages})">${totalPages}</a>
+                <button class="page-link" onclick="goToPage(${i})">${i}</button>
             </li>
         `;
     }
 
     // Sonraki sayfa
     html += `
-        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-            <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'tabindex="-1"' : ''}>Sonraki</a>
+        <li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}">
+            <button class="page-link" onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>
+                <i class="bi bi-chevron-right"></i>
+            </button>
         </li>
     `;
 
     pagination.innerHTML = html;
+    pagination.dataset.totalPages = totalPages; // Toplam sayfa sayısını sakla
 }
 
 // Sayfaya git fonksiyonu güncellendi
