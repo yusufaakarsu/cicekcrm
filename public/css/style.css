@@ -1,62 +1,289 @@
 /* Temel stil */
 body { 
     padding-top: 56px;
-    background-color: var(--bs-gray-100);
+    background-color: #f8f9fa;
 }
 
-/* Takvim grid yapısı - Bootstrap'te olmayan tek zorunlu CSS */
+/* Sayfa başlıkları */
+.page-header {
+    padding: 1.5rem 0;
+    margin-bottom: 1.5rem;
+    background: #fff;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Takvim container */
+.calendar-header {
+    background: #fff;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+
+/* Takvim grid */
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.75rem;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 0.5rem;
 }
 
-/* Slot renkleri - Modern ve soft tonlar */
-:root {
-    --slot-morning: #fff7eb;
-    --slot-morning-text: #b65800;
-    --slot-afternoon: #edf5ff;
-    --slot-afternoon-text: #0050b3;
-    --slot-evening: #f0f9f0;
-    --slot-evening-text: #237a23;
-}
-
-/* Minimal takvim stilleri */
+/* Takvim gün kartı */
 .calendar-day {
+    background: #fff;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    min-height: 140px;
+    border: 1px solid rgba(0,0,0,.125);
     cursor: pointer;
-    transition: transform 0.2s ease;
+    transition: all 0.2s ease-in-out;
 }
 
 .calendar-day:hover {
     transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,.1);
+    border-color: #0d6efd;
 }
 
 .calendar-day.today {
-    border-color: var(--bs-primary) !important;
-    background-color: var(--bs-primary-bg-subtle) !important;
+    border: 2px solid #0d6efd;
+    background-color: rgba(13,110,253,.03);
 }
 
-/* Teslimat slotları */
-.slot-morning {
-    background-color: var(--slot-morning) !important;
-    color: var(--slot-morning-text) !important;
+.calendar-day.has-orders {
+    background-color: rgba(25,135,84,.03);
 }
 
-.slot-afternoon {
-    background-color: var(--slot-afternoon) !important;
-    color: var(--slot-afternoon-text) !important;
+/* Gün başlığı */
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
 }
 
-.slot-evening {
-    background-color: var(--slot-evening) !important;
-    color: var(--slot-evening-text) !important;
+.day-info {
+    line-height: 1.2;
 }
 
-/* Responsive düzenleme */
-@media (max-width: 768px) {
-    .calendar-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.5rem;
+.day-number {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #212529;
+}
+
+.day-name {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+/* Teslimat kolonları */
+.delivery-columns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.delivery-column .card {
+    height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+
+.delivery-column .card-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: inherit;
+}
+
+/* Sipariş kartları */
+.card-body .card {
+    transition: all 0.2s ease-in-out;
+}
+
+.card-body .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+}
+
+/* Dashboard kartları */
+.card {
+    transition: all 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.1);
+}
+
+/* Dashboard kartları için özel stiller */
+.card {
+    border-width: 0;
+    box-shadow: 0 0 0.875rem 0 rgba(33,37,41,.05);
+    transition: transform .2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+}
+
+.card .progress {
+    background-color: rgba(13,110,253,.1);
+}
+
+.border-purple {
+    border-left: 4px solid #6f42c1 !important;
+}
+
+.text-purple {
+    color: #6f42c1 !important;
+}
+
+#lowStockList {
+    max-height: 100px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+/* Özel renk - mor */
+.text-purple { color: #6f42c1; }
+.bg-purple { background-color: #6f42c1; }
+.border-purple { border-color: #6f42c1; }
+
+/* Harita container */
+#deliveryMap {
+    border-radius: 0 0 .5rem .5rem;
+}
+
+/* Özet istatistikleri */
+.summary-stat {
+    padding: 1rem;
+    border-radius: .5rem;
+    background: var(--bs-light);
+}
+
+/* Yeni stiller */
+.summary-stat {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 0 0.875rem 0 rgba(33,37,41,.05);
+    transition: transform .2s;
+}
+
+.summary-stat:hover {
+    transform: translateY(-2px);
+}
+
+.purple-subtle {
+    background-color: rgba(111,66,193,.1);
+    color: #6f42c1;
+}
+
+#deliveryMap img {
+    max-height: 400px;
+    object-fit: contain;
+}
+
+/* Adres arama sonuçları */
+.address-results {
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.address-results .list-group-item {
+    cursor: pointer;
+}
+
+.address-results .list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Seçilen adres */
+#selected-address {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+}
+
+/* Responsive düzenlemeler */
+@media (max-width: 1200px) {
+    .calendar-grid { 
+        grid-template-columns: repeat(4, 1fr);
     }
 }
 
+@media (max-width: 992px) {
+    .calendar-grid { 
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .delivery-columns {
+        grid-template-columns: 1fr;
+    }
+    
+    .delivery-column .card {
+        height: auto;
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .calendar-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .calendar-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .calendar-day {
+        min-height: auto;
+    }
+    
+    .calendar-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+}
+
+/* Bootstrap override */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: transform .2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Tablo geliştirmeleri */
+.table th {
+    background-color: #f8f9fa;
+    border-bottom-width: 1px;
+}
+
+/* Form geliştirmeleri */
+.form-floating > .form-control:focus ~ label {
+    color: var(--bs-primary);
+}
+
+/* Dashboard özel stilleri */
+.status-count {
+    font-size: 2rem;
+    font-weight: 500;
+}
+
+.status-label {
+    color: #6c757d;
+    font-size: 0.875rem;
+}

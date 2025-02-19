@@ -11,40 +11,60 @@
 <body data-page="calendar">
     <div id="header"></div>
 
-    <div class="container-fluid p-4">
+    <div class="container-fluid mt-4">
         <div class="card shadow-sm">
-            <div class="card-header bg-white py-3">
+            <div class="card-header bg-white p-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Teslimat Takvimi</h5>
-                    <a href="/orders/new" class="btn btn-primary btn-sm">
+                    <button class="btn btn-sm btn-primary" onclick="window.location.href='/orders/new'">
                         <i class="bi bi-plus-lg"></i> Yeni Sipariş
-                    </a>
+                    </button>
                 </div>
             </div>
-            
             <div class="card-body p-0">
                 <!-- Takvim Kontrolleri -->
-                <div class="border-bottom p-3">
+                <div class="calendar-header p-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <div class="btn-group">
-                            <button class="btn btn-outline-secondary" onclick="previousMonth()">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="previousMonth()">
                                 <i class="bi bi-chevron-left"></i>
                             </button>
-                            <button class="btn btn-outline-primary" onclick="goToToday()">Bugün</button>
-                            <button class="btn btn-outline-secondary" onclick="nextMonth()">
+                            <button class="btn btn-outline-primary btn-sm" onclick="goToToday()">Bugün</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="nextMonth()">
                                 <i class="bi bi-chevron-right"></i>
                             </button>
                         </div>
-                        <h4 class="current-date mb-0 fw-normal"></h4>
+                        <h4 class="current-date mb-0"></h4>
                         <div class="btn-group">
-                            <button class="btn btn-outline-secondary active" onclick="switchView('month')">Ay</button>
-                            <button class="btn btn-outline-secondary" onclick="switchView('day')">Gün</button>
+                            <button class="btn btn-outline-secondary btn-sm active" onclick="switchView('month')">Ay</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="switchView('day')">Gün</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Takvim İçeriği -->
                 <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sipariş Detay Modal -->
+    <div class="modal fade" id="orderDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sipariş Detayı</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="delivery-info"></div>
+                    <div class="customer-info mt-3"></div>
+                    <div class="order-items mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    <button type="button" class="btn btn-primary edit-order">Düzenle</button>
+                </div>
             </div>
         </div>
     </div>
