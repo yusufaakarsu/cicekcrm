@@ -287,3 +287,44 @@ body {
     color: #6c757d;
     font-size: 0.875rem;
 }
+
+/* Teslimat slotları için yeni stil */
+.delivery-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.delivery-slots > div {
+    padding: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.delivery-slots span {
+    font-size: 1rem;
+}
+
+.delivery-count {
+    font-weight: 500;
+    min-width: 1.5rem;
+    text-align: right;
+}
+
+/* Hover efekti */
+.delivery-slots > div:hover {
+    background-color: var(--bs-gray-100);
+    border-radius: 0.25rem;
+}
+
+/* Kart stilleri sadeleştirildi */
+.calendar-day {
+    background: #fff;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}

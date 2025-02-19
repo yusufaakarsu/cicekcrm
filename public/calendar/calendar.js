@@ -109,12 +109,20 @@ function renderMonthView() {
                         <div class="day-number">${i}</div>
                         <div class="day-name">${formatDayName(date)}</div>
                     </div>
-                    <div class="badge bg-primary rounded-pill">0</div>
                 </div>
-                <div class="delivery-slots mt-2">
-                    <div class="badge bg-warning w-100 mb-1">0</div>
-                    <div class="badge bg-info w-100 mb-1">0</div>
-                    <div class="badge bg-success w-100">0</div>
+                <div class="delivery-slots">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>🌅</span>
+                        <span class="delivery-count">0</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>☀️</span>
+                        <span class="delivery-count">0</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>🌙</span>
+                        <span class="delivery-count">0</span>
+                    </div>
                 </div>
             </div>
         `;
