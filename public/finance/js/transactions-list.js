@@ -52,7 +52,8 @@ async function loadTransactions(page = 1) {
     try {
         // Filtre parametrelerini al
         const params = new URLSearchParams({
-            page,
+            page: page.toString(),
+            per_page: '10',
             account_id: document.getElementById('accountFilter').value,
             category_id: document.getElementById('categoryFilter').value,
             type: document.getElementById('typeFilter').value,
@@ -60,6 +61,7 @@ async function loadTransactions(page = 1) {
             end_date: document.getElementById('endDate').value
         });
 
+        // URL'yi düzelttik
         const response = await fetch(`${API_URL}/finance/transactions/filtered?${params}`);
         if (!response.ok) throw new Error('API Hatası');
         const data = await response.json();

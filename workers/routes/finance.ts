@@ -93,6 +93,86 @@ router.get('/transactions', async (c) => {
   }
 })
 
+// Filtrelenmiş işlemler listesi
+router.get('/transactions/filtered', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  const { 
+    account_id, 
+    category_id, 
+    type, 
+    start_date, 
+    end_date, 
+    page = '1', 
+    per_page = '10' 
+  } = c.req.query()
+
+  try {
+    let query = `
+      SELECT 
+        t.*,
+        a.name as account_name,
+        c.name as category_name,
+        c.color as category_color
+      FROM transactions t
+      LEFT JOIN accounts a ON t.account_id = a.id
+      LEFT JOIN transaction_categories c ON t.category_id = c.id
+      WHERE t.tenant_id = ?
+    `
+    const params: any[] = [tenant_id]
+
+    // Filtreler
+    if (account_id) {
+      query += ` AND t.account_id = ?`
+      params.push(account_id)
+    }
+
+    if (category_id) {
+      query += ` AND t.category_id = ?`
+      params.push(category_id)
+    }
+
+    if (type) {
+      query += ` AND t.type = ?`
+      params.push(type)
+    }
+
+    if (start_date && end_date) {
+      query += ` AND DATE(t.date) BETWEEN DATE(?) AND DATE(?)`
+      params.push(start_date, end_date)
+    }
+
+    // Toplam kayıt sayısı
+    const countQuery = query.replace('SELECT t.*,', 'SELECT COUNT(DISTINCT t.id) as total')
+    const { total } = await db.prepare(countQuery).bind(...params).first() as any
+
+    // Sıralama ve sayfalama
+    query += ` ORDER BY t.date DESC, t.id DESC LIMIT ? OFFSET ?`
+    const offset = (parseInt(page) - 1) * parseInt(per_page)
+    params.push(per_page, offset)
+
+    const { results } = await db.prepare(query).bind(...params).all()
+
+    return c.json({
+      success: true,
+      transactions: results || [],
+      pagination: {
+        total,
+        page: parseInt(page),
+        per_page: parseInt(per_page),
+        total_pages: Math.ceil(total / parseInt(per_page))
+      }
+    })
+
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      details: error.message 
+    }, 500)
+  }
+})
+
 // İşlem ekle
 router.post('/transactions', async (c) => {
   const db = c.get('db')
