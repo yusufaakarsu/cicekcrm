@@ -292,6 +292,58 @@ body {
     .delivery-columns .card .small {
         font-size: 0.75rem;
     }
+
+    /* Delivery kolonları mobilde alt alta */
+    .delivery-columns {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+
+    /* Her kolon içindeki kartlar yanyana */
+    .delivery-column .card-body {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+    }
+
+    /* Sipariş kartlarının mobil düzenlemesi */
+    .delivery-column .card .card {
+        margin-bottom: 0;
+        height: 100%;
+    }
+
+    .delivery-column .card .card-body {
+        display: block;
+        padding: 0.5rem;
+    }
+
+    /* Başlıkları düzenleme */
+    .delivery-column .card-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: inherit;
+    }
+
+    .delivery-column .card-header h5 {
+        font-size: 1rem;
+        margin-bottom: 0;
+    }
+
+    .delivery-column .card-header small {
+        font-size: 0.75rem;
+    }
+
+    /* Kart içeriğini düzenleme */
+    .delivery-column .card h6 {
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .delivery-column .card .small {
+        font-size: 0.75rem;
+        line-height: 1.2;
+    }
 }
 
 @media (max-width: 576px) {

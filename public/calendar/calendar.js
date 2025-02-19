@@ -91,7 +91,7 @@ function renderMonthView() {
                         <div class="day-number">${i}</div>
                         <div class="day-name">${formatDayName(date)}</div>
                     </div>
-                    <span class="badge rounded-pill bg-light text-dark total-orders">0</span>
+                    <span class="badge bg-warning text-dark total-orders">0</span>
                 </div>
                 <div class="delivery-slots">
                     <div class="d-flex justify-content-between align-items-center">
