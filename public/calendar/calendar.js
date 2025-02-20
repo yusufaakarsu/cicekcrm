@@ -356,23 +356,22 @@ async function loadDayData() {
 function renderDayOrders(container, orders) {
     if (orders.length > 0) {
         container.innerHTML = `
-            <div class="row g-2">
+            <div class="row row-cols-2 g-2"> <!-- Değişiklik: Her zaman 2 kolon -->
                 ${orders.map(order => `
-                    <!-- Her kolon mobilde tam (12), desktop'ta yarım (6) genişlik -->
-                    <div class="col-12 col-md-6">
+                    <div class="col"> <!-- Değişiklik: Sabit genişlik -->
                         <div class="card h-100" onclick="showOrderDetails(${order.id})" style="cursor: pointer;">
                             <div class="card-body p-2">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h6 class="mb-1">${order.recipient_name}</h6>
-                                        <div class="small text-muted mb-1">
+                                        <h6 class="mb-1 text-truncate">${order.recipient_name}</h6>
+                                        <div class="small text-muted mb-1 text-truncate">
                                             <i class="bi bi-geo-alt"></i> ${order.delivery_address}
                                         </div>
-                                        <div class="small">
+                                        <div class="small text-truncate">
                                             <i class="bi bi-phone"></i> ${order.recipient_phone}
                                         </div>
                                         ${order.card_message ? 
-                                            `<div class="small text-primary mt-1">
+                                            `<div class="small text-primary mt-1 text-truncate">
                                                 <i class="bi bi-chat-quote"></i> ${order.card_message}
                                             </div>` : ''
                                         }
