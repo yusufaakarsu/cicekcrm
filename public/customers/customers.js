@@ -113,25 +113,30 @@ async function saveCustomer() {
 }
 
 async function showCustomerDetails(customerId) {
-    const [customerResponse, ordersResponse] = await Promise.all([
-        fetch(`${API_URL}/customers/${customerId}`),
-        fetch(`${API_URL}/customers/${customerId}/orders`)
-    ]);
     try {
         detailsModal = new bootstrap.Modal(document.getElementById('customerDetailsModal'));
         
+        // Paralel API çağrıları
+        const [customerResponse, ordersResponse] = await Promise.all([
+            fetch(`${API_URL}/customers/${customerId}`),
+            fetch(`${API_URL}/customers/${customerId}/orders`)
+        ]);
+
         if (!customerResponse.ok || !ordersResponse.ok) {
             throw new Error('API Hatası');
         }
 
         const customer = await customerResponse.json();
-        const orders = await ordersResponse.json();
+        const ordersData = await ordersResponse.json();
+        
+        // API yanıtı yapısını kontrol et ve orders dizisini al
+        const orders = ordersData.orders || []; // API'den gelen orders array'i
 
         // Müşteri detaylarını doldur
         document.getElementById('detail-name').textContent = customer.name;
         document.getElementById('detail-phone').textContent = formatPhoneNumber(customer.phone);
         document.getElementById('detail-email').textContent = customer.email || '-';
-        document.getElementById('detail-address').textContent = customer.address;
+        document.getElementById('detail-address').textContent = customer.address || '-';
         document.getElementById('detail-total-orders').textContent = customer.total_orders || 0;
         document.getElementById('detail-last-order').textContent = 
             customer.last_order ? formatDate(customer.last_order) : '-';

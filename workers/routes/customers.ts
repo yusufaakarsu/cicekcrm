@@ -229,7 +229,7 @@ router.put('/:id', async (c) => {
   }
 })
 
-// Müşteri siparişleri - Müşteri siparişleri sorgusu güncellendi
+// Müşteri siparişleri - SQL sorgusu güncellendi
 router.get('/:id/orders', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -237,28 +237,28 @@ router.get('/:id/orders', async (c) => {
   
   try {
     const { results } = await db.prepare(`
-      WITH OrderItems AS (
-        SELECT 
-          order_id,
-          GROUP_CONCAT(
-            COALESCE(oi.quantity, 0) || 'x ' || COALESCE(p.name, 'Silinmiş Ürün')
-          ) as items_list
-        FROM order_items oi
-        LEFT JOIN products p ON oi.product_id = p.id AND p.deleted_at IS NULL
-        WHERE oi.deleted_at IS NULL
-        GROUP BY order_id
-      )
       SELECT 
         o.*,
-        COALESCE(oi.items_list, '') as items
+        (
+          SELECT GROUP_CONCAT(
+            oi.quantity || 'x ' || COALESCE(p.name, 'Silinmiş Ürün')
+          )
+          FROM order_items oi
+          LEFT JOIN products p ON oi.product_id = p.id
+          WHERE oi.order_id = o.id
+          AND oi.deleted_at IS NULL
+        ) as items
       FROM orders o
-      LEFT JOIN OrderItems oi ON o.id = oi.order_id
-      WHERE o.customer_id = ? 
+      WHERE o.customer_id = ?
       AND o.tenant_id = ?
       AND o.deleted_at IS NULL
+      GROUP BY o.id
       ORDER BY o.created_at DESC
       LIMIT 10
-    `).bind(id, tenant_id).all()
+    `).bind(
+      parseInt(id), 
+      parseInt(tenant_id)
+    ).all()
 
     return c.json({
       success: true,

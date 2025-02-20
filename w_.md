@@ -17,31 +17,23 @@ wrangler deploy
 
 
 SELECT 
-c.*,
-COALESCE(
-  (SELECT COUNT(*) 
-    FROM orders o 
-    WHERE o.customer_id = c.id 
-    AND o.tenant_id = c.tenant_id 
-    AND o.deleted_at IS NULL), 
-0) as total_orders,
-(SELECT created_at 
-  FROM orders o 
-  WHERE o.customer_id = c.id 
-  AND o.tenant_id = c.tenant_id 
-  AND o.deleted_at IS NULL 
-  ORDER BY created_at DESC LIMIT 1) as last_order,
-COALESCE(
-  (SELECT SUM(total_amount) 
-    FROM orders o 
-    WHERE o.customer_id = c.id 
-    AND o.tenant_id = c.tenant_id 
-    AND o.deleted_at IS NULL), 
-0) as total_spent
-FROM customers c
-WHERE c.id = 1
-AND c.tenant_id = 1
-AND c.deleted_at IS NULL
+o.*,
+(
+SELECT GROUP_CONCAT(
+oi.quantity || 'x ' || COALESCE(p.name, 'Silinmiş Ürün')
+)
+FROM order_items oi
+LEFT JOIN products p ON oi.product_id = p.id
+WHERE oi.order_id = o.id
+AND oi.deleted_at IS NULL
+) as items
+FROM orders o
+WHERE o.customer_id = 2
+AND o.tenant_id = 1
+AND o.deleted_at IS NULL
+GROUP BY o.id
+ORDER BY o.created_at DESC
+LIMIT 10
 
 
 
