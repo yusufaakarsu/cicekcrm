@@ -76,13 +76,13 @@ function renderMonthView() {
     const today = new Date();
     const firstDay = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1);
     const lastDay = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0);
-    const firstDayOfWeek = firstDay.getDay() || 7; // Pazartesi 1, Pazar 7
+    const firstDayOfWeek = firstDay.getDay() || 7;
 
+    // İki farklı takvim yapısı - Mobil/Desktop
     let html = `
-        <div class="p-3">
-            <!-- Tablo yapısı kullanarak düzgün grid oluştur -->
+        <!-- Desktop Takvim (md breakpoint üstünde görünür) -->
+        <div class="p-3 d-none d-md-block">
             <table class="w-100">
-                <!-- Haftanın günleri -->
                 <thead>
                     <tr>
                         ${['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(day => `
@@ -95,26 +95,19 @@ function renderMonthView() {
                 <tbody>
     `;
 
-    // Günleri 7'lik satırlar halinde oluştur
+    // Desktop takvim yapısı (mevcut yapı)
     let date = 1;
-    const numberOfDays = lastDay.getDate();
-
-    // Satırları oluştur
-    for (let i = 0; i < 6; i++) { // Max 6 satır
+    for (let i = 0; i < 6; i++) {
         html += '<tr>';
-        
-        // Her satırda 7 sütun
         for (let j = 1; j <= 7; j++) {
             if (i === 0 && j < firstDayOfWeek) {
-                // Ay başlamadan önceki boş günler
                 html += '<td class="p-1"></td>';
-            } else if (date > numberOfDays) {
-                // Ay bittikten sonraki boş günler
+            } else if (date > lastDay.getDate()) {
                 html += '<td class="p-1"></td>';
             } else {
                 const currentDate = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), date);
                 const isToday = currentDate.toDateString() === today.toDateString();
-
+                
                 html += `
                     <td class="p-1">
                         <div class="card h-100 ${isToday ? 'border-primary' : ''}" 
@@ -149,12 +142,57 @@ function renderMonthView() {
             }
         }
         html += '</tr>';
-        
-        // Tüm günler bittiyse döngüyü sonlandır
-        if (date > numberOfDays) break;
+        if (date > lastDay.getDate()) break;
     }
 
-    html += '</tbody></table></div>';
+    html += `</tbody></table></div>`;
+
+    // Mobil Takvim (md breakpoint altında görünür)
+    html += `
+        <div class="p-3 d-block d-md-none">
+            <div class="row row-cols-3 g-2">
+                ${Array.from({length: lastDay.getDate()}, (_, i) => {
+                    const currentDate = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), i + 1);
+                    const isToday = currentDate.toDateString() === today.toDateString();
+                    
+                    return `
+                        <div class="col">
+                            <div class="card h-100 ${isToday ? 'border-primary' : ''}" 
+                                 onclick="switchToDay('${formatDateISO(currentDate)}')"
+                                 data-date="${formatDateISO(currentDate)}">
+                                <div class="card-header p-2 ${isToday ? 'bg-primary text-white' : ''}">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>${i + 1}</strong>
+                                            <small class="d-block">${formatDayName(currentDate)}</small>
+                                        </div>
+                                        <span class="badge bg-warning text-dark total-orders">0</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+
     calendar.innerHTML = html;
     loadMonthData();
 }
