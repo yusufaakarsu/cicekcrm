@@ -12,6 +12,7 @@ CREATE TABLE product_types (
     stock_tracked BOOLEAN DEFAULT 1,  -- Bu tip ürünler stok takibi yapılacak mı?
     recipe_required BOOLEAN DEFAULT 0, -- Bu tip ürünler için reçete zorunlu mu?
     cost_tracked BOOLEAN DEFAULT 1,    -- Maliyet takibi yapılacak mı?
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (default_unit_id) REFERENCES stock_units(id)
 );
@@ -23,6 +24,7 @@ CREATE TABLE product_categories (
     description TEXT,
     parent_id INTEGER,
     is_active BOOLEAN DEFAULT 1,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (parent_id) REFERENCES product_categories(id)
 );
@@ -48,6 +50,7 @@ CREATE TABLE products (
     is_purchasable BOOLEAN DEFAULT 1,    -- satın alınabilir mi?
     default_supplier_id INTEGER,         -- tercih edilen tedarikçi
     stock_unit_id INTEGER,              -- stok birimi
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (type_id) REFERENCES product_types(id),
     FOREIGN KEY (category_id) REFERENCES product_categories(id),
@@ -66,6 +69,7 @@ CREATE TABLE recipes (
     difficulty_level TEXT CHECK(difficulty_level IN ('easy','medium','hard')),
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
 );
@@ -82,6 +86,7 @@ CREATE TABLE recipe_items (
     min_quantity DECIMAL(10,2),          -- minimum miktar
     max_quantity DECIMAL(10,2),          -- maksimum miktar
     notes TEXT,
+    deleted_at DATETIME,
     sequence INTEGER DEFAULT 0,           -- sıralama
     FOREIGN KEY (recipe_id) REFERENCES recipes(id),
     FOREIGN KEY (component_id) REFERENCES products(id),
@@ -97,6 +102,7 @@ CREATE TABLE recipe_costs (
     labor_cost DECIMAL(10,2) NOT NULL,
     total_cost DECIMAL(10,2) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (recipe_id) REFERENCES recipes(id)
 );
 
@@ -108,6 +114,7 @@ CREATE TABLE recipe_categories (
     description TEXT,
     parent_id INTEGER,
     is_active BOOLEAN DEFAULT 1,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (parent_id) REFERENCES recipe_categories(id)
 );

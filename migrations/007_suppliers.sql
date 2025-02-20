@@ -16,6 +16,7 @@ CREATE TABLE suppliers (
     notes TEXT,
     is_active BOOLEAN DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id)
 );
 
@@ -33,6 +34,7 @@ CREATE TABLE supplier_orders (
     notes TEXT,
     created_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
     FOREIGN KEY (created_by) REFERENCES users(id)
@@ -47,6 +49,7 @@ CREATE TABLE purchase_order_items (
     quantity DECIMAL(10,2) NOT NULL,
     unit_price DECIMAL(10,2) NOT NULL,
     total_price DECIMAL(10,2) NOT NULL,
+    deleted_at DATETIME,
     FOREIGN KEY (purchase_order_id) REFERENCES supplier_orders(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
 );

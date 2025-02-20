@@ -8,6 +8,7 @@ CREATE TABLE stock_units (
     conversion_rate DECIMAL(10,4), -- dönüşüm oranı (1000 gram = 1 kg)
     is_active BOOLEAN DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (base_unit_id) REFERENCES stock_units(id)
 );
@@ -26,6 +27,7 @@ CREATE TABLE stock_movements (
     notes TEXT,
     created_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (product_id) REFERENCES products(id),
     FOREIGN KEY (unit_id) REFERENCES stock_units(id),
@@ -43,6 +45,7 @@ CREATE TABLE inventory_counts (
     completed_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     completed_at DATETIME,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (created_by) REFERENCES users(id),
     FOREIGN KEY (completed_by) REFERENCES users(id)
@@ -58,6 +61,7 @@ CREATE TABLE inventory_count_items (
     unit_id INTEGER NOT NULL,
     difference DECIMAL(10,2),
     notes TEXT,
+    deleted_at DATETIME,
     FOREIGN KEY (count_id) REFERENCES inventory_counts(id),
     FOREIGN KEY (product_id) REFERENCES products(id),
     FOREIGN KEY (unit_id) REFERENCES stock_units(id)

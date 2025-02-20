@@ -21,6 +21,7 @@ CREATE TABLE accounts (
     is_active BOOLEAN DEFAULT 1,                 -- Aktif/Pasif
     allow_negative_balance BOOLEAN DEFAULT 0,     -- Eksi bakiyeye izin ver
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id)
 );
 
@@ -34,6 +35,7 @@ CREATE TABLE transaction_categories (
     color TEXT DEFAULT '#6c757d',                -- Renk kodu
     is_active BOOLEAN DEFAULT 1,                 -- Aktif/Pasif
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (parent_id) REFERENCES transaction_categories(id)
 );
@@ -59,7 +61,9 @@ CREATE TABLE transactions (
     reference_id INTEGER,                        -- Referans ID
     payment_method TEXT,                         -- Ödeme yöntemi
     created_by INTEGER,                          -- İşlemi yapan kullanıcı
+    deleted_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (account_id) REFERENCES accounts(id),
     FOREIGN KEY (category_id) REFERENCES transaction_categories(id),
@@ -78,5 +82,6 @@ CREATE TABLE invoices (
     status TEXT CHECK(status IN ('pending','partial','paid')) DEFAULT 'pending',
     notes TEXT,                                  -- Notlar
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id)
 );

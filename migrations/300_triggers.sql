@@ -1,27 +1,32 @@
--- Önce tüm trigger'ları drop edelim
+-- Önce tüm trigger'ları temizle
 DROP TRIGGER IF EXISTS trg_stock_movement_update;
-DROP TRIGGER IF EXISTS check_stock_level;
+DROP TRIGGER IF EXISTS trg_product_soft_delete;
+DROP TRIGGER IF EXISTS trg_order_soft_delete;
+DROP TRIGGER IF EXISTS trg_customer_soft_delete;
+DROP TRIGGER IF EXISTS trg_supplier_soft_delete;
+DROP TRIGGER IF EXISTS trg_check_deleted_relations;
+DROP TRIGGER IF EXISTS trg_audit_log_changes;
 DROP TRIGGER IF EXISTS check_stock_before_order;
 DROP TRIGGER IF EXISTS trg_order_status_log;
 DROP TRIGGER IF EXISTS audit_orders_status;
 DROP TRIGGER IF EXISTS check_delivery_date;
 DROP TRIGGER IF EXISTS trg_recipe_cost_update;
-DROP TRIGGER IF EXISTS soft_delete_customer_cascade;
 DROP TRIGGER IF EXISTS update_orders_timestamp;
 DROP TRIGGER IF EXISTS check_account_balance_before_transaction;
+DROP TRIGGER IF EXISTS update_account_balance_after_transaction;
 DROP TRIGGER IF EXISTS check_category_type_match;
 DROP TRIGGER IF EXISTS audit_transactions_insert;
-DROP TRIGGER IF EXISTS update_account_balance_after_transaction;
 DROP TRIGGER IF EXISTS trg_order_payment_received;
 DROP TRIGGER IF EXISTS trg_order_refund;
 DROP TRIGGER IF EXISTS trg_inventory_count_completed;
 DROP TRIGGER IF EXISTS trg_check_unit_conversion;
 
--- 1. STOK TETİKLEYİCİLERİ
--- Stok hareketi güncellemesi
+-- 1. STOK TRIGGERLARİ
+-- Stok hareketi güncellemesi (soft delete uyumlu)
 CREATE TRIGGER trg_stock_movement_update
 AFTER INSERT ON stock_movements
 FOR EACH ROW
+WHEN NEW.deleted_at IS NULL
 BEGIN
     UPDATE products 
     SET current_stock = (
@@ -31,6 +36,7 @@ BEGIN
         END), 0)
         FROM stock_movements 
         WHERE product_id = NEW.product_id
+        AND deleted_at IS NULL
     )
     WHERE id = NEW.product_id;
 END;
@@ -331,4 +337,46 @@ BEGIN
         WHEN NEW.conversion_rate <= 0 
         THEN RAISE(ABORT, 'Dönüşüm oranı pozitif olmalıdır')
     END;
+END;
+
+-- Silinmiş kayıtlarla ilişki kurulmasını engelle (Genel Kontrol)
+CREATE TRIGGER trg_check_deleted_relations
+BEFORE INSERT ON order_items
+BEGIN
+    SELECT CASE
+        WHEN EXISTS (SELECT 1 FROM products WHERE id = NEW.product_id AND deleted_at IS NOT NULL)
+            THEN RAISE(ABORT, 'Silinmiş ürün seçilemez!')
+        WHEN EXISTS (SELECT 1 FROM orders WHERE id = NEW.order_id AND deleted_at IS NOT NULL)
+            THEN RAISE(ABORT, 'Silinmiş sipariş seçilemez!')
+    END;
+END;
+
+-- Audit log trigger'ı
+CREATE TRIGGER trg_audit_log_changes
+AFTER UPDATE OF deleted_at ON orders
+FOR EACH ROW
+WHEN NEW.deleted_at IS NOT NULL AND OLD.deleted_at IS NULL
+BEGIN
+    INSERT INTO audit_log (
+        tenant_id, table_name, record_id, action,
+        old_data, new_data, created_by
+    ) VALUES (
+        NEW.tenant_id,
+        'orders',
+        NEW.id,
+        'SOFT_DELETE',
+        json_object('deleted_at', OLD.deleted_at),
+        json_object('deleted_at', NEW.deleted_at),
+        NEW.updated_by
+    );
+END;
+
+-- Cascade soft delete triggerları
+CREATE TRIGGER trg_customer_soft_delete 
+AFTER UPDATE OF deleted_at ON customers 
+WHEN NEW.deleted_at IS NOT NULL AND OLD.deleted_at IS NULL 
+BEGIN
+    UPDATE addresses SET deleted_at = CURRENT_TIMESTAMP WHERE customer_id = OLD.id;
+    UPDATE customer_preferences SET deleted_at = CURRENT_TIMESTAMP WHERE customer_id = OLD.id;
+    UPDATE customer_notes SET deleted_at = CURRENT_TIMESTAMP WHERE customer_id = OLD.id;
 END;

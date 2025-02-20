@@ -18,6 +18,7 @@ CREATE TABLE customers (
     last_order_date DATETIME,
     is_active BOOLEAN DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id)
 );
 
@@ -31,6 +32,7 @@ CREATE TABLE customer_contacts (
     is_primary BOOLEAN DEFAULT 0,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (customer_id) REFERENCES customers(id)
 );
 
@@ -56,6 +58,7 @@ CREATE TABLE addresses (
     is_default BOOLEAN DEFAULT 0,
     here_place_id TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (customer_id) REFERENCES customers(id)
 );
@@ -67,5 +70,6 @@ CREATE TABLE customer_preferences (
     value TEXT NOT NULL,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (customer_id) REFERENCES customers(id)
 );

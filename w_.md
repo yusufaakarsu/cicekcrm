@@ -16,7 +16,32 @@ cd workers
 wrangler deploy
 
 
-
+SELECT 
+c.*,
+COALESCE(
+  (SELECT COUNT(*) 
+    FROM orders o 
+    WHERE o.customer_id = c.id 
+    AND o.tenant_id = c.tenant_id 
+    AND o.deleted_at IS NULL), 
+0) as total_orders,
+(SELECT created_at 
+  FROM orders o 
+  WHERE o.customer_id = c.id 
+  AND o.tenant_id = c.tenant_id 
+  AND o.deleted_at IS NULL 
+  ORDER BY created_at DESC LIMIT 1) as last_order,
+COALESCE(
+  (SELECT SUM(total_amount) 
+    FROM orders o 
+    WHERE o.customer_id = c.id 
+    AND o.tenant_id = c.tenant_id 
+    AND o.deleted_at IS NULL), 
+0) as total_spent
+FROM customers c
+WHERE c.id = 1
+AND c.tenant_id = 1
+AND c.deleted_at IS NULL
 
 
 

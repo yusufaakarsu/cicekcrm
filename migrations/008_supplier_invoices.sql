@@ -13,7 +13,7 @@ CREATE TABLE supplier_invoices (
     notes TEXT,                                 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_by INTEGER,                         
-    is_deleted BOOLEAN DEFAULT 0,               
+    deleted_at DATETIME,               
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
     FOREIGN KEY (account_id) REFERENCES accounts(id),
@@ -27,7 +27,8 @@ CREATE TABLE supplier_invoice_items (
     product_id INTEGER NOT NULL,                
     quantity DECIMAL(10,2) NOT NULL,            
     unit_price DECIMAL(10,2) NOT NULL,          
-    total_price DECIMAL(10,2) NOT NULL,         
+    total_price DECIMAL(10,2) NOT NULL,
+    deleted_at DATETIME,         
     FOREIGN KEY (supplier_invoice_id) REFERENCES supplier_invoices(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
 );

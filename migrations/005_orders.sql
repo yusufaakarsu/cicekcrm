@@ -5,6 +5,7 @@ CREATE TABLE order_recipes (
     recipe_id INTEGER,      -- template reçete
     base_cost DECIMAL(10,2), -- işçilik
     total_cost DECIMAL(10,2), -- toplam maliyet
+    deleted_at DATETIME,
     FOREIGN KEY (order_item_id) REFERENCES order_items(id),
     FOREIGN KEY (recipe_id) REFERENCES recipes(id)
 );
@@ -16,6 +17,7 @@ CREATE TABLE order_recipe_items (
     product_id INTEGER NOT NULL,
     quantity DECIMAL(10,2) NOT NULL,
     unit_cost DECIMAL(10,2) NOT NULL,
+    deleted_at DATETIME,
     FOREIGN KEY (order_recipe_id) REFERENCES order_recipes(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
 );
@@ -45,6 +47,7 @@ CREATE TABLE orders (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     delivery_region_id INTEGER,     -- Teslimat bölgesi
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (customer_id) REFERENCES customers(id),
     FOREIGN KEY (delivery_address_id) REFERENCES addresses(id),
@@ -63,6 +66,7 @@ CREATE TABLE order_items (
     cost_price DECIMAL(10,2) DEFAULT 0,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (order_id) REFERENCES orders(id),
     FOREIGN KEY (product_id) REFERENCES products(id),
     FOREIGN KEY (recipe_id) REFERENCES recipes(id)

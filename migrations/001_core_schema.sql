@@ -19,6 +19,7 @@ CREATE TABLE tenants (
     timezone TEXT DEFAULT 'Europe/Istanbul',
     is_active BOOLEAN DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    deleted_at DATETIME,
 );
 
 CREATE TABLE users (
@@ -32,6 +33,7 @@ CREATE TABLE users (
     last_login DATETIME,
     is_active BOOLEAN DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id)
 );
 
@@ -43,6 +45,7 @@ CREATE TABLE tenant_users (
     permissions TEXT, -- JSON
     is_active BOOLEAN DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
@@ -57,7 +60,8 @@ CREATE TABLE subscription_plans (
     max_products INTEGER,
     max_orders INTEGER,
     is_active BOOLEAN DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME
 );
 
 CREATE TABLE tenant_subscriptions (
@@ -69,6 +73,7 @@ CREATE TABLE tenant_subscriptions (
     end_date DATE,
     billing_data TEXT, -- JSON
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (plan_id) REFERENCES subscription_plans(id)
 );
@@ -83,6 +88,7 @@ CREATE TABLE audit_log (
     old_data TEXT, -- JSON
     new_data TEXT, -- JSON
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
@@ -96,6 +102,7 @@ CREATE TABLE tenant_settings (
     track_costs BOOLEAN DEFAULT 0,        -- Maliyet takibi yapılsın mı?
     allow_negative_stock BOOLEAN DEFAULT 0, -- Eksi stoka düşülebilir mi?
     auto_update_prices BOOLEAN DEFAULT 0,  -- Maliyete göre fiyat güncellensin mi?
+    deleted_at DATETIME,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id)
 );
 
@@ -109,6 +116,7 @@ CREATE TABLE delivery_regions (
     min_order DECIMAL(10,2),        -- Minimum sipariş tutarı
     delivery_notes TEXT,            -- Teslimat notları
     is_active BOOLEAN DEFAULT 1,    -- Bölge aktif mi?
+    deleted_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (parent_id) REFERENCES delivery_regions(id)

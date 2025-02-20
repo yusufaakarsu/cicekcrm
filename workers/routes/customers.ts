@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// Tüm müşterileri listele
+// Tüm müşterileri listele - Ana liste sorgusu güncellendi
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -10,16 +10,29 @@ router.get('/', async (c) => {
     const { results } = await db.prepare(`
       SELECT 
         c.*,
-        COUNT(DISTINCT o.id) as total_orders,
-        MAX(o.created_at) as last_order,
-        COALESCE(SUM(o.total_amount), 0) as total_spent
+        COALESCE(
+          (SELECT COUNT(*) 
+           FROM orders o 
+           WHERE o.customer_id = c.id 
+           AND o.tenant_id = c.tenant_id 
+           AND o.deleted_at IS NULL), 
+        0) as total_orders,
+        (SELECT created_at 
+         FROM orders o 
+         WHERE o.customer_id = c.id 
+         AND o.tenant_id = c.tenant_id 
+         AND o.deleted_at IS NULL 
+         ORDER BY created_at DESC LIMIT 1) as last_order,
+        COALESCE(
+          (SELECT SUM(total_amount) 
+           FROM orders o 
+           WHERE o.customer_id = c.id 
+           AND o.tenant_id = c.tenant_id 
+           AND o.deleted_at IS NULL), 
+        0) as total_spent
       FROM customers c
-      LEFT JOIN orders o ON c.id = o.customer_id 
-        AND o.tenant_id = c.tenant_id 
-        AND o.deleted_at IS NULL
       WHERE c.tenant_id = ?
       AND c.deleted_at IS NULL
-      GROUP BY c.id
       ORDER BY c.name
     `).bind(tenant_id).all()
     
@@ -80,7 +93,7 @@ router.post("/", async (c) => {
 
       // Telefon kontrolü
       const existing = await db.prepare(`
-          SELECT id FROM customers WHERE phone = ? AND tenant_id = ? AND is_deleted = 0
+          SELECT id FROM customers WHERE phone = ? AND tenant_id = ? AND deleted_at = 0
       `).bind(phone, tenant_id).first();
 
       if (existing) {
@@ -135,7 +148,7 @@ router.post("/", async (c) => {
   }
 });
 
-// Müşteri detayı
+// Müşteri detayı - Müşteri detay sorgusu güncellendi
 router.get('/:id', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -145,17 +158,30 @@ router.get('/:id', async (c) => {
     const customer = await db.prepare(`
       SELECT 
         c.*,
-        COUNT(o.id) as total_orders,
-        MAX(o.created_at) as last_order,
-        SUM(o.total_amount) as total_spent
+        COALESCE(
+          (SELECT COUNT(*) 
+           FROM orders o 
+           WHERE o.customer_id = c.id 
+           AND o.tenant_id = c.tenant_id 
+           AND o.deleted_at IS NULL), 
+        0) as total_orders,
+        (SELECT created_at 
+         FROM orders o 
+         WHERE o.customer_id = c.id 
+         AND o.tenant_id = c.tenant_id 
+         AND o.deleted_at IS NULL 
+         ORDER BY created_at DESC LIMIT 1) as last_order,
+        COALESCE(
+          (SELECT SUM(total_amount) 
+           FROM orders o 
+           WHERE o.customer_id = c.id 
+           AND o.tenant_id = c.tenant_id 
+           AND o.deleted_at IS NULL), 
+        0) as total_spent
       FROM customers c
-      LEFT JOIN orders o ON c.id = o.customer_id 
-        AND o.tenant_id = c.tenant_id 
-        AND o.deleted_at IS NULL
       WHERE c.id = ?
       AND c.tenant_id = ?
       AND c.deleted_at IS NULL
-      GROUP BY c.id
     `).bind(id, tenant_id).first()
 
     if (!customer) {
@@ -184,7 +210,7 @@ router.put('/:id', async (c) => {
         customer_type = ?, company_name = ?, tax_number = ?,
         special_dates = ?, notes = ?,
         updated_at = DATETIME('now')
-      WHERE id = ? AND tenant_id = ? AND is_deleted = 0
+      WHERE id = ? AND tenant_id = ? AND deleted = 0
     `).bind(
       body.name, body.phone, body.email,
       body.address, body.city, body.district,
@@ -203,7 +229,7 @@ router.put('/:id', async (c) => {
   }
 })
 
-// Müşteri siparişleri - SQL güncellendi
+// Müşteri siparişleri - Müşteri siparişleri sorgusu güncellendi
 router.get('/:id/orders', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -211,26 +237,40 @@ router.get('/:id/orders', async (c) => {
   
   try {
     const { results } = await db.prepare(`
+      WITH OrderItems AS (
+        SELECT 
+          order_id,
+          GROUP_CONCAT(
+            COALESCE(oi.quantity, 0) || 'x ' || COALESCE(p.name, 'Silinmiş Ürün')
+          ) as items_list
+        FROM order_items oi
+        LEFT JOIN products p ON oi.product_id = p.id AND p.deleted_at IS NULL
+        WHERE oi.deleted_at IS NULL
+        GROUP BY order_id
+      )
       SELECT 
         o.*,
-        GROUP_CONCAT(
-          oi.quantity || 'x ' || p.name
-          SEPARATOR ', '
-        ) as items
+        COALESCE(oi.items_list, '') as items
       FROM orders o
-      LEFT JOIN order_items oi ON o.id = oi.order_id
-      LEFT JOIN products p ON oi.product_id = p.id
-      WHERE o.customer_id = ?
+      LEFT JOIN OrderItems oi ON o.id = oi.order_id
+      WHERE o.customer_id = ? 
       AND o.tenant_id = ?
       AND o.deleted_at IS NULL
-      GROUP BY o.id
       ORDER BY o.created_at DESC
       LIMIT 10
     `).bind(id, tenant_id).all()
 
-    return c.json(results || [])
+    return c.json({
+      success: true,
+      orders: results || []
+    })
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Customer orders error:', error)
+    return c.json({ 
+      success: false,
+      error: 'Database error',
+      message: error.message 
+    }, 500)
   }
 })
 
@@ -245,7 +285,7 @@ router.get('/:id/addresses', async (c) => {
       SELECT * FROM addresses 
       WHERE customer_id = ?
       AND tenant_id = ?
-      AND is_deleted = 0
+      AND deleted = 0
       ORDER BY is_default DESC, created_at DESC
     `).bind(id, tenant_id).all()
     
