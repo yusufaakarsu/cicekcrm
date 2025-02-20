@@ -344,6 +344,57 @@ body {
         font-size: 0.75rem;
         line-height: 1.2;
     }
+
+    /* Gün görünümü için düzenlenmiş stiller */
+    .delivery-columns {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+
+    /* Her zaman dilimi kartının içindeki grid düzeni */
+    .delivery-column .card .card-body {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    /* İçerideki sipariş kartları */
+    .delivery-column .card .card {
+        height: 100%;
+        margin: 0;
+    }
+
+    /* Sipariş kartı içeriği */
+    .delivery-column .card .card .card-body {
+        display: block !important; /* Grid yapısını iptal et */
+        padding: 0.5rem;
+        height: 100%;
+    }
+
+    /* Sipariş kartı içindeki metin boyutları */
+    .delivery-column .card .card h6 {
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .delivery-column .card .card .small {
+        font-size: 0.75rem;
+        line-height: 1.2;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* Badge'ler için düzenleme */
+    .delivery-column .card .card .badge {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+    }
 }
 
 @media (max-width: 576px) {
