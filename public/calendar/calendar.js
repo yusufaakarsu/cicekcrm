@@ -77,7 +77,10 @@ function renderMonthView() {
     const firstDay = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1);
     const lastDay = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0);
 
-    let html = '<div class="container-fluid p-3"><div class="row g-3">';
+    let html = `
+        <div class="container-fluid p-3">
+            <div class="row row-cols-3 row-cols-md-7 g-3">
+    `;
 
     // Günleri ekle
     for (let i = 1; i <= lastDay.getDate(); i++) {
@@ -86,28 +89,32 @@ function renderMonthView() {
 
         html += `
             <div class="col">
-                <div class="card ${isToday ? 'text-bg-primary' : ''} h-100" 
-                     onclick="switchToDay('${formatDateISO(date)}')" 
+                <div class="card h-100 ${isToday ? 'border-primary' : ''}" 
+                     onclick="switchToDay('${formatDateISO(date)}')"
                      data-date="${formatDateISO(date)}">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${i}</strong>
-                            <small class="text-muted">${formatDayName(date)}</small>
+                    
+                    <div class="card-header p-2 ${isToday ? 'bg-primary text-white' : ''}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${i}</strong>
+                                <small class="d-block">${formatDayName(date)}</small>
+                            </div>
+                            <span class="badge bg-warning text-dark total-orders">0</span>
                         </div>
-                        <span class="badge bg-warning text-dark total-orders">0</span>
                     </div>
-                    <div class="card-body">
-                        <div class="d-flex flex-column gap-2">
-                            <div class="d-flex justify-content-between">
-                                <small><i class="bi bi-sunrise"></i> Sabah</small>
+
+                    <div class="card-body p-2">
+                        <div class="d-flex flex-column gap-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small><i class="bi bi-sunrise text-warning"></i></small>
                                 <span class="delivery-count">0</span>
                             </div>
-                            <div class="d-flex justify-content-between">
-                                <small><i class="bi bi-sun"></i> Öğlen</small>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small><i class="bi bi-sun text-info"></i></small>
                                 <span class="delivery-count">0</span>
                             </div>
-                            <div class="d-flex justify-content-between">
-                                <small><i class="bi bi-moon"></i> Akşam</small>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small><i class="bi bi-moon text-success"></i></small>
                                 <span class="delivery-count">0</span>
                             </div>
                         </div>
