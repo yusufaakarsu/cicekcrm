@@ -8,7 +8,7 @@ wrangler d1 execute cicek-crm-db --remote --command "SELECT name as table_name F
 
 
 git add .
-git commit -m "müüşteriler" 
+git commit -m "müşteriler bitti" 
 git push origin development
 
 
