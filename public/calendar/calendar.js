@@ -79,7 +79,7 @@ function renderMonthView() {
 
     let html = `
         <div class="container-fluid p-3">
-            <div class="row row-cols-3 row-cols-md-7 g-3">
+            <div class="row row-cols-7 row-cols-sm-3"> <!-- Değişiklik burada -->
     `;
 
     // Günleri ekle
@@ -88,7 +88,7 @@ function renderMonthView() {
         const isToday = date.toDateString() === today.toDateString();
 
         html += `
-            <div class="col">
+            <div class="col mb-3"> <!-- mb-3 eklendi aralık için -->
                 <div class="card h-100 ${isToday ? 'border-primary' : ''}" 
                      onclick="switchToDay('${formatDateISO(date)}')"
                      data-date="${formatDateISO(date)}">
