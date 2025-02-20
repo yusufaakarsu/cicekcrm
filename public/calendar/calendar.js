@@ -95,15 +95,15 @@ function renderMonthView() {
                 </div>
                 <div class="delivery-slots">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-sunrise text-warning"></i></span>
+                        <span><i class="bi bi-sunrise text-dark"></i></span>
                         <span class="delivery-count">0</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-sun text-info"></i></span>
+                        <span><i class="bi bi-sun text-dark"></i></span>
                         <span class="delivery-count">0</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-moon text-success"></i></span>
+                        <span><i class="bi bi-moon text-dark"></i></span>
                         <span class="delivery-count">0</span>
                     </div>
                 </div>
