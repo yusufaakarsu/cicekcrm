@@ -77,34 +77,54 @@ function renderMonthView() {
     const firstDay = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1);
     const lastDay = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0);
 
-    let html = '<div class="calendar-grid p-3">';
+    let html = '<div class="container-fluid"><div class="row g-3 p-3">';
 
+    // Haftanın günleri başlığı
+    const weekDays = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+    weekDays.forEach(day => {
+        html += `
+            <div class="col">
+                <div class="text-center fw-bold text-muted small py-2">${day}</div>
+            </div>
+        `;
+    });
+
+    // Boş günleri ekle (ay başı)
+    let firstDayOfWeek = firstDay.getDay() || 7;
+    for (let i = 1; i < firstDayOfWeek; i++) {
+        html += '<div class="col"><div class="p-2"></div></div>';
+    }
+
+    // Günleri ekle
     for (let i = 1; i <= lastDay.getDate(); i++) {
         const date = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), i);
         const isToday = date.toDateString() === today.toDateString();
 
         html += `
-            <div class="card calendar-day ${isToday ? 'text-bg-success' : ''}" onclick="switchToDay('${formatDateISO(date)}')" data-date="${formatDateISO(date)}">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="day-number">${i}</span>
-                        <small class="text-muted">${formatDayName(date)}</small>
+            <div class="col">
+                <div class="card h-100 ${isToday ? 'border-primary' : ''}" 
+                     onclick="switchToDay('${formatDateISO(date)}')" 
+                     style="min-height:120px; cursor:pointer;">
+                    <div class="card-header p-2 ${isToday ? 'bg-primary text-white' : 'bg-light'}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>${i}</span>
+                            <span class="badge rounded-pill bg-warning text-dark total-orders">0</span>
+                        </div>
                     </div>
-                    <span class="badge bg-warning text-dark total-orders">0</span>
-                </div>
-                <div class="card-body p-2">
-                    <div class="delivery-slots">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-sunrise"></i></span>
-                            <span class="delivery-count">0</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-sun"></i></span>
-                            <span class="delivery-count">0</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-moon"></i></span>
-                            <span class="delivery-count">0</span>
+                    <div class="card-body p-2">
+                        <div class="d-flex flex-column gap-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small><i class="bi bi-sunrise text-warning"></i></small>
+                                <span class="delivery-count small">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small><i class="bi bi-sun text-info"></i></small>
+                                <span class="delivery-count small">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small><i class="bi bi-moon text-success"></i></small>
+                                <span class="delivery-count small">0</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -112,7 +132,7 @@ function renderMonthView() {
         `;
     }
 
-    html += '</div>';
+    html += '</div></div>';
     calendar.innerHTML = html;
     loadMonthData();
 }

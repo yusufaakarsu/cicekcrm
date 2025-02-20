@@ -13,16 +13,48 @@
 
     <div class="container-fluid mt-4">
         <div class="card shadow-sm">
+            <!-- Takvim Header -->
             <div class="card-header bg-white p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Teslimat Takvimi</h5>
-                    <button class="btn btn-sm btn-primary" onclick="window.location.href='/orders/new'">
-                        <i class="bi bi-plus-lg"></i> Yeni Sipariş
-                    </button>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <!-- Başlık -->
+                    <div>
+                        <h5 class="mb-0 current-date">Teslimat Takvimi</h5>
+                    </div>
+                    
+                    <!-- Kontroller -->
+                    <div class="d-flex gap-2">
+                        <!-- Görünüm Seçenekleri -->
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-primary active" onclick="switchView('month')">
+                                <i class="bi bi-calendar-month"></i> Ay
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="switchView('day')">
+                                <i class="bi bi-calendar-day"></i> Gün
+                            </button>
+                        </div>
+                        
+                        <!-- Navigasyon -->
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-secondary" onclick="previousMonth()">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="goToToday()">Bugün</button>
+                            <button class="btn btn-outline-secondary" onclick="nextMonth()">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Yeni Sipariş -->
+                        <button class="btn btn-primary" onclick="window.location.href='/orders/new'">
+                            <i class="bi bi-plus-lg"></i> Yeni Sipariş
+                        </button>
+                    </div>
                 </div>
             </div>
+            
+            <!-- Takvim İçeriği -->
             <div class="card-body p-0">
-                <div id="calendar"></div>
+                <div id="calendar" class="bg-white"></div>
             </div>
         </div>
     </div>
