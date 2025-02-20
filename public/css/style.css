@@ -30,6 +30,8 @@ body {
 .calendar-day {
     min-height: 110px;
     transition: transform 0.2s;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
 }
 
 .calendar-day:hover {
@@ -54,6 +56,14 @@ body {
 
 .delivery-slots .bi {
     font-size: 1.1rem;
+}
+
+/* Teslimat kolonları */
+.delivery-columns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1rem;
 }
 
 /* Responsive düzenleme */
@@ -88,5 +98,30 @@ body {
 
     .card .small {
         font-size: 0.75rem;
+    }
+
+    /* Delivery kolonları mobilde de 3'lü grid */
+    .delivery-columns {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 0.5rem;
+    }
+
+    /* İçerideki kartların scrollable olması için */
+    .delivery-columns .card {
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+    }
+
+    /* Kart içeriği düzenlemesi */
+    .delivery-columns .card-header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    /* Kart başlıkları için font boyutu */
+    .delivery-columns .card-header h5 {
+        font-size: 0.9rem;
     }
 }
