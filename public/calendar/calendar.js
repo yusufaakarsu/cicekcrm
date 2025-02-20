@@ -122,37 +122,44 @@ function renderDayView() {
     const calendar = document.getElementById('calendar');
     
     calendar.innerHTML = `
-        <div class="delivery-columns p-3">
-            <div class="col">
-                <div class="card h-100">
-                    <div class="card-header bg-warning bg-opacity-25">
-                        <h5 class="mb-0">Sabah</h5>
-                        <small>09:00-12:00</small>
-                    </div>
-                    <div class="card-body" id="morning-deliveries">
-                        <div class="text-center text-muted">Yükleniyor...</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card h-100">
-                    <div class="card-header bg-info bg-opacity-25">
-                        <h5 class="mb-0">Öğlen</h5>
-                        <small>12:00-17:00</small>
-                    </div>
-                    <div class="card-body" id="afternoon-deliveries">
-                        <div class="text-center text-muted">Yükleniyor...</div>
+        <div class="container-fluid p-3">
+            <div class="row row-cols-1 row-cols-md-3 g-3">
+                <!-- Sabah -->
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-header bg-warning bg-opacity-25">
+                            <h5 class="mb-0">Sabah</h5>
+                            <small>09:00-12:00</small>
+                        </div>
+                        <div class="card-body overflow-auto" id="morning-deliveries" style="max-height: calc(100vh - 250px);">
+                            <div class="text-center text-muted">Yükleniyor...</div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col">
-                <div class="card h-100">
-                    <div class="card-header bg-success bg-opacity-25">
-                        <h5 class="mb-0">Akşam</h5>
-                        <small>17:00-21:00</small>
+                
+                <!-- Öğlen -->
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-header bg-info bg-opacity-25">
+                            <h5 class="mb-0">Öğlen</h5>
+                            <small>12:00-17:00</small>
+                        </div>
+                        <div class="card-body overflow-auto" id="afternoon-deliveries" style="max-height: calc(100vh - 250px);">
+                            <div class="text-center text-muted">Yükleniyor...</div>
+                        </div>
                     </div>
-                    <div class="card-body" id="evening-deliveries">
-                        <div class="text-center text-muted">Yükleniyor...</div>
+                </div>
+                
+                <!-- Akşam -->
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-header bg-success bg-opacity-25">
+                            <h5 class="mb-0">Akşam</h5>
+                            <small>17:00-21:00</small>
+                        </div>
+                        <div class="card-body overflow-auto" id="evening-deliveries" style="max-height: calc(100vh - 250px);">
+                            <div class="text-center text-muted">Yükleniyor...</div>
+                        </div>
                     </div>
                 </div>
             </div>
