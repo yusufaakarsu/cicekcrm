@@ -79,32 +79,33 @@ function renderMonthView() {
 
     let html = '<div class="calendar-grid p-3">';
 
-    // Günleri oluştur
     for (let i = 1; i <= lastDay.getDate(); i++) {
         const date = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), i);
         const isToday = date.toDateString() === today.toDateString();
 
         html += `
-            <div class="calendar-day ${isToday ? 'today' : ''}" onclick="switchToDay('${formatDateISO(date)}')" data-date="${formatDateISO(date)}">
-                <div class="day-header">
-                    <div class="day-info">
-                        <div class="day-number">${i}</div>
-                        <div class="day-name">${formatDayName(date)}</div>
+            <div class="card calendar-day ${isToday ? 'text-bg-success' : ''}" onclick="switchToDay('${formatDateISO(date)}')" data-date="${formatDateISO(date)}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="day-number">${i}</span>
+                        <small class="text-muted">${formatDayName(date)}</small>
                     </div>
                     <span class="badge bg-warning text-dark total-orders">0</span>
                 </div>
-                <div class="delivery-slots">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-sunrise text-dark"></i></span>
-                        <span class="delivery-count">0</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-sun text-dark"></i></span>
-                        <span class="delivery-count">0</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-moon text-dark"></i></span>
-                        <span class="delivery-count">0</span>
+                <div class="card-body p-2">
+                    <div class="delivery-slots">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-sunrise"></i></span>
+                            <span class="delivery-count">0</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-sun"></i></span>
+                            <span class="delivery-count">0</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-moon"></i></span>
+                            <span class="delivery-count">0</span>
+                        </div>
                     </div>
                 </div>
             </div>
