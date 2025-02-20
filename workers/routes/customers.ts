@@ -2,36 +2,35 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// Tüm müşterileri listele - SQL güncellendi
+// Tüm müşterileri listele
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   try {
     const { results } = await db.prepare(`
       SELECT 
-        customers.*,
-        (SELECT COUNT(*) FROM orders 
-         WHERE customer_id = customers.id 
-         AND tenant_id = customers.tenant_id 
-         AND deleted_at IS NULL) as total_orders,
-        (SELECT MAX(created_at) FROM orders 
-         WHERE customer_id = customers.id 
-         AND tenant_id = customers.tenant_id 
-         AND deleted_at IS NULL) as last_order,
-        (SELECT COALESCE(SUM(total_amount), 0) FROM orders 
-         WHERE customer_id = customers.id 
-         AND tenant_id = customers.tenant_id 
-         AND deleted_at IS NULL) as total_spent
-      FROM customers 
-      WHERE customers.tenant_id = ?
-      AND customers.deleted_at IS NULL
-      ORDER BY customers.name
+        c.*,
+        COUNT(DISTINCT o.id) as total_orders,
+        MAX(o.created_at) as last_order,
+        COALESCE(SUM(o.total_amount), 0) as total_spent
+      FROM customers c
+      LEFT JOIN orders o ON c.id = o.customer_id 
+        AND o.tenant_id = c.tenant_id 
+        AND o.deleted_at IS NULL
+      WHERE c.tenant_id = ?
+      AND c.deleted_at IS NULL
+      GROUP BY c.id
+      ORDER BY c.name
     `).bind(tenant_id).all()
     
     return c.json(results)
   } catch (error) {
     console.error('Customers list error:', error)
-    return c.json({ error: 'Database error' }, 500)
+    return c.json({ 
+      success: false,
+      error: 'Database error',
+      message: error.message 
+    }, 500)
   }
 })
 
@@ -46,7 +45,7 @@ router.get('/phone/:phone', async (c) => {
         SELECT * FROM customers 
         WHERE phone = ? 
         AND tenant_id = ? 
-        AND is_deleted = 0
+        AND deleted_at IS NULL
     `).bind(phone, tenant_id).first()
     
     return c.json({
@@ -136,7 +135,7 @@ router.post("/", async (c) => {
   }
 });
 
-// Müşteri detayı - SQL güncellendi
+// Müşteri detayı
 router.get('/:id', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -145,23 +144,18 @@ router.get('/:id', async (c) => {
   try {
     const customer = await db.prepare(`
       SELECT 
-        customers.*,
-        (SELECT COUNT(*) FROM orders 
-         WHERE customer_id = customers.id 
-         AND tenant_id = customers.tenant_id 
-         AND deleted_at IS NULL) as total_orders,
-        (SELECT MAX(created_at) FROM orders 
-         WHERE customer_id = customers.id 
-         AND tenant_id = customers.tenant_id 
-         AND deleted_at IS NULL) as last_order,
-        (SELECT COALESCE(SUM(total_amount), 0) FROM orders 
-         WHERE customer_id = customers.id 
-         AND tenant_id = customers.tenant_id 
-         AND deleted_at IS NULL) as total_spent
-      FROM customers
-      WHERE customers.id = ?
-      AND customers.tenant_id = ?
-      AND customers.deleted_at IS NULL
+        c.*,
+        COUNT(o.id) as total_orders,
+        MAX(o.created_at) as last_order,
+        SUM(o.total_amount) as total_spent
+      FROM customers c
+      LEFT JOIN orders o ON c.id = o.customer_id 
+        AND o.tenant_id = c.tenant_id 
+        AND o.deleted_at IS NULL
+      WHERE c.id = ?
+      AND c.tenant_id = ?
+      AND c.deleted_at IS NULL
+      GROUP BY c.id
     `).bind(id, tenant_id).first()
 
     if (!customer) {
