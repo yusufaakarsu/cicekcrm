@@ -77,22 +77,26 @@ function renderMonthView() {
     const firstDay = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1);
     const lastDay = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0);
 
-    let html = '<div class="container-fluid"><div class="row g-3 p-3">';
-
-    // Haftanın günleri başlığı
-    const weekDays = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-    weekDays.forEach(day => {
-        html += `
-            <div class="col">
-                <div class="text-center fw-bold text-muted small py-2">${day}</div>
+    // Takvim container'ı
+    let html = `
+        <div class="container-fluid p-0">
+            <!-- Haftanın günleri başlığı -->
+            <div class="row mx-0 border-bottom bg-light">
+                ${['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(day => `
+                    <div class="col p-2 text-center border-end">
+                        <strong class="text-muted">${day}</strong>
+                    </div>
+                `).join('')}
             </div>
-        `;
-    });
+
+            <!-- Takvim günleri -->
+            <div class="row row-cols-7 mx-0">
+    `;
 
     // Boş günleri ekle (ay başı)
-    let firstDayOfWeek = firstDay.getDay() || 7;
+    let firstDayOfWeek = firstDay.getDay() || 7; // Pazartesi 1, Pazar 7 olacak şekilde
     for (let i = 1; i < firstDayOfWeek; i++) {
-        html += '<div class="col"><div class="p-2"></div></div>';
+        html += '<div class="col p-1 border-end border-bottom" style="min-height: 120px;"></div>';
     }
 
     // Günleri ekle
@@ -101,28 +105,31 @@ function renderMonthView() {
         const isToday = date.toDateString() === today.toDateString();
 
         html += `
-            <div class="col">
+            <div class="col p-1 border-end border-bottom">
                 <div class="card h-100 ${isToday ? 'border-primary' : ''}" 
-                     onclick="switchToDay('${formatDateISO(date)}')" 
-                     style="min-height:120px; cursor:pointer;">
+                     onclick="switchToDay('${formatDateISO(date)}')"
+                     data-date="${formatDateISO(date)}"
+                     style="cursor: pointer;">
+                    <!-- Gün başlığı -->
                     <div class="card-header p-2 ${isToday ? 'bg-primary text-white' : 'bg-light'}">
                         <div class="d-flex justify-content-between align-items-center">
-                            <span>${i}</span>
-                            <span class="badge rounded-pill bg-warning text-dark total-orders">0</span>
+                            <span class="fw-bold">${i}</span>
+                            <span class="badge bg-warning text-dark total-orders">0</span>
                         </div>
                     </div>
+                    <!-- Teslimat bilgileri -->
                     <div class="card-body p-2">
                         <div class="d-flex flex-column gap-1">
                             <div class="d-flex justify-content-between align-items-center">
-                                <small><i class="bi bi-sunrise text-warning"></i></small>
+                                <small><i class="bi bi-sunrise text-warning"></i> Sabah</small>
                                 <span class="delivery-count small">0</span>
                             </div>
                             <div class="d-flex justify-content-between align-items-center">
-                                <small><i class="bi bi-sun text-info"></i></small>
+                                <small><i class="bi bi-sun text-info"></i> Öğlen</small>
                                 <span class="delivery-count small">0</span>
                             </div>
                             <div class="d-flex justify-content-between align-items-center">
-                                <small><i class="bi bi-moon text-success"></i></small>
+                                <small><i class="bi bi-moon text-success"></i> Akşam</small>
                                 <span class="delivery-count small">0</span>
                             </div>
                         </div>
@@ -208,7 +215,7 @@ async function loadMonthData() {
         const startDate = formatDateISO(new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1));
         const endDate = formatDateISO(new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0));
 
-        const response = await fetch(`${API_URL}/orders/filtered?start_date=${startDate}&end_date=${endDate}&per_page=1000&date_filter=month`);
+        const response = await fetch(`${API_URL}/orders/filtered?start_date=${startDate}&end_date=${endDate}&per_page=1000&date_filter=delivery_date`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
@@ -234,31 +241,31 @@ async function loadMonthData() {
         });
 
         // Takvim günlerini güncelle
-        document.querySelectorAll('.calendar-day').forEach(dayEl => {
+        document.querySelectorAll('.card[data-date]').forEach(dayEl => {
             const date = dayEl.dataset.date;
             const dayData = ordersByDay[date] || { morning: 0, afternoon: 0, evening: 0, total: 0 };
 
-            // Toplam sipariş sayısı
             const totalBadge = dayEl.querySelector('.total-orders');
+            const deliveryCounts = dayEl.querySelectorAll('.delivery-count');
+
             if (totalBadge) {
                 totalBadge.textContent = dayData.total;
                 if (dayData.total > 0) {
-                    totalBadge.classList.remove('bg-light', 'text-dark');
+                    totalBadge.classList.remove('bg-warning', 'text-dark');
                     totalBadge.classList.add('bg-primary', 'text-white');
                 }
             }
 
-            // Teslimat slotları
-            const slots = dayEl.querySelectorAll('.delivery-count');
-            if (slots.length === 3) {
-                slots[0].textContent = dayData.morning || '0';
-                slots[1].textContent = dayData.afternoon || '0';
-                slots[2].textContent = dayData.evening || '0';
+            if (deliveryCounts.length === 3) {
+                deliveryCounts[0].textContent = dayData.morning || '0';
+                deliveryCounts[1].textContent = dayData.afternoon || '0';
+                deliveryCounts[2].textContent = dayData.evening || '0';
             }
         });
 
     } catch (error) {
         console.error('Veri yükleme hatası:', error);
+        showError('Veriler yüklenemedi');
     }
 }
 
