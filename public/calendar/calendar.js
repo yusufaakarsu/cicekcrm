@@ -76,58 +76,85 @@ function renderMonthView() {
     const today = new Date();
     const firstDay = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1);
     const lastDay = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0);
+    const firstDayOfWeek = firstDay.getDay() || 7; // Pazartesi 1, Pazar 7
 
-    // Panelsiz, direkt div içinde grid
     let html = `
         <div class="p-3">
-            <div class="row row-cols-7"> <!-- Desktop: 7 kolon -->
-                <!-- Haftanın günleri başlıkları -->
-                ${['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(day => `
-                    <div class="col text-center p-2">
-                        <small class="text-muted fw-bold">${day}</small>
-                    </div>
-                `).join('')}
-                
-                <!-- Günler -->
-                ${Array.from({length: lastDay.getDate()}, (_, i) => {
-                    const date = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), i + 1);
-                    const isToday = date.toDateString() === today.toDateString();
-                    
-                    return `
-                        <div class="col p-1">
-                            <div class="card h-100 ${isToday ? 'border-primary' : ''}" 
-                                 onclick="switchToDay('${formatDateISO(date)}')"
-                                 data-date="${formatDateISO(date)}">
-                                <div class="card-header p-2 ${isToday ? 'bg-primary text-white' : ''}">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <strong>${i + 1}</strong>
-                                        <span class="badge bg-warning text-dark total-orders">0</span>
-                                    </div>
+            <!-- Tablo yapısı kullanarak düzgün grid oluştur -->
+            <table class="w-100">
+                <!-- Haftanın günleri -->
+                <thead>
+                    <tr>
+                        ${['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(day => `
+                            <th class="text-center p-2">
+                                <small class="text-muted fw-bold">${day}</small>
+                            </th>
+                        `).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    // Günleri 7'lik satırlar halinde oluştur
+    let date = 1;
+    const numberOfDays = lastDay.getDate();
+
+    // Satırları oluştur
+    for (let i = 0; i < 6; i++) { // Max 6 satır
+        html += '<tr>';
+        
+        // Her satırda 7 sütun
+        for (let j = 1; j <= 7; j++) {
+            if (i === 0 && j < firstDayOfWeek) {
+                // Ay başlamadan önceki boş günler
+                html += '<td class="p-1"></td>';
+            } else if (date > numberOfDays) {
+                // Ay bittikten sonraki boş günler
+                html += '<td class="p-1"></td>';
+            } else {
+                const currentDate = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), date);
+                const isToday = currentDate.toDateString() === today.toDateString();
+
+                html += `
+                    <td class="p-1">
+                        <div class="card h-100 ${isToday ? 'border-primary' : ''}" 
+                             onclick="switchToDay('${formatDateISO(currentDate)}')"
+                             data-date="${formatDateISO(currentDate)}">
+                            <div class="card-header p-2 ${isToday ? 'bg-primary text-white' : ''}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong>${date}</strong>
+                                    <span class="badge bg-warning text-dark total-orders">0</span>
                                 </div>
-                                <div class="card-body p-2">
-                                    <div class="d-flex flex-column gap-1">
-                                        <div class="d-flex justify-content-between">
-                                            <small><i class="bi bi-sunrise text-warning"></i></small>
-                                            <span class="delivery-count">0</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between">
-                                            <small><i class="bi bi-sun text-info"></i></small>
-                                            <span class="delivery-count">0</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between">
-                                            <small><i class="bi bi-moon text-success"></i></small>
-                                            <span class="delivery-count">0</span>
-                                        </div>
+                            </div>
+                            <div class="card-body p-2">
+                                <div class="d-flex flex-column gap-1">
+                                    <div class="d-flex justify-content-between">
+                                        <small><i class="bi bi-sunrise text-warning"></i></small>
+                                        <span class="delivery-count">0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <small><i class="bi bi-sun text-info"></i></small>
+                                        <span class="delivery-count">0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <small><i class="bi bi-moon text-success"></i></small>
+                                        <span class="delivery-count">0</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    `;
-                }).join('')}
-            </div>
-        </div>
-    `;
+                    </td>
+                `;
+                date++;
+            }
+        }
+        html += '</tr>';
+        
+        // Tüm günler bittiyse döngüyü sonlandır
+        if (date > numberOfDays) break;
+    }
 
+    html += '</tbody></table></div>';
     calendar.innerHTML = html;
     loadMonthData();
 }

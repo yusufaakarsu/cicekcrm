@@ -1,0 +1,937 @@
+<html lang="tr"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teslimat Takvimi - Çiçek CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body data-page="calendar" class="active">
+    <div id="header"><nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="bi bi-flower1"></i> Çiçek CRM</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <!-- Ana Sayfa -->
+                <li class="nav-item">
+                    <a class="nav-link" href="/" data-page="dashboard">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+
+                <!-- Siparişler Dropdown -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-page="orders">
+                        <i class="bi bi-box"></i> Siparişler
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="/orders/orders.html">
+                                <i class="bi bi-list"></i> Sipariş Listesi
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/orders/new-order.html">
+                                <i class="bi bi-plus-lg"></i> Yeni Sipariş
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Müşteriler -->
+                <li class="nav-item">
+                    <a class="nav-link" href="/customers/customers.html" data-page="customers">
+                        <i class="bi bi-people"></i> Müşteriler
+                    </a>
+                </li>
+
+                <!-- Teslimat -->
+                <li class="nav-item">
+                    <a class="nav-link" href="/delivery/delivery.html" data-page="delivery">
+                        <i class="bi bi-truck"></i> Teslimat
+                    </a>
+                </li>
+
+                <!-- Finans -->
+                <li class="nav-item">
+                    <a class="nav-link" href="/finance/">
+                        <i class="bi bi-wallet2"></i> Finans
+                    </a>
+                </li>
+
+                <!-- Takvim -->
+                <li class="nav-item">
+                    <a class="nav-link" href="/calendar/calendar.html" data-page="calendar">
+                        <i class="bi bi-calendar3"></i> Takvim
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+</div>
+
+    <div class="container-fluid mt-4">
+        <!-- Sadece başlık ve kontrol paneli -->
+        <div class="bg-white rounded shadow-sm mb-3 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <!-- Başlık -->
+                <div>
+                    <h5 class="mb-0 current-date">Şubat 2025</h5>
+                </div>
+                
+                <!-- Kontroller -->
+                <div class="d-flex gap-2">
+                    <!-- Görünüm Seçenekleri -->
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-primary active" onclick="switchView('month')">
+                            <i class="bi bi-calendar-month"></i> Ay
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="switchView('day')">
+                            <i class="bi bi-calendar-day"></i> Gün
+                        </button>
+                    </div>
+                    
+                    <!-- Navigasyon -->
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-secondary" onclick="previousMonth()">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="goToToday()">Bugün</button>
+                        <button class="btn btn-outline-secondary" onclick="nextMonth()">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Takvim direkt div içinde -->
+        <div class="bg-white rounded shadow-sm">
+            <div id="calendar">
+        <div class="p-3">
+            <div class="row row-cols-7"> <!-- Desktop: 7 kolon -->
+                <!-- Haftanın günleri başlıkları -->
+                
+                    <div class="col text-center p-2">
+                        <small class="text-muted fw-bold">Pzt</small>
+                    </div>
+                
+                    <div class="col text-center p-2">
+                        <small class="text-muted fw-bold">Sal</small>
+                    </div>
+                
+                    <div class="col text-center p-2">
+                        <small class="text-muted fw-bold">Çar</small>
+                    </div>
+                
+                    <div class="col text-center p-2">
+                        <small class="text-muted fw-bold">Per</small>
+                    </div>
+                
+                    <div class="col text-center p-2">
+                        <small class="text-muted fw-bold">Cum</small>
+                    </div>
+                
+                    <div class="col text-center p-2">
+                        <small class="text-muted fw-bold">Cmt</small>
+                    </div>
+                
+                    <div class="col text-center p-2">
+                        <small class="text-muted fw-bold">Paz</small>
+                    </div>
+                
+                
+                <!-- Günler -->
+                
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-01')" data-date="2025-02-01">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>1</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-02')" data-date="2025-02-02">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>2</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-03')" data-date="2025-02-03">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>3</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-04')" data-date="2025-02-04">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>4</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-05')" data-date="2025-02-05">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>5</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-06')" data-date="2025-02-06">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>6</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-07')" data-date="2025-02-07">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>7</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">3</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-08')" data-date="2025-02-08">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>8</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-09')" data-date="2025-02-09">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>9</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-10')" data-date="2025-02-10">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>10</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-11')" data-date="2025-02-11">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>11</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-12')" data-date="2025-02-12">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>12</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-13')" data-date="2025-02-13">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>13</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-14')" data-date="2025-02-14">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>14</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-15')" data-date="2025-02-15">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>15</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-16')" data-date="2025-02-16">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>16</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-17')" data-date="2025-02-17">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>17</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-18')" data-date="2025-02-18">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>18</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-19')" data-date="2025-02-19">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>19</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 border-primary" onclick="switchToDay('2025-02-20')" data-date="2025-02-20">
+                                <div class="card-header p-2 bg-primary text-white">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>20</strong>
+                                        <span class="badge total-orders bg-primary text-white">4</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">3</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-21')" data-date="2025-02-21">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>21</strong>
+                                        <span class="badge total-orders bg-primary text-white">4</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">3</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-22')" data-date="2025-02-22">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>22</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-23')" data-date="2025-02-23">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>23</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-24')" data-date="2025-02-24">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>24</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">3</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-25')" data-date="2025-02-25">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>25</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-26')" data-date="2025-02-26">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>26</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-27')" data-date="2025-02-27">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>27</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="col p-1">
+                            <div class="card h-100 " onclick="switchToDay('2025-02-28')" data-date="2025-02-28">
+                                <div class="card-header p-2 ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>28</strong>
+                                        <span class="badge total-orders bg-primary text-white">3</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sunrise text-warning"></i></small>
+                                            <span class="delivery-count">0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-sun text-info"></i></small>
+                                            <span class="delivery-count">2</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <small><i class="bi bi-moon text-success"></i></small>
+                                            <span class="delivery-count">1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+
+    <!-- Sipariş Detay Modal -->
+    <div class="modal fade" id="orderDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sipariş Detayı</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="delivery-info"></div>
+                    <div class="customer-info mt-3"></div>
+                    <div class="order-items mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    <button type="button" class="btn btn-primary edit-order">Düzenle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="calendar.js"></script>
+
+</body></html>
