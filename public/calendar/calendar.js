@@ -328,26 +328,39 @@ async function loadDayData() {
         const date = formatDateISO(state.currentDate);
         console.log('Gün verileri yükleniyor:', date);
 
-        // delivery_date parametresi eklendi
         const response = await fetch(`${API_URL}/orders/filtered?start_date=${date}&end_date=${date}&date_filter=delivery_date&per_page=1000`);
         if (!response.ok) throw new Error('API Hatası: ' + response.status);
         
         const data = await response.json();
 
-        // Gün görünümünü güncelle
+        // Her zaman dilimi için siparişleri filtrele ve render et
         ['morning', 'afternoon', 'evening'].forEach(slot => {
             const orders = data.orders.filter(order => 
-                // Teslimat tarihi kontrolü eklendi
                 order.delivery_time_slot === slot && 
                 order.delivery_date.split(' ')[0] === date
             );
             
             const container = document.getElementById(`${slot}-deliveries`);
-            
             if (container) {
-                if (orders.length > 0) {
-                    container.innerHTML = orders.map(order => `
-                        <div class="card mb-2" onclick="showOrderDetails(${order.id})" style="cursor: pointer;">
+                renderDayOrders(container, orders);
+            }
+        });
+
+    } catch (error) {
+        console.error('Gün verileri yüklenirken hata:', error);
+        showError('Veriler yüklenemedi');
+    }
+}
+
+// Gün görünümünde siparişlerin render edilmesi
+function renderDayOrders(container, orders) {
+    if (orders.length > 0) {
+        // Row ve col yapısı ile 3'lü grid
+        container.innerHTML = `
+            <div class="row row-cols-1 row-cols-md-3 g-2">
+                ${orders.map(order => `
+                    <div class="col">
+                        <div class="card h-100" onclick="showOrderDetails(${order.id})" style="cursor: pointer;">
                             <div class="card-body p-2">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
@@ -370,16 +383,12 @@ async function loadDayData() {
                                 </div>
                             </div>
                         </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = '<div class="text-center text-muted py-3">Bu saatte teslimat yok</div>';
-                }
-            }
-        });
-
-    } catch (error) {
-        console.error('Gün verileri yüklenirken hata:', error);
-        showError('Veriler yüklenemedi');
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } else {
+        container.innerHTML = '<div class="text-center text-muted py-3">Bu saatte teslimat yok</div>';
     }
 }
 
