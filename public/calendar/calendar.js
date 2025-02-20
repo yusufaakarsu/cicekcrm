@@ -355,11 +355,11 @@ async function loadDayData() {
 // Gün görünümünde siparişlerin render edilmesi
 function renderDayOrders(container, orders) {
     if (orders.length > 0) {
-        // Row ve col yapısı ile 3'lü grid
         container.innerHTML = `
-            <div class="row row-cols-1 row-cols-md-3 g-2">
+            <div class="row g-2">
                 ${orders.map(order => `
-                    <div class="col">
+                    <!-- Her kolon mobilde tam (12), desktop'ta yarım (6) genişlik -->
+                    <div class="col-12 col-md-6">
                         <div class="card h-100" onclick="showOrderDetails(${order.id})" style="cursor: pointer;">
                             <div class="card-body p-2">
                                 <div class="d-flex justify-content-between align-items-start">
