@@ -2,40 +2,30 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// Tüm ürünler
+// Ürün listesi
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
-  const { category, search } = c.req.query()
   
   try {
-    // Temel sorgu
-    let query = `
-      SELECT * FROM products 
-      WHERE tenant_id = ?
-      AND is_deleted = 0
-    `
-    const params = [tenant_id]
-
-    // Kategori filtresi
-    if (category) {
-      query += ` AND category_id = ?`
-      params.push(category)
-    }
-
-    // Arama filtresi
-    if (search) {
-      query += ` AND name LIKE ?`
-      params.push(`%${search}%`)
-    }
-
-    // Sıralama
-    query += ` ORDER BY name`
-
-    const { results } = await db.prepare(query).bind(...params).all()
+    const { results } = await db.prepare(`
+      SELECT 
+        p.*,
+        pc.name as category_name
+      FROM products p
+      LEFT JOIN product_categories pc ON p.category_id = pc.id
+      WHERE p.tenant_id = ?
+      AND p.deleted_at IS NULL
+      ORDER BY p.name
+    `).bind(tenant_id).all()
+    
     return c.json(results)
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    return c.json({ 
+      success: false,
+      error: 'Database error',
+      message: error.message 
+    }, 500)
   }
 })
 
