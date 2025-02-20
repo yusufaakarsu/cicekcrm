@@ -308,58 +308,50 @@ function formatTimeSlot(slot) {
 // Sipariş detaylarını göster fonksiyonu - Eklendi
 async function showOrderDetails(orderId) {
     try {
-        const response = await fetch(`${API_URL}/orders/${orderId}/details`);
+        const response = await fetch(`${API_URL}/orders/${orderId}`);
         if (!response.ok) throw new Error('API Hatası');
         
         const order = await response.json();
         
-        // Modal içeriğini doldur
-        document.querySelector('.delivery-info').innerHTML = `
-            <div class="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                    <h6 class="mb-2">Teslimat Bilgileri</h6>
-                    <div class="text-muted mb-1">${formatDate(order.delivery_date)}</div>
-                    <div class="text-primary">${formatTimeSlot(order.delivery_time_slot)}</div>
-                </div>
-                <div class="text-end">
-                    ${getStatusBadge(order.status)}
-                </div>
-            </div>
-            <div class="small">
-                <i class="bi bi-geo-alt"></i> ${order.delivery_address}
-            </div>
-        `;
-        
-        document.querySelector('.customer-info').innerHTML = `
-            <h6 class="mb-2">Alıcı Bilgileri</h6>
-            <div class="mb-1">
-                <i class="bi bi-person"></i> ${order.recipient_name}
-            </div>
-            <div class="mb-1">
-                <i class="bi bi-phone"></i> ${formatPhoneNumber(order.recipient_phone)}
-            </div>
-            ${order.card_message ? `
-                <div class="mt-2 p-2 bg-light rounded">
-                    <i class="bi bi-chat-quote text-primary"></i> ${order.card_message}
-                </div>` : ''
-            }
-        `;
-        
-        document.querySelector('.order-items').innerHTML = `
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="mb-0">Sipariş Detayı</h6>
-                <span class="h6 mb-0">${formatCurrency(order.total_amount)}</span>
-            </div>
-            <div class="list-group list-group-flush small">
-                ${order.items.split(',').map(item => `
-                    <div class="list-group-item px-0">${item.trim()}</div>
-                `).join('')}
-            </div>
-        `;
-
         // Modalı göster
-        const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+        const modalHTML = `
+            <div class="modal fade" id="orderDetailModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Sipariş #${order.id}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="fw-bold">Teslimat Bilgileri</label>
+                                <p>${formatDate(order.delivery_date)} - ${formatTimeSlot(order.delivery_time_slot)}</p>
+                                <p>${order.delivery_address}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="fw-bold">Alıcı Bilgileri</label>
+                                <p>${order.recipient_name}<br>${order.recipient_phone}</p>
+                                ${order.card_message ? `<p class="text-muted">"${order.card_message}"</p>` : ''}
+                            </div>
+                            <div>
+                                <label class="fw-bold">Ürünler</label>
+                                <p>${order.items}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        // Varsa eski modalı kaldır
+        document.querySelector('#orderDetailModal')?.remove();
+        
+        // Yeni modalı ekle
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Modalı göster
+        const modal = new bootstrap.Modal(document.querySelector('#orderDetailModal'));
         modal.show();
+
     } catch (error) {
         console.error('Sipariş detayları yüklenirken hata:', error);
         showError('Sipariş detayları yüklenemedi');

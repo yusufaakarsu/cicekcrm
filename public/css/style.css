@@ -21,7 +21,7 @@ body {
 /* Temel takvim stilleri */
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(7, 1fr);
     gap: 0.75rem;
     padding: 1rem;
 }
@@ -79,5 +79,14 @@ body {
     /* Sipariş kartı içeriği */
     .delivery-column .card .card .card-body {
         display: block !important;
+    }
+
+    /* Font boyutlarını küçült */
+    .card-header h5 {
+        font-size: 0.9rem;
+    }
+
+    .card .small {
+        font-size: 0.75rem;
     }
 }
