@@ -2,38 +2,15 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// Tüm müşterileri listele - Ana liste sorgusu güncellendi
+// Tüm müşterileri listele - View kullanımı
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   try {
     const { results } = await db.prepare(`
-      SELECT 
-        c.*,
-        COALESCE(
-          (SELECT COUNT(*) 
-           FROM orders o 
-           WHERE o.customer_id = c.id 
-           AND o.tenant_id = c.tenant_id 
-           AND o.deleted_at IS NULL), 
-        0) as total_orders,
-        (SELECT created_at 
-         FROM orders o 
-         WHERE o.customer_id = c.id 
-         AND o.tenant_id = c.tenant_id 
-         AND o.deleted_at IS NULL 
-         ORDER BY created_at DESC LIMIT 1) as last_order,
-        COALESCE(
-          (SELECT SUM(total_amount) 
-           FROM orders o 
-           WHERE o.customer_id = c.id 
-           AND o.tenant_id = c.tenant_id 
-           AND o.deleted_at IS NULL), 
-        0) as total_spent
-      FROM customers c
-      WHERE c.tenant_id = ?
-      AND c.deleted_at IS NULL
-      ORDER BY c.name
+      SELECT * FROM vw_customers 
+      WHERE tenant_id = ? 
+      ORDER BY name
     `).bind(tenant_id).all()
     
     return c.json(results)
@@ -148,7 +125,7 @@ router.post("/", async (c) => {
   }
 });
 
-// Müşteri detayı - Müşteri detay sorgusu güncellendi
+// Müşteri detayı - View kullanımı
 router.get('/:id', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -156,32 +133,8 @@ router.get('/:id', async (c) => {
   
   try {
     const customer = await db.prepare(`
-      SELECT 
-        c.*,
-        COALESCE(
-          (SELECT COUNT(*) 
-           FROM orders o 
-           WHERE o.customer_id = c.id 
-           AND o.tenant_id = c.tenant_id 
-           AND o.deleted_at IS NULL), 
-        0) as total_orders,
-        (SELECT created_at 
-         FROM orders o 
-         WHERE o.customer_id = c.id 
-         AND o.tenant_id = c.tenant_id 
-         AND o.deleted_at IS NULL 
-         ORDER BY created_at DESC LIMIT 1) as last_order,
-        COALESCE(
-          (SELECT SUM(total_amount) 
-           FROM orders o 
-           WHERE o.customer_id = c.id 
-           AND o.tenant_id = c.tenant_id 
-           AND o.deleted_at IS NULL), 
-        0) as total_spent
-      FROM customers c
-      WHERE c.id = ?
-      AND c.tenant_id = ?
-      AND c.deleted_at IS NULL
+      SELECT * FROM vw_customers
+      WHERE id = ? AND tenant_id = ?
     `).bind(id, tenant_id).first()
 
     if (!customer) {
@@ -229,7 +182,7 @@ router.put('/:id', async (c) => {
   }
 })
 
-// Müşteri siparişleri - SQL sorgusu güncellendi
+// Müşteri siparişleri - View kullanımı
 router.get('/:id/orders', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -237,23 +190,10 @@ router.get('/:id/orders', async (c) => {
   
   try {
     const { results } = await db.prepare(`
-      SELECT 
-        o.*,
-        (
-          SELECT GROUP_CONCAT(
-            oi.quantity || 'x ' || COALESCE(p.name, 'Silinmiş Ürün')
-          )
-          FROM order_items oi
-          LEFT JOIN products p ON oi.product_id = p.id
-          WHERE oi.order_id = o.id
-          AND oi.deleted_at IS NULL
-        ) as items
-      FROM orders o
-      WHERE o.customer_id = ?
-      AND o.tenant_id = ?
-      AND o.deleted_at IS NULL
-      GROUP BY o.id
-      ORDER BY o.created_at DESC
+      SELECT * FROM vw_customer_orders
+      WHERE customer_id = ?
+      AND tenant_id = ?
+      ORDER BY created_at DESC
       LIMIT 10
     `).bind(
       parseInt(id), 

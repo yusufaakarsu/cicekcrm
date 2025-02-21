@@ -20,9 +20,14 @@ async function loadCustomers() {
                     <td>${customer.name}</td>
                     <td>${formatPhoneNumber(customer.phone)}</td>
                     <td>${customer.email || '-'}</td>
-                    <td>${customer.address}</td>
+                    <td>
+                        <span class="badge bg-info">${customer.address_count} adres</span>
+                    </td>
                     <td>${customer.last_order ? formatDate(customer.last_order) : 'Sipariş yok'}</td>
-                    <td>${customer.total_orders || 0}</td>
+                    <td>
+                        <span class="badge bg-success">${customer.total_orders}</span>
+                        <small class="text-muted">(₺${formatPrice(customer.total_spent)})</small>
+                    </td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary me-1" onclick="showCustomerDetails(${customer.id})">
                             <i class="bi bi-person-lines-fill"></i>
@@ -116,48 +121,26 @@ async function showCustomerDetails(customerId) {
     try {
         detailsModal = new bootstrap.Modal(document.getElementById('customerDetailsModal'));
         
-        // Paralel API çağrıları
-        const [customerResponse, ordersResponse] = await Promise.all([
-            fetch(`${API_URL}/customers/${customerId}`),
-            fetch(`${API_URL}/customers/${customerId}/orders`)
-        ]);
+        // Artık tek API çağrısı yeterli
+        const response = await fetch(`${API_URL}/customers/${customerId}`);
+        if (!response.ok) throw new Error('API Hatası');
 
-        if (!customerResponse.ok || !ordersResponse.ok) {
-            throw new Error('API Hatası');
-        }
-
-        const customer = await customerResponse.json();
-        const ordersData = await ordersResponse.json();
+        const customer = await response.json();
         
-        // API yanıtı yapısını kontrol et ve orders dizisini al
-        const orders = ordersData.orders || []; // API'den gelen orders array'i
-
-        // Müşteri detaylarını doldur
+        // View'dan gelen zenginleştirilmiş veriyi kullan
         document.getElementById('detail-name').textContent = customer.name;
         document.getElementById('detail-phone').textContent = formatPhoneNumber(customer.phone);
         document.getElementById('detail-email').textContent = customer.email || '-';
-        document.getElementById('detail-address').textContent = customer.address || '-';
-        document.getElementById('detail-total-orders').textContent = customer.total_orders || 0;
+        document.getElementById('detail-addresses').textContent = `${customer.address_count} adres`;
+        document.getElementById('detail-total-orders').textContent = customer.total_orders;
         document.getElementById('detail-last-order').textContent = 
             customer.last_order ? formatDate(customer.last_order) : '-';
         document.getElementById('detail-total-spent').textContent = 
-            formatCurrency(customer.total_spent || 0);
+            formatCurrency(customer.total_spent);
 
-        // Sipariş listesini doldur
-        const ordersTable = document.getElementById('customerOrdersTable');
-        if (orders && orders.length > 0) {
-            ordersTable.innerHTML = orders.map(order => `
-                <tr>
-                    <td>${formatDate(order.created_at)}</td>
-                    <td>${order.items || '-'}</td>
-                    <td>${formatCurrency(order.total_amount)}</td>
-                    <td>${getStatusBadge(order.status)}</td>
-                </tr>
-            `).join('');
-        } else {
-            ordersTable.innerHTML = '<tr><td colspan="4" class="text-center">Sipariş bulunamadı</td></tr>';
-        }
-
+        // Siparişleri ayrıca yükle
+        loadCustomerOrders(customerId);
+        
         detailsModal.show();
     } catch (error) {
         console.error('Müşteri detayları yüklenirken hata:', error);
