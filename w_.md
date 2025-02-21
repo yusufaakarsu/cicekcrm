@@ -8,7 +8,7 @@ wrangler d1 execute cicek-crm-db --remote --command "SELECT name as table_name F
 cat /Users/yusuf/Library/Preferences/.wrangler/logs/wrangler-2025-02-21_22-18-02_914.log
 
 git add .
-git commit -m "müşteriler bitti" 
+git commit -m "basit açıklama" 
 git push origin development
 
 

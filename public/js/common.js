@@ -57,6 +57,14 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
+// Para formatı
+function formatPrice(amount) {
+    return new Intl.NumberFormat('tr-TR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(amount);
+}
+
 // API temel URL'i ve endpoint'leri
 const API_ENDPOINTS = {
     CATEGORIES: '/product-categories', 
