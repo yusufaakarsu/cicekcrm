@@ -61,10 +61,10 @@ router.post("/", async (c) => {
       const phone = body.phone.replace(/\D/g, "");
       
       // Temel validasyon
-      if (!body.name || !phone || !body.district) {
+      if (!body.name || !phone) {
           return c.json({
               success: false,
-              error: "Ad, telefon ve ilçe alanları zorunludur"
+              error: "Ad ve telefon alanları zorunludur"
           }, 400);
       }
 
@@ -81,22 +81,18 @@ router.post("/", async (c) => {
           }, 400);
       }
 
-      // Müşteri ekleme - SQL sorgusu düzeltildi
+      // Müşteri ekleme - SQL sorgusu güncellendi
       const result = await db.prepare(`
           INSERT INTO customers (
-              tenant_id, name, phone, email, city, district, 
-              customer_type, notes, special_dates, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+              tenant_id, name, phone, email, notes, 
+              created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
       `).bind(
           tenant_id,
           body.name,
           phone,
           body.email || null,
-          body.city || "İstanbul",
-          body.district,
-          body.customer_type || "retail",
-          body.notes || null,
-          body.special_dates || null
+          body.notes || null
       ).run();
 
       // meta.last_row_id kontrol edilmeli
@@ -160,14 +156,14 @@ router.put('/:id', async (c) => {
       SET 
         name = ?, phone = ?, email = ?, 
         address = ?, city = ?, district = ?,
-        customer_type = ?, company_name = ?, tax_number = ?,
+        company_name = ?, tax_number = ?,
         special_dates = ?, notes = ?,
         updated_at = DATETIME('now')
       WHERE id = ? AND tenant_id = ? AND deleted = 0
     `).bind(
       body.name, body.phone, body.email,
       body.address, body.city, body.district,
-      body.customer_type, body.company_name, body.tax_number,
+      body.company_name, body.tax_number,
       body.special_dates, body.notes,
       id, tenant_id
     ).run()

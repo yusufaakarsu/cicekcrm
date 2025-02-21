@@ -1,40 +1,33 @@
+-- Önce mevcut view'ları drop edelim
+DROP VIEW IF EXISTS vw_customers;
+DROP VIEW IF EXISTS vw_customer_orders;
+DROP VIEW IF EXISTS vw_customer_addresses;
 
 -- Müşteri listesi için ana view
 CREATE VIEW vw_customers AS
 SELECT 
     c.*,
-    COALESCE(
-        (SELECT COUNT(*) 
-         FROM orders o 
-         WHERE o.customer_id = c.id 
-         AND o.tenant_id = c.tenant_id 
-         AND o.deleted_at IS NULL
-        ), 0
-    ) as total_orders,
-    (
-        SELECT created_at 
-        FROM orders o 
-        WHERE o.customer_id = c.id 
-        AND o.tenant_id = c.tenant_id 
-        AND o.deleted_at IS NULL 
-        ORDER BY created_at DESC LIMIT 1
-    ) as last_order,
-    COALESCE(
-        (SELECT SUM(total_amount) 
-         FROM orders o 
-         WHERE o.customer_id = c.id 
-         AND o.tenant_id = c.tenant_id 
-         AND o.deleted_at IS NULL
-        ), 0
-    ) as total_spent,
-    COALESCE(
-        (SELECT COUNT(*) 
-         FROM addresses a 
-         WHERE a.customer_id = c.id 
-         AND a.tenant_id = c.tenant_id 
-         AND a.deleted_at IS NULL
-        ), 0
-    ) as address_count
+    COALESCE((SELECT COUNT(*) 
+              FROM orders o 
+              WHERE o.customer_id = c.id 
+              AND o.tenant_id = c.tenant_id 
+              AND o.deleted_at IS NULL), 0) as total_orders,
+    (SELECT created_at 
+     FROM orders o 
+     WHERE o.customer_id = c.id 
+     AND o.tenant_id = c.tenant_id 
+     AND o.deleted_at IS NULL 
+     ORDER BY created_at DESC LIMIT 1) as last_order,
+    COALESCE((SELECT SUM(total_amount) 
+              FROM orders o 
+              WHERE o.customer_id = c.id 
+              AND o.tenant_id = c.tenant_id 
+              AND o.deleted_at IS NULL), 0) as total_spent,
+    COALESCE((SELECT COUNT(*) 
+              FROM addresses a 
+              WHERE a.customer_id = c.id 
+              AND a.tenant_id = c.tenant_id 
+              AND a.deleted_at IS NULL), 0) as address_count
 FROM customers c
 WHERE c.deleted_at IS NULL;
 
