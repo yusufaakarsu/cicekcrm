@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>ÇiçekCRM Veritabanı Dokümantasyonu</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        .table-details { font-size: 0.9rem; }
+        .section-title { 
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 30px 0 20px 0;
+            border-left: 5px solid #0d6efd;
+        }
+        .relationship-diagram {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .table-name {
+            color: #0d6efd;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 10px;
+            margin: 20px 0;
+        }
+        .field-description {
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body class="container-fluid py-4">
+    <h1 class="mb-4">ÇiçekCRM Veritabanı Dokümantasyonu</h1>
+
+    <!-- Ana İlişki Diagramı -->
+    <section id="main-diagram">
+        <h2 class="section-title">Genel Veritabanı İlişkileri</h2>
+        <div class="mermaid">
+        erDiagram
+            TENANTS ||--o{ USERS : has
+            TENANTS ||--o{ TENANT_SETTINGS : has
+            TENANTS ||--o{ DELIVERY_REGIONS : manages
+            TENANTS ||--o{ UNITS : defines
+            TENANTS ||--o{ RAW_MATERIALS : stocks
+            TENANTS ||--o{ SUPPLIERS : works_with
+            TENANTS ||--o{ PRODUCTS : sells
+            
+            UNITS ||--o{ RAW_MATERIALS : measures
+            RAW_MATERIALS ||--o{ RECIPE_ITEMS : used_in
+            RAW_MATERIALS ||--o{ STOCK_MOVEMENTS : tracks
+
+            SUPPLIERS ||--o{ PURCHASE_ORDERS : receives
+            PURCHASE_ORDERS ||--o{ PURCHASE_ORDER_ITEMS : contains
+            PURCHASE_ORDER_ITEMS }|--|| RAW_MATERIALS : orders
+
+            PRODUCT_CATEGORIES ||--o{ PRODUCTS : categorizes
+            PRODUCTS ||--o{ RECIPES : has
+            RECIPES ||--o{ RECIPE_ITEMS : contains
+
+            CUSTOMERS ||--o{ RECIPIENTS : manages
+            CUSTOMERS ||--o{ ADDRESSES : has
+            RECIPIENTS ||--o{ ADDRESSES : uses
+
+            ORDERS }|--|| CUSTOMERS : placed_by
+            ORDERS }|--|| RECIPIENTS : delivered_to
+            ORDERS }|--|| ADDRESSES : shipped_to
+            ORDERS ||--o{ ORDER_ITEMS : contains
+            ORDER_ITEMS }|--|| PRODUCTS : references
+
+            ACCOUNTS ||--o{ TRANSACTIONS : records
+            TRANSACTIONS }|--|| TRANSACTION_CATEGORIES : categorized_as
+        </div>
+    </section>
+
+    <!-- Modül Bazlı İlişkiler -->
+    <section id="module-diagrams">
+        <h2 class="section-title">Modül Bazlı İlişkiler</h2>
+
+        <!-- Stok Yönetimi -->
+        <div class="module-section">
+            <h3>Stok Yönetimi</h3>
+            <div class="mermaid">
+            erDiagram
+                UNITS ||--o{ RAW_MATERIALS : measures
+                RAW_MATERIALS ||--o{ STOCK_MOVEMENTS : tracks
+                STOCK_MOVEMENTS }|--|| USERS : created_by
+                RAW_MATERIALS ||--o{ RECIPE_ITEMS : used_in
+            </div>
+        </div>
+
+        <!-- Sipariş Yönetimi -->
+        <div class="module-section">
+            <h3>Sipariş Yönetimi</h3>
+            <div class="mermaid">
+            erDiagram
+                CUSTOMERS ||--o{ ORDERS : places
+                ORDERS ||--o{ ORDER_ITEMS : contains
+                ORDERS }|--|| RECIPIENTS : delivered_to
+                ORDERS }|--|| ADDRESSES : ships_to
+                ORDER_ITEMS }|--|| PRODUCTS : references
+            </div>
+        </div>
+
+        <!-- Diğer modül diagramları... -->
+    </section>
+
+    <!-- Tablolar Detay Bölümü -->
+    <section id="tables">
+        <h2 class="section-title">Tablo Detayları</h2>
+
+        <!-- CORE TABLOLAR -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">tenants</h3>
+            <p>Sistemdeki her firma/işletme için temel kayıt. Multi-tenant yapının ana tablosu.</p>
+            
+            <table class="table table-details">
+                <thead>
+                    <tr>
+                        <th>Alan</th>
+                        <th>Tip</th>
+                        <th>Açıklama</th>
+                        <th>Özellikler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>id</td>
+                        <td>INTEGER</td>
+                        <td>Benzersiz tanımlayıcı</td>
+                        <td>PRIMARY KEY, AUTOINCREMENT</td>
+                    </tr>
+                    <tr>
+                        <td>name</td>
+                        <td>TEXT</td>
+                        <td>Firma görünen adı</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>company_name</td>
+                        <td>TEXT</td>
+                        <td>Resmi firma unvanı</td>
+                        <td>NULL olabilir</td>
+                    </tr>
+                    <!-- Diğer alanlar... -->
+                </tbody>
+            </table>
+
+            <div class="mt-3">
+                <h5>İlişkiler:</h5>
+                <ul>
+                    <li>users (1:N) - Firma kullanıcıları</li>
+                    <li>tenant_settings (1:1) - Firma ayarları</li>
+                    <li>delivery_regions (1:N) - Teslimat bölgeleri</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- USERS -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">users</h3>
+            <p>Sistem kullanıcıları. Her kullanıcı bir tenant'a bağlıdır.</p>
+            
+            <table class="table table-details">
+                <thead>
+                    <tr>
+                        <th>Alan</th>
+                        <th>Tip</th>
+                        <th>Açıklama</th>
+                        <th>Özellikler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>id</td>
+                        <td>INTEGER</td>
+                        <td>Benzersiz tanımlayıcı</td>
+                        <td>PRIMARY KEY, AUTOINCREMENT</td>
+                    </tr>
+                    <tr>
+                        <td>tenant_id</td>
+                        <td>INTEGER</td>
+                        <td>Bağlı olduğu firma</td>
+                        <td>NOT NULL, FOREIGN KEY</td>
+                    </tr>
+                    <tr>
+                        <td>email</td>
+                        <td>TEXT</td>
+                        <td>Giriş için email adresi</td>
+                        <td>NOT NULL, UNIQUE</td>
+                    </tr>
+                    <tr>
+                        <td>password_hash</td>
+                        <td>TEXT</td>
+                        <td>Şifre hash'i</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>role</td>
+                        <td>TEXT</td>
+                        <td>Kullanıcı rolü</td>
+                        <td>CHECK('admin','staff')</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="mt-3">
+                <h5>İlişkiler:</h5>
+                <ul>
+                    <li>tenants (N:1) - Bağlı olduğu firma</li>
+                    <li>audit_log (1:N) - Kullanıcının yaptığı işlemler</li>
+                    <li>stock_movements (1:N) - Stok hareketleri</li>
+                </ul>
+            </div>
+
+            <div class="mt-3">
+                <h5>Örnek Kullanım:</h5>
+                <pre><code>
+-- Yönetici kullanıcı oluşturma
+INSERT INTO users (tenant_id, email, password_hash, name, role) 
+VALUES (1, 'admin@firma.com', 'hash...', 'Admin User', 'admin');
+
+-- Kullanıcı rolünü kontrol etme
+SELECT * FROM users WHERE email = ? AND is_active = 1;
+                </code></pre>
+            </div>
+        </div>
+
+        <!-- TENANT_SETTINGS -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">tenant_settings</h3>
+            <p>Firma bazlı ayarlar. Her firma için özelleştirilebilir sistem davranışları.</p>
+            
+            <!-- ...tablo detayları devam edecek... -->
+        </div>
+
+        <!-- STOCK MANAGEMENT -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">raw_materials</h3>
+            <p>Ham madde kayıtları (çiçekler, aksesuarlar, ambalaj malzemeleri vs.)</p>
+            
+            <table class="table table-details">
+                <thead>
+                    <tr>
+                        <th>Alan</th>
+                        <th>Tip</th>
+                        <th>Açıklama</th>
+                        <th>Özellikler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>id</td>
+                        <td>INTEGER</td>
+                        <td>Benzersiz tanımlayıcı</td>
+                        <td>PRIMARY KEY, AUTOINCREMENT</td>
+                    </tr>
+                    <tr>
+                        <td>tenant_id</td>
+                        <td>INTEGER</td>
+                        <td>Firma ID</td>
+                        <td>NOT NULL, FOREIGN KEY</td>
+                    </tr>
+                    <tr>
+                        <td>name</td>
+                        <td>TEXT</td>
+                        <td>Malzeme adı</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>unit_id</td>
+                        <td>INTEGER</td>
+                        <td>Ölçü birimi</td>
+                        <td>NOT NULL, FOREIGN KEY -> units</td>
+                    </tr>
+                    <tr>
+                        <td>status</td>
+                        <td>TEXT</td>
+                        <td>Durum</td>
+                        <td>CHECK IN ('active','passive','archived')</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="mt-3">
+                <h5>İlişkiler:</h5>
+                <ul>
+                    <li>units (N:1) - Ölçü birimi</li>
+                    <li>stock_movements (1:N) - Stok hareketleri</li>
+                    <li>recipe_items (1:N) - Reçete içerikleri</li>
+                    <li>purchase_order_items (1:N) - Satın alma kalemleri</li>
+                </ul>
+            </div>
+
+            <div class="mt-3">
+                <h5>Örnek Kullanım:</h5>
+                <pre><code>
+-- Yeni hammadde ekleme
+INSERT INTO raw_materials (tenant_id, name, unit_id, status) 
+VALUES (1, 'Kırmızı Gül', 2, 'active');
+
+-- Stok durumu sorgulama
+SELECT 
+    m.name,
+    m.unit_id,
+    COALESCE(SUM(CASE WHEN s.movement_type = 'in' THEN s.quantity ELSE -s.quantity END), 0) as current_stock
+FROM raw_materials m
+LEFT JOIN stock_movements s ON s.material_id = m.id
+WHERE m.tenant_id = 1 AND m.status = 'active'
+GROUP BY m.id;</code></pre>
+            </div>
+        </div>
+
+        <!-- PURCHASE MODULE -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">suppliers</h3>
+            <p>Tedarikçi firma kayıtları</p>
+            
+            <!-- Tedarikçi tablosu detayları -->
+        </div>
+
+        <!-- PURCHASE ORDERS -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">purchase_orders</h3>
+            <p>Tedarikçilerden yapılan satın alma siparişleri</p>
+            
+            <table class="table table-details">
+                <thead>
+                    <tr>
+                        <th>Alan</th>
+                        <th>Tip</th>
+                        <th>Açıklama</th>
+                        <th>Özellikler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>order_date</td>
+                        <td>DATE</td>
+                        <td>Sipariş tarihi</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>status</td>
+                        <td>TEXT</td>
+                        <td>Sipariş durumu</td>
+                        <td>CHECK('draft','ordered','partial','received','cancelled')</td>
+                    </tr>
+                    <tr>
+                        <td>total_amount</td>
+                        <td>DECIMAL(10,2)</td>
+                        <td>Sipariş toplam tutarı</td>
+                        <td>NOT NULL, DEFAULT 0</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="mt-3">
+                <h5>İş Akışı:</h5>
+                <div class="mermaid">
+                stateDiagram-v2
+                    [*] --> DRAFT: Oluştur
+                    DRAFT --> ORDERED: Siparişi Ver
+                    ORDERED --> PARTIAL: Kısmi Teslimat
+                    ORDERED --> RECEIVED: Tam Teslimat
+                    PARTIAL --> RECEIVED: Tamamlandı
+                    DRAFT --> CANCELLED: İptal
+                </div>
+            </div>
+        </div>
+
+        <!-- PRODUCTS -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">products</h3>
+            <p>Satışa sunulan ürünler (buketler, aranjmanlar vs.)</p>
+            
+            <table class="table table-details">
+                <thead>
+                    <tr>
+                        <th>Alan</th>
+                        <th>Tip</th>
+                        <th>Açıklama</th>
+                        <th>Özellikler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>category_id</td>
+                        <td>INTEGER</td>
+                        <td>Ürün kategorisi</td>
+                        <td>FOREIGN KEY</td>
+                    </tr>
+                    <tr>
+                        <td>base_price</td>
+                        <td>DECIMAL(10,2)</td>
+                        <td>Temel satış fiyatı</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>status</td>
+                        <td>TEXT</td>
+                        <td>Ürün durumu</td>
+                        <td>CHECK('active','passive','archived')</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="mt-3">
+                <h5>İlişkiler ve İş Akışı:</h5>
+                <div class="mermaid">
+                flowchart TD
+                    P[Product] --> C[Category]
+                    P --> R[Recipe]
+                    R --> RI[Recipe Items]
+                    RI --> RM[Raw Materials]
+                </div>
+            </div>
+        </div>
+
+        <!-- RECIPES -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">recipes</h3>
+            <p>Ürün reçeteleri - Her ürünün nasıl hazırlanacağını ve maliyetini tanımlar</p>
+            
+            <table class="table table-details">
+                <thead>
+                    <tr>
+                        <th>Alan</th>
+                        <th>Tip</th>
+                        <th>Açıklama</th>
+                        <th>Özellikler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>product_id</td>
+                        <td>INTEGER</td>
+                        <td>Hangi ürün için olduğu</td>
+                        <td>NOT NULL, FOREIGN KEY</td>
+                    </tr>
+                    <tr>
+                        <td>name</td>
+                        <td>TEXT</td>
+                        <td>Reçete adı</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>labor_cost</td>
+                        <td>DECIMAL(10,2)</td>
+                        <td>İşçilik maliyeti</td>
+                        <td>DEFAULT 0</td>
+                    </tr>
+                    <tr>
+                        <td>preparation_time</td>
+                        <td>INTEGER</td>
+                        <td>Hazırlama süresi (dk)</td>
+                        <td>NULL olabilir</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="mt-3">
+                <h5>İş Akışı:</h5>
+                <div class="mermaid">
+                flowchart TD
+                    R[Reçete] --> P[Ürün]
+                    R --> M[Malzemeler]
+                    M --> |Miktar| U[Birim]
+                    M --> |Fiyat| C[Maliyet]
+                    C --> |+| L[İşçilik]
+                    C --> T[Toplam Maliyet]
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <h5>Örnek Kullanım:</h5>
+                <pre><code>
+-- Reçete maliyeti hesaplama
+WITH recipe_cost AS (
+    SELECT 
+        r.id,
+        r.name,
+        SUM(ri.quantity * rm.unit_price) as materials_cost,
+        r.labor_cost
+    FROM recipes r
+    JOIN recipe_items ri ON ri.recipe_id = r.id
+    JOIN raw_materials rm ON ri.material_id = rm.id
+    WHERE r.product_id = ?
+    GROUP BY r.id
+)
+SELECT 
+    name,
+    materials_cost,
+    labor_cost,
+    (materials_cost + labor_cost) as total_cost
+FROM recipe_cost;
+            </code></pre>
+            </div>
+        </div>
+
+        <!-- CUSTOMERS -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">customers</h3>
+            <p>Müşteri kayıtları ve ilişkili alıcı/adres bilgileri</p>
+
+            <!-- Müşteri sistemi detayları -->
+            <div class="mermaid">
+            erDiagram
+                CUSTOMERS ||--o{ RECIPIENTS : has
+                CUSTOMERS ||--o{ ADDRESSES : has
+                RECIPIENTS ||--o{ ADDRESSES : uses
+                CUSTOMERS ||--o{ ORDERS : places
+            </div>
+
+            <!-- Tablo detayları devam edecek... -->
+        </div>
+
+        <!-- ORDER MANAGEMENT -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">orders</h3>
+            <p>Müşteri siparişleri - Genel sipariş bilgileri ve durumu</p>
+            
+            <table class="table table-details">
+                <thead>
+                    <tr>
+                        <th>Alan</th>
+                        <th>Tip</th>
+                        <th>Açıklama</th>
+                        <th>Özellikler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>customer_id</td>
+                        <td>INTEGER</td>
+                        <td>Müşteri referansı</td>
+                        <td>NOT NULL, FOREIGN KEY</td>
+                    </tr>
+                    <tr>
+                        <td>recipient_id</td>
+                        <td>INTEGER</td>
+                        <td>Alıcı referansı</td>
+                        <td>NOT NULL, FOREIGN KEY</td>
+                    </tr>
+                    <tr>
+                        <td>delivery_date</td>
+                        <td>DATE</td>
+                        <td>Teslimat tarihi</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>delivery_time</td>
+                        <td>TEXT</td>
+                        <td>Teslimat zaman dilimi</td>
+                        <td>CHECK('morning','afternoon','evening')</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="mt-3">
+                <h5>Sipariş Durumu Akışı:</h5>
+                <div class="mermaid">
+                stateDiagram-v2
+                    [*] --> NEW: Yeni Sipariş
+                    NEW --> CONFIRMED: Onaylandı
+                    CONFIRMED --> PREPARING: Hazırlanıyor
+                    PREPARING --> READY: Hazır
+                    READY --> DELIVERING: Dağıtımda
+                    DELIVERING --> DELIVERED: Teslim Edildi
+                    NEW --> CANCELLED: İptal
+                    CONFIRMED --> CANCELLED: İptal
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <h5>Örnek Sorgular:</h5>
+                <pre><code>
+-- Günlük teslimatları listele
+SELECT 
+    o.id,
+    o.delivery_time,
+    c.name as customer_name,
+    r.name as recipient_name,
+    a.district
+FROM orders o
+JOIN customers c ON o.customer_id = c.id
+JOIN recipients r ON o.recipient_id = r.id
+JOIN addresses a ON o.address_id = a.id
+WHERE o.delivery_date = CURRENT_DATE
+AND o.status NOT IN ('delivered', 'cancelled')
+ORDER BY 
+    CASE o.delivery_time 
+        WHEN 'morning' THEN 1 
+        WHEN 'afternoon' THEN 2 
+        WHEN 'evening' THEN 3 
+    END;
+
+-- Sipariş özeti
+SELECT 
+    o.*,
+    c.name as customer_name,
+    c.phone as customer_phone,
+    r.name as recipient_name,
+    r.phone as recipient_phone,
+    a.district,
+    GROUP_CONCAT(p.name) as products
+FROM orders o
+JOIN customers c ON o.customer_id = c.id
+JOIN recipients r ON o.recipient_id = r.id
+JOIN addresses a ON o.address_id = a.id
+JOIN order_items oi ON o.id = oi.order_id
+JOIN products p ON oi.product_id = p.id
+WHERE o.id = ?
+GROUP BY o.id;
+                </code></pre>
+            </div>
+        </div>
+
+        <!-- FINANCE MODULE -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">transactions</h3>
+            <p>Para hareketleri - Gelir/gider kayıtları</p>
+
+            <div class="mt-3">
+                <h5>Para Akışı:</h5>
+                <div class="mermaid">
+                flowchart TD
+                    O[Sipariş] -->|Ödeme| T[İşlem]
+                    T -->|Kategori| C[Gelir]
+                    T -->|Hesap| A[Kasa/Banka]
+                    
+                    P[Tedarikçi] -->|Ödeme| T2[İşlem]
+                    T2 -->|Kategori| C2[Gider]
+                    T2 -->|Hesap| A
+                </div>
+            </div>
+
+            <!-- Detaylar devam edecek... -->
+        </div>
+
+        <!-- FINANCE DETAILS -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">accounts</h3>
+            <p>Para hesapları (kasa, pos, banka hesapları)</p>
+            
+            <table class="table table-details">
+                <thead>
+                    <tr>
+                        <th>Alan</th>
+                        <th>Tip</th>
+                        <th>Açıklama</th>
+                        <th>Özellikler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>name</td>
+                        <td>TEXT</td>
+                        <td>Hesap adı</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>type</td>
+                        <td>TEXT</td>
+                        <td>Hesap tipi</td>
+                        <td>CHECK('cash','pos','bank','online')</td>
+                    </tr>
+                    <tr>
+                        <td>balance_calculated</td>
+                        <td>DECIMAL(10,2)</td>
+                        <td>Hesaplanan bakiye</td>
+                        <td>DEFAULT 0</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="mt-3">
+                <h5>İş Akışı:</h5>
+                <div class="mermaid">
+                flowchart TD
+                    A[Hesap] --> |Gelen| T1[Tahsilat]
+                    A --> |Giden| T2[Ödeme]
+                    T1 --> C1[Kategori]
+                    T2 --> C2[Kategori]
+                    C1 --> R[Rapor]
+                    C2 --> R
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <h5>Örnek Sorgular:</h5>
+                <pre><code>
+-- Güncel kasa durumu
+SELECT 
+    a.name,
+    a.type,
+    COALESCE(SUM(
+        CASE t.type 
+            WHEN 'in' THEN t.amount 
+            WHEN 'out' THEN -t.amount 
+        END
+    ), 0) as current_balance
+FROM accounts a
+LEFT JOIN transactions t ON t.account_id = a.id
+WHERE a.tenant_id = ? AND a.deleted_at IS NULL
+GROUP BY a.id;
+
+-- Hesap hareketleri
+SELECT 
+    t.date,
+    t.type,
+    t.amount,
+    t.description,
+    tc.name as category,
+    u.name as created_by
+FROM transactions t
+JOIN transaction_categories tc ON t.category_id = tc.id
+JOIN users u ON t.created_by = u.id
+WHERE t.account_id = ?
+ORDER BY t.date DESC;
+                </code></pre>
+            </div>
+        </div>
+
+        <!-- ADDRESS SYSTEM -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">addresses</h3>
+            <p>Adres sistemi - HERE Maps entegrasyonu ile akıllı adres yönetimi</p>
+
+            <div class="mt-3">
+                <h5>Adres Yapısı:</h5>
+                <div class="mermaid">
+                erDiagram
+                    CUSTOMERS ||--o{ ADDRESSES : owns
+                    RECIPIENTS ||--o{ ADDRESSES : uses
+                    ADDRESSES ||--o{ ORDERS : delivers_to
+                    ADDRESSES }o--|| DELIVERY_REGIONS : located_in
+                </div>
+            </div>
+
+            <!-- Continue with address table details... -->
+        </div>
+
+        <!-- ADDRESS DETAILS -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">addresses</h3>
+            <table class="table table-details">
+                <thead>
+                    <tr>
+                        <th>Alan</th>
+                        <th>Tip</th>
+                        <th>Açıklama</th>
+                        <th>Özellikler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>here_place_id</td>
+                        <td>TEXT</td>
+                        <td>HERE API referans ID</td>
+                        <td>NULL olabilir</td>
+                    </tr>
+                    <tr>
+                        <td>district</td>
+                        <td>TEXT</td>
+                        <td>İlçe bilgisi</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>lat/lng</td>
+                        <td>DECIMAL</td>
+                        <td>Koordinatlar</td>
+                        <td>NULL olabilir</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- CARD MESSAGES -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">card_messages</h3>
+            <p>Hazır kart mesajları ve özel mesaj şablonları</p>
+            
+            <table class="table table-details">
+                <thead>
+                    <tr>
+                        <th>Alan</th>
+                        <th>Tip</th>
+                        <th>Açıklama</th>
+                        <th>Özellikler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>category</td>
+                        <td>TEXT</td>
+                        <td>Mesaj kategorisi</td>
+                        <td>birthday, anniversary vs</td>
+                    </tr>
+                    <tr>
+                        <td>title</td>
+                        <td>TEXT</td>
+                        <td>Mesaj başlığı</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>content</td>
+                        <td>TEXT</td>
+                        <td>Mesaj içeriği</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- AUDIT LOG -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">audit_log</h3>
+            <p>Sistem genelindeki değişiklik kayıtları</p>
+
+            <table class="table table-details">
+                <thead>
+                    <tr>
+                        <th>Alan</th>
+                        <th>Tip</th>
+                        <th>Açıklama</th>
+                        <th>Özellikler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>action</td>
+                        <td>TEXT</td>
+                        <td>Yapılan işlem</td>
+                        <td>insert, update, delete vs</td>
+                    </tr>
+                    <tr>
+                        <td>table_name</td>
+                        <td>TEXT</td>
+                        <td>İşlem yapılan tablo</td>
+                        <td>NOT NULL</td>
+                    </tr>
+                    <tr>
+                        <td>old_data/new_data</td>
+                        <td>TEXT</td>
+                        <td>JSON formatında değişiklik</td>
+                        <td>NULL olabilir</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SYSTEM DIAGRAMS -->
+        <div class="table-group mb-5">
+            <h3 class="section-title">Sistem Akış Diagramları</h3>
+
+            <!-- Sipariş Akışı -->
+            <div class="mt-4">
+                <h4>Sipariş İşlem Akışı</h4>
+                <div class="mermaid">
+                flowchart TD
+                    A[Yeni Sipariş] --> B{Stok Kontrolü}
+                    B -->|Yeterli| C[Hazırlama]
+                    B -->|Yetersiz| D[Tedarik]
+                    C --> E[Teslimat]
+                    D --> C
+                    E --> F[Tahsilat]
+                </div>
+            </div>
+
+            <!-- Stok Akışı -->
+            <div class="mt-4">
+                <h4>Stok Yönetim Akışı</h4>
+                <div class="mermaid">
+                flowchart TD
+                    A[Stok Takibi] --> B{Kritik Seviye?}
+                    B -->|Evet| C[Satın Alma]
+                    B -->|Hayır| D[Normal İşlem]
+                    C --> E[Tedarikçi]
+                    E --> F[Stok Girişi]
+                </div>
+            </div>
+        </div>
+
+        <!-- DELIVERY_REGIONS -->
+        <div class="table-group mb-5">
+            <h3 class="table-name">delivery_regions</h3>
+            <p>Teslimat bölgeleri ve kuralları</p>
+
+            <table class="table table-details">
+                <thead>
+                    <tr>
+                        <th>Alan</th>
+                        <th>Tip</th>
+                        <th>Açıklama</th>
+                        <th>Özellikler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>parent_id</td>
+                        <td>INTEGER</td>
+                        <td>Üst bölge ID'si</td>
+                        <td>NULL olabilir, SELF JOIN</td>
+                    </tr>
+                    <tr>
+                        <td>base_fee</td>
+                        <td>DECIMAL</td>
+                        <td>Teslimat ücreti</td>
+                        <td>NULL olabilir</td>
+                    </tr>
+                    <tr>
+                        <td>min_order</td>
+                        <td>DECIMAL</td>
+                        <td>Min. sipariş tutarı</td>
+                        <td>NULL olabilir</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="mt-3">
+                <h5>Bölge Yapısı:</h5>
+                <div class="mermaid">
+                flowchart TB
+                    A[İstanbul] --> B[Avrupa Yakası]
+                    A --> C[Anadolu Yakası]
+                    B --> D[Beşiktaş]
+                    B --> E[Şişli]
+                    C --> F[Kadıköy]
+                    C --> G[Üsküdar]
+                </div>
+            </div>
+        </div>
+
+        <!-- DATABASE CONSTRAINTS -->
+        <div class="table-group mb-5">
+            <h3 class="section-title">Veritabanı Kısıtlamaları</h3>
+
+            <div class="mt-4">
+                <h4>Foreign Key Constraints</h4>
+                <p>Tüm foreign key ilişkileri ON DELETE RESTRICT ve ON UPDATE CASCADE kurallarına uyar.</p>
+                
+                <div class="mermaid">
+                flowchart TD
+                    A[Tenant Silme] --> B{İlişkili Kayıt Var mı?}
+                    B -->|Evet| C[Silme Engellenir]
+                    B -->|Hayır| D[Tenant Silinir]
+                    
+                    E[Tenant ID Güncelleme] --> F[Bağlı Tüm Kayıtlar Güncellenir]
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h4>Status Constraints</h4>
+                <ul>
+                    <li>Siparişler (new -> confirmed -> preparing -> ready -> delivering -> delivered)</li>
+                    <li>Ürünler (active -> passive -> archived)</li>
+                    <li>Tedarikçiler (active -> passive -> blacklist)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- INDEXES -->
+        <div class="table-group mb-5">
+            <h3 class="section-title">Veritabanı İndeksleri</h3>
+
+            <div class="mt-4">
+                <h4>Temel İndeksler</h4>
+                <ul>
+                    <li>tenant_id - Tüm tablolarda</li>
+                    <li>email - users tablosunda UNIQUE</li>
+                    <li>phone - customers tablosunda</li>
+                    <li>delivery_date + status - orders tablosunda</li>
+                    <li>status - products, suppliers tablolarında</li>
+                </ul>
+            </div>
+
+            <div class="mt-4">
+                <h4>Composite İndeksler</h4>
+                <ul>
+                    <li>(tenant_id, delivery_date, status) - Sipariş listesi için</li>
+                    <li>(tenant_id, category_id, status) - Ürün filtreleme için</li>
+                    <li>(tenant_id, material_id, movement_type) - Stok raporları için</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- PERFORMANCE -->
+        <div class="table-group mb-5">
+            <h3 class="section-title">Performans İyileştirmeleri</h3>
+
+            <div class="mt-4">
+                <h4>Temel Stratejiler</h4>
+                <ul>
+                    <li>Tenant bazlı dikey partitioning</li>
+                    <li>Arşiv tabloları ile veri ayırma</li>
+                    <li>Soft delete ile veri saklama</li>
+                    <li>İndeksler ile sorgu optimizasyonu</li>
+                </ul>
+            </div>
+
+            <div class="mt-4">
+                <h4>Mimari Kararlar</h4>
+                <div class="mermaid">
+                flowchart TD
+                    A[Veri Büyüklüğü] --> B{Arşivleme Gerekli mi?}
+                    B -->|Evet| C[Arşiv Tabloları]
+                    B -->|Hayır| D[Tek Tablo]
+                    C --> E[Partition]
+                    D --> F[İndeks]
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>
