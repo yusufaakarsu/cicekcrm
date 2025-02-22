@@ -2,24 +2,60 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// Ürün listesi
+// Ürün listesi - filtreleme eklendi
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
+  // URL parametrelerini al
+  const { searchParams } = new URL(c.req.url)
+  const category_id = searchParams.get('category_id')
+  const status = searchParams.get('status')
+  const search = searchParams.get('search')
+  
   try {
-    const { results } = await db.prepare(`
+    let sql = `
       SELECT 
         p.*,
-        pc.name as category_name
+        pc.name as category_name,
+        COALESCE(
+          (SELECT COUNT(*) 
+           FROM recipes r 
+           WHERE r.product_id = p.id 
+           AND r.deleted_at IS NULL
+          ), 0
+        ) as recipe_count
       FROM products p
       LEFT JOIN product_categories pc ON p.category_id = pc.id
       WHERE p.tenant_id = ?
       AND p.deleted_at IS NULL
-      ORDER BY p.name
-    `).bind(tenant_id).all()
+    `
+    const params: any[] = [tenant_id]
+
+    // Filtreleri ekle
+    if (category_id) {
+      sql += ' AND p.category_id = ?'
+      params.push(category_id)
+    }
+
+    if (status) {
+      sql += ' AND p.status = ?'
+      params.push(status)
+    }
+
+    if (search) {
+      sql += ' AND (p.name LIKE ? OR p.description LIKE ?)'
+      params.push(`%${search}%`, `%${search}%`)
+    }
+
+    sql += ' ORDER BY p.name'
+
+    const { results } = await db.prepare(sql).bind(...params).all()
     
-    return c.json(results)
+    return c.json({
+      success: true,
+      products: results
+    })
   } catch (error) {
     return c.json({ 
       success: false,

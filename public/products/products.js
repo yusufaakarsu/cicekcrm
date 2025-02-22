@@ -54,9 +54,22 @@ async function loadCategories() {
     }
 }
 
-async function loadProducts(params) {
+// Filtreleme için products endpoint'ini güncelle
+async function loadProducts() {
     try {
-        const products = await fetchAPI(`/products?${params}`);
+        const categoryId = document.getElementById('categoryFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        const search = document.getElementById('searchInput').value.trim();
+
+        const params = new URLSearchParams();
+        if (categoryId) params.append('category_id', categoryId);
+        if (status) params.append('status', status);
+        if (search) params.append('search', search);
+
+        const response = await fetch(`${API_URL}/products?${params}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const products = await response.json();
         renderProducts(products);
     } catch (error) {
         console.error('Products loading error:', error);
@@ -64,16 +77,12 @@ async function loadProducts(params) {
     }
 }
 
+// Filtreleri uygula
 async function applyFilters() {
-    const params = new URLSearchParams({
-        category: document.getElementById('categoryFilter').value,
-        status: document.getElementById('statusFilter').value,
-        search: document.getElementById('searchInput').value.trim()
-    });
-
-    await loadProducts(params);
+    await loadProducts();
 }
 
+// Ürünleri renderla
 function renderProducts(products) {
     const tbody = document.getElementById('productsTable');
     
@@ -88,23 +97,18 @@ function renderProducts(products) {
 
     tbody.innerHTML = products.map(product => `
         <tr>
+            <td>${product.name}</td>
+            <td>${product.category_name || '-'}</td>
+            <td>${formatCurrency(product.base_price)}</td>
             <td>
-                <div class="fw-bold">${product.name}</div>
-                <small class="text-muted">${product.code || ''}</small>
-            </td>
-            <td>${product.category_name}</td>
-            <td>
-                <div class="fw-bold ${product.current_stock <= product.min_stock ? 'text-danger' : ''}">${product.current_stock}</div>
-                <small class="text-muted">Min: ${product.min_stock}</small>
-            </td>
-            <td>
-                <div class="fw-bold">${formatCurrency(product.retail_price)}</div>
-                <small class="text-muted">Maliyet: ${formatCurrency(product.purchase_price)}</small>
+                <span class="badge bg-info">
+                    ${product.recipe_count || 0} reçete
+                </span>
             </td>
             <td>${getProductStatusBadge(product.status)}</td>
             <td>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-primary" onclick="editProduct(${product.id})">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct(${product.id})">
                         <i class="bi bi-pencil"></i>
                     </button>
                     <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${product.id})">
