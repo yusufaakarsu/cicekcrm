@@ -22,7 +22,7 @@ async function initializePage() {
 
 async function loadCategories() {
     try {
-        const response = await fetch(`${API_URL}/products/categories`);
+        const response = await fetch(`${API_URL}/products/categories`); // URL düzeltildi
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
@@ -328,7 +328,7 @@ async function deleteProduct(id) {
 // Ham maddeleri yükle
 async function loadRawMaterials() {
     try {
-        const response = await fetch(`${API_URL}/raw-materials`);
+        const response = await fetch(`${API_URL}/products/raw-materials`); // URL düzeltildi
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();

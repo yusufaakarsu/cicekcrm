@@ -227,10 +227,16 @@ router.get('/categories', async (c) => {
   
   try {
     const { results } = await db.prepare(`
-      SELECT * FROM vw_category_products 
-      WHERE tenant_id = ? 
-      AND deleted_at IS NULL 
-      ORDER BY name
+      SELECT 
+        pc.*,
+        COUNT(p.id) as product_count
+      FROM product_categories pc
+      LEFT JOIN products p ON pc.id = p.category_id 
+      AND p.deleted_at IS NULL
+      WHERE pc.tenant_id = ? 
+      AND pc.deleted_at IS NULL
+      GROUP BY pc.id
+      ORDER BY pc.name
     `).bind(tenant_id).all()
     
     return c.json({
@@ -283,6 +289,42 @@ router.delete('/categories/:id', async (c) => {
     `).bind(id, tenant_id).run()
 
     return c.json({ success: true })
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: 'Database error' 
+    }, 500)
+  }
+})
+
+// Raw materials listesi
+router.get('/raw-materials', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    // Raw materials view'ını kullanalım
+    const { results } = await db.prepare(`
+      SELECT 
+        rm.*,
+        u.name as unit_name,
+        u.code as unit_code,
+        COALESCE(
+          (SELECT SUM(CASE WHEN sm.movement_type = 'in' THEN sm.quantity ELSE -sm.quantity END)
+           FROM stock_movements sm 
+           WHERE sm.material_id = rm.id AND sm.deleted_at IS NULL
+          ), 0
+        ) as current_stock
+      FROM raw_materials rm
+      LEFT JOIN units u ON rm.unit_id = u.id
+      WHERE rm.tenant_id = ? AND rm.deleted_at IS NULL
+      ORDER BY rm.name
+    `).bind(tenant_id).all()
+    
+    return c.json({
+      success: true,
+      materials: results
+    })
   } catch (error) {
     return c.json({ 
       success: false, 
