@@ -1,99 +1,108 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
-    <div class="container">
-        <a class="navbar-brand" href="/index.html"><i class="bi bi-flower1"></i> Çiçek CRM</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav">
-                <!-- Ana Sayfa -->
-                <li class="nav-item">
-                    <a class="nav-link" href="/dashboard/dashboard.html" data-page="dashboard">
-                        <i class="bi bi-speedometer2"></i> Dashboard
-                    </a>
-                </li>
+<div class="sidebar bg-dark">
+    <div class="logo-container">
+        <a class="brand-link" href="/index.html">
+            <i class="bi bi-flower1"></i>
+            <span class="brand-text">Çiçek CRM</span>
+        </a>
+    </div>
+    
+    <nav class="sidebar-nav">
+        <ul class="nav flex-column">
+            <!-- Ana Sayfa -->
+            <li class="nav-item">
+                <a class="nav-link" href="/dashboard/dashboard.html" data-page="dashboard">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
 
-                <!-- Siparişler -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-page="orders">
-                        <i class="bi bi-box"></i> Siparişler
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="/orders/orders.html">
+            <!-- Siparişler -->
+            <li class="nav-item">
+                <a class="nav-link dropdown-toggle" href="#ordersSubmenu" data-bs-toggle="collapse" data-page="orders">
+                    <i class="bi bi-box"></i>
+                    <span>Siparişler</span>
+                </a>
+                <div class="collapse" id="ordersSubmenu">
+                    <ul class="nav flex-column ms-3">
+                        <li class="nav-item">
+                            <a class="nav-link sub-link" href="/orders/orders.html">
                                 <i class="bi bi-list"></i> Sipariş Listesi
                             </a>
                         </li>
-                        <li>
-                            <a class="dropdown-item" href="/orders/new-order.html">
+                        <li class="nav-item">
+                            <a class="nav-link sub-link" href="/orders/new-order.html">
                                 <i class="bi bi-plus-lg"></i> Yeni Sipariş
                             </a>
                         </li>
                     </ul>
-                </li>
+                </div>
+            </li>
 
-                <!-- Ürünler & Stok -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-page="products">
-                        <i class="bi bi-box-seam"></i> Ürünler & Stok
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="/products/products.html">
+            <!-- Ürünler & Stok -->
+            <li class="nav-item">
+                <a class="nav-link dropdown-toggle" href="#productsSubmenu" data-bs-toggle="collapse" data-page="products">
+                    <i class="bi bi-box-seam"></i>
+                    <span>Ürünler & Stok</span>
+                </a>
+                <div class="collapse" id="productsSubmenu">
+                    <ul class="nav flex-column ms-3">
+                        <li class="nav-item">
+                            <a class="nav-link sub-link" href="/products/products.html">
                                 <i class="bi bi-list"></i> Ürün Listesi
                             </a>
                         </li>
-                        <li>
-                            <a class="dropdown-item" href="/products/categories.html">
+                        <li class="nav-item">
+                            <a class="nav-link sub-link" href="/products/categories.html">
                                 <i class="bi bi-folder"></i> Kategoriler
                             </a>
                         </li>
-                        <li>
-                            <a class="dropdown-item" href="/stock/stock.html">
+                        <li class="nav-item">
+                            <a class="nav-link sub-link" href="/stock/stock.html">
                                 <i class="bi bi-box-seam"></i> Stok Yönetimi
                             </a>
                         </li>
-                        <li>
-                            <a class="dropdown-item" href="/purchases/purchases.html">
+                        <li class="nav-item">
+                            <a class="nav-link sub-link" href="/purchases/purchases.html">
                                 <i class="bi bi-cart"></i> Satın Alma
                             </a>
                         </li>
-                        <li>
-                            <a class="dropdown-item" href="/suppliers/suppliers.html">
+                        <li class="nav-item">
+                            <a class="nav-link sub-link" href="/suppliers/suppliers.html">
                                 <i class="bi bi-shop"></i> Tedarikçiler
                             </a>
                         </li>
                     </ul>
-                </li>
+                </div>
+            </li>
 
-                <!-- Müşteriler -->
-                <li class="nav-item">
-                    <a class="nav-link" href="/customers/customers.html" data-page="customers">
-                        <i class="bi bi-people"></i> Müşteriler
-                    </a>
-                </li>
+            <!-- Diğer Menü Öğeleri -->
+            <li class="nav-item">
+                <a class="nav-link" href="/customers/customers.html" data-page="customers">
+                    <i class="bi bi-people"></i>
+                    <span>Müşteriler</span>
+                </a>
+            </li>
 
-                <!-- Teslimat -->
-                <li class="nav-item">
-                    <a class="nav-link" href="/delivery/delivery.html" data-page="delivery">
-                        <i class="bi bi-truck"></i> Teslimat
-                    </a>
-                </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/delivery/delivery.html" data-page="delivery">
+                    <i class="bi bi-truck"></i>
+                    <span>Teslimat</span>
+                </a>
+            </li>
 
-                <!-- Finans -->
-                <li class="nav-item">
-                    <a class="nav-link" href="/finance/finance.html" data-page="finance">
-                        <i class="bi bi-wallet2"></i> Finans
-                    </a>
-                </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/finance/finance.html" data-page="finance">
+                    <i class="bi bi-wallet2"></i>
+                    <span>Finans</span>
+                </a>
+            </li>
 
-                <!-- Takvim -->
-                <li class="nav-item">
-                    <a class="nav-link" href="/calendar/calendar.html" data-page="calendar">
-                        <i class="bi bi-calendar3"></i> Takvim
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
+            <li class="nav-item">
+                <a class="nav-link" href="/calendar/calendar.html" data-page="calendar">
+                    <i class="bi bi-calendar3"></i>
+                    <span>Takvim</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>

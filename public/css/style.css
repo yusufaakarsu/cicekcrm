@@ -1,0 +1,68 @@
+/* Sidebar Styles */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    padding: 1rem;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.logo-container {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.brand-link {
+    color: white;
+    text-decoration: none;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.brand-link:hover {
+    color: #fff;
+    opacity: 0.8;
+}
+
+.sidebar-nav .nav-link {
+    color: rgba(255,255,255,0.8);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sidebar-nav .nav-link:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+}
+
+.sidebar-nav .nav-link.active {
+    color: #fff;
+    background: rgba(255,255,255,0.15);
+    border-radius: 4px;
+}
+
+.sidebar-nav .nav-link i {
+    width: 20px;
+    text-align: center;
+}
+
+.sub-link {
+    padding: 0.5rem 1rem !important;
+    font-size: 0.9rem;
+}
+
+/* Main Content Adjustment */
+.container {
+    margin-left: 260px;
+    width: calc(100% - 260px);
+    padding-top: 2rem;
+}
