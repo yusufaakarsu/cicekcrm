@@ -117,29 +117,67 @@ async function saveCustomer() {
     }
 }
 
+async function loadCustomerOrders(customerId) {
+    try {
+        const response = await fetch(`${API_URL}/customers/${customerId}/orders`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        const orders = data.orders || [];
+
+        const ordersTable = document.getElementById('customerOrdersTable');
+        
+        if (orders.length > 0) {
+            ordersTable.innerHTML = orders.map(order => `
+                <tr>
+                    <td>${formatDate(order.created_at)}</td>
+                    <td>${order.items || '-'}</td>
+                    <td>${formatCurrency(order.total_amount)}</td>
+                    <td>${getStatusBadge(order.status)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info" 
+                                onclick="window.location.href='/orders/detail/${order.id}'">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            ordersTable.innerHTML = '<tr><td colspan="5" class="text-center">Sipariş bulunamadı</td></tr>';
+        }
+    } catch (error) {
+        console.error('Sipariş yükleme hatası:', error);
+        document.getElementById('customerOrdersTable').innerHTML = 
+            '<tr><td colspan="5" class="text-center text-danger">Siparişler yüklenirken hata oluştu</td></tr>';
+    }
+}
+
 async function showCustomerDetails(customerId) {
     try {
+        currentCustomerId = customerId; // Globalde saklayalım
         detailsModal = new bootstrap.Modal(document.getElementById('customerDetailsModal'));
         
-        // Artık tek API çağrısı yeterli
         const response = await fetch(`${API_URL}/customers/${customerId}`);
         if (!response.ok) throw new Error('API Hatası');
 
         const customer = await response.json();
         
-        // View'dan gelen zenginleştirilmiş veriyi kullan
+        // Temel bilgileri doldur
         document.getElementById('detail-name').textContent = customer.name;
         document.getElementById('detail-phone').textContent = formatPhoneNumber(customer.phone);
         document.getElementById('detail-email').textContent = customer.email || '-';
+        document.getElementById('detail-notes').textContent = customer.notes || '-';
         document.getElementById('detail-addresses').textContent = `${customer.address_count} adres`;
+        
+        // Sipariş özetini doldur
         document.getElementById('detail-total-orders').textContent = customer.total_orders;
         document.getElementById('detail-last-order').textContent = 
             customer.last_order ? formatDate(customer.last_order) : '-';
         document.getElementById('detail-total-spent').textContent = 
-            formatCurrency(customer.total_spent);
+            formatCurrency(customer.total_spent || 0);
 
-        // Siparişleri ayrıca yükle
-        loadCustomerOrders(customerId);
+        // Siparişleri yükle
+        await loadCustomerOrders(customerId);
         
         detailsModal.show();
     } catch (error) {

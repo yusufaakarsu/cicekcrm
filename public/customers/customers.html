@@ -51,56 +51,85 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Müşteri Detayları</h5>
+                    <h5 class="modal-title">
+                        <i class="bi bi-person-circle"></i> 
+                        <span id="detail-name">-</span>
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>Müşteri Bilgileri</h6>
-                            <dl>
-                                <dt>Ad Soyad</dt>
-                                <dd id="detail-name">-</dd>
-                                <dt>Telefon</dt>
-                                <dd id="detail-phone">-</dd>
-                                <dt>Email</dt>
-                                <dd id="detail-email">-</dd>
-                                <dt>Adres</dt>
-                                <dd id="detail-address">-</dd>
-                                <dt>Kayıtlı Adres</dt>
-                                <dd id="detail-addresses">-</dd>
-                            </dl>
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <i class="bi bi-info-circle"></i> Temel Bilgiler
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-4">Telefon</dt>
+                                        <dd class="col-sm-8" id="detail-phone">-</dd>
+                                        <dt class="col-sm-4">Email</dt>
+                                        <dd class="col-sm-8" id="detail-email">-</dd>
+                                        <dt class="col-sm-4">Kayıtlı Adres</dt>
+                                        <dd class="col-sm-8">
+                                            <span id="detail-addresses" class="badge bg-info">-</span>
+                                        </dd>
+                                        <dt class="col-sm-4">Notlar</dt>
+                                        <dd class="col-sm-8" id="detail-notes">-</dd>
+                                    </dl>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <h6>Sipariş Özeti</h6>
-                            <dl>
-                                <dt>Toplam Sipariş</dt>
-                                <dd>
-                                    <span id="detail-total-orders" class="badge bg-success">0</span>
-                                </dd>
-                                <dt>Son Sipariş</dt>
-                                <dd id="detail-last-order">-</dd>
-                                <dt>Toplam Harcama</dt>
-                                <dd id="detail-total-spent" class="text-success fw-bold">₺0</dd>
-                            </dl>
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <i class="bi bi-graph-up"></i> Sipariş Özeti
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-6">Toplam Sipariş</dt>
+                                        <dd class="col-sm-6">
+                                            <span id="detail-total-orders" class="badge bg-success">0</span>
+                                        </dd>
+                                        <dt class="col-sm-6">Son Sipariş</dt>
+                                        <dd class="col-sm-6" id="detail-last-order">-</dd>
+                                        <dt class="col-sm-6">Toplam Harcama</dt>
+                                        <dd class="col-sm-6">
+                                            <span id="detail-total-spent" class="text-success fw-bold">₺0</span>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="mt-4">
-                        <h6>Son Siparişler</h6>
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Tarih</th>
-                                    <th>Ürünler</th>
-                                    <th>Tutar</th>
-                                    <th>Durum</th>
-                                </tr>
-                            </thead>
-                            <tbody id="customerOrdersTable">
-                                <tr><td colspan="4" class="text-center">Yükleniyor...</td></tr>
-                            </tbody>
-                        </table>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-clock-history"></i> Son Siparişler
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Tarih</th>
+                                        <th>Ürünler</th>
+                                        <th>Tutar</th>
+                                        <th>Durum</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customerOrdersTable">
+                                    <tr><td colspan="5" class="text-center">Yükleniyor...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Kapat</button>
+                    <button type="button" class="btn btn-primary" onclick="window.location.href='/orders/new?customer=' + currentCustomerId">
+                        <i class="bi bi-plus-lg"></i> Yeni Sipariş
+                    </button>
                 </div>
             </div>
         </div>
