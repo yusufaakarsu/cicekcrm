@@ -1,4 +1,5 @@
 let categoryModal;
+let productModal;
 
 async function initializePage() {
     await loadHeader(); // common.js'ten gelen header yükleme fonksiyonu
@@ -183,6 +184,129 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// Ürün modalını göster
+function showProductModal(id = null) {
+    productModal = new bootstrap.Modal(document.getElementById('productModal'));
+    const form = document.getElementById('productForm');
+    const title = document.getElementById('modalTitle');
+    
+    // Form resetle
+    form.reset();
+    form.elements['id'].value = '';
+    
+    // Kategorileri yükle
+    loadCategoriesForSelect();
+    
+    if (id) {
+        // Düzenleme modu
+        title.textContent = 'Ürün Düzenle';
+        loadProductDetails(id);
+    } else {
+        // Yeni ürün modu
+        title.textContent = 'Yeni Ürün';
+    }
+    
+    productModal.show();
+}
+
+// Select için kategorileri yükle
+async function loadCategoriesForSelect() {
+    try {
+        const response = await fetch(`${API_URL}/products/categories`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        const categories = data.categories || [];
+        
+        const select = document.querySelector('#productForm select[name="category_id"]');
+        select.innerHTML = `
+            <option value="">Seçiniz</option>
+            ${categories.map(cat => `
+                <option value="${cat.id}">${cat.name}</option>
+            `).join('')}
+        `;
+    } catch (error) {
+        console.error('Categories loading error:', error);
+        showError('Kategoriler yüklenemedi');
+    }
+}
+
+// Ürün detaylarını yükle (düzenleme için)
+async function loadProductDetails(id) {
+    try {
+        const response = await fetch(`${API_URL}/products/${id}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const product = await response.json();
+        const form = document.getElementById('productForm');
+        
+        // Form alanlarını doldur
+        form.elements['id'].value = product.id;
+        form.elements['name'].value = product.name;
+        form.elements['category_id'].value = product.category_id;
+        form.elements['description'].value = product.description || '';
+        form.elements['base_price'].value = product.base_price;
+        form.elements['status'].value = product.status;
+        
+    } catch (error) {
+        console.error('Product loading error:', error);
+        showError('Ürün bilgileri yüklenemedi');
+        productModal.hide();
+    }
+}
+
+// Ürün kaydet/güncelle
+async function saveProduct() {
+    const form = document.getElementById('productForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    const isEdit = !!data.id;
+
+    try {
+        const url = `${API_URL}/products${isEdit ? `/${data.id}` : ''}`;
+        const method = isEdit ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+
+        productModal.hide();
+        await loadProducts();
+        showSuccess(`Ürün başarıyla ${isEdit ? 'güncellendi' : 'eklendi'}`);
+    } catch (error) {
+        console.error('Product save error:', error);
+        showError('Ürün kaydedilemedi');
+    }
+}
+
+// Ürün silme fonksiyonu
+async function deleteProduct(id) {
+    if (!confirm('Bu ürünü silmek istediğinize emin misiniz?')) return;
+
+    try {
+        const response = await fetch(`${API_URL}/products/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+
+        await loadProducts();
+        showSuccess('Ürün başarıyla silindi');
+    } catch (error) {
+        console.error('Product delete error:', error);
+        showError('Ürün silinemedi');
+    }
 }
 
 // Initialize

@@ -65,6 +65,125 @@ router.get('/', async (c) => {
   }
 })
 
+// Ürün detayı
+router.get('/:id', async (c) => {
+  const { id } = c.req.param()
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    const product = await db.prepare(`
+      SELECT p.*, pc.name as category_name
+      FROM products p
+      LEFT JOIN product_categories pc ON p.category_id = pc.id
+      WHERE p.id = ? AND p.tenant_id = ? AND p.deleted_at IS NULL
+    `).bind(id, tenant_id).first()
+    
+    if (!product) {
+      return c.json({ success: false, error: 'Product not found' }, 404)
+    }
+
+    return c.json({ success: true, product })
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: 'Database error' 
+    }, 500)
+  }
+})
+
+// Yeni ürün ekle
+router.post('/', async (c) => {
+  const body = await c.req.json()
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    const result = await db.prepare(`
+      INSERT INTO products (
+        tenant_id, category_id, name, description,
+        base_price, status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).bind(
+      tenant_id,
+      body.category_id,
+      body.name,
+      body.description,
+      body.base_price,
+      body.status || 'active'
+    ).run()
+
+    return c.json({
+      success: true,
+      id: result.meta?.last_row_id
+    })
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: 'Database error' 
+    }, 500)
+  }
+})
+
+// Ürün güncelle
+router.put('/:id', async (c) => {
+  const { id } = c.req.param()
+  const body = await c.req.json()
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    await db.prepare(`
+      UPDATE products 
+      SET 
+        category_id = ?,
+        name = ?,
+        description = ?,
+        base_price = ?,
+        status = ?,
+        updated_at = datetime('now')
+      WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL
+    `).bind(
+      body.category_id,
+      body.name,
+      body.description,
+      body.base_price,
+      body.status,
+      id,
+      tenant_id
+    ).run()
+
+    return c.json({ success: true })
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: 'Database error' 
+    }, 500)
+  }
+})
+
+// Ürün sil (soft delete)
+router.delete('/:id', async (c) => {
+  const { id } = c.req.param()
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    await db.prepare(`
+      UPDATE products 
+      SET deleted_at = datetime('now')
+      WHERE id = ? AND tenant_id = ?
+    `).bind(id, tenant_id).run()
+
+    return c.json({ success: true })
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: 'Database error' 
+    }, 500)
+  }
+})
+
 // Düşük stoklu ürünler
 router.get('/low-stock', async (c) => {
   const db = c.get('db')
