@@ -3,7 +3,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Header'ı yükle
     await loadSideBar();
     
-    // İçeriği yükle
+    // Header yüklendikten sonra içeriği doğru konumlandır
+    document.querySelector('.ms-lg-200').style.marginLeft = '200px';
+    
     await loadDashboardData();
     await loadRecentOrders();
 });
