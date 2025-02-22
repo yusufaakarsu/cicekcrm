@@ -1,9 +1,11 @@
 // Dashboard ilk yükleme
 document.addEventListener('DOMContentLoaded', async () => {
-    // Header'ı yükle
     await loadSideBar();
     await loadDashboardData();
     await loadRecentOrders();
+
+    // 5 dakikada bir güncelle
+    setInterval(loadDashboardData, 5 * 60 * 1000);
 });
 
 async function loadDashboardData() {
@@ -13,41 +15,29 @@ async function loadDashboardData() {
 
         if (!data.success) throw new Error(data.error);
 
-        // İstatistik kartlarını güncelle
-        document.getElementById('ordersToday').textContent = data.deliveryStats.total_orders;
-        document.getElementById('deliveredOrders').textContent = data.deliveryStats.delivered_orders;
-        document.getElementById('pendingDeliveries').textContent = data.deliveryStats.pending_orders;
-        document.getElementById('lowStockCount').textContent = data.tomorrowNeeds.length;
-
-        // Teslimat programını güncelle
-        if (data.orderSummary.length > 0) {
-            document.getElementById('today-orders').textContent = `${data.orderSummary[0].count} Sipariş`;
-            if (data.orderSummary[1]) {
-                document.getElementById('tomorrow-orders').textContent = `${data.orderSummary[1].count} Sipariş`;
-            }
-            if (data.orderSummary[2]) {
-                document.getElementById('future-orders').textContent = `${data.orderSummary[2].count} Sipariş`;
-            }
-        }
-
-        // Düşük stok listesini güncelle
-        const lowStockList = document.getElementById('low-stock-list');
-        lowStockList.innerHTML = data.tomorrowNeeds.map(item => `
-            <div class="list-group-item">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-0">${item.name}</h6>
-                        <small class="text-muted">Mevcut: ${item.current_stock}</small>
-                    </div>
-                    <span class="badge bg-warning">${item.needed_quantity} gerekli</span>
-                </div>
-            </div>
-        `).join('') || '<div class="list-group-item text-center">Kritik stok yok</div>';
+        // İstatistik kartları
+        updateStats(data.deliveryStats);
+        
+        // Teslimat programı
+        updateDeliveryProgram(data.orderSummary);
+        
+        // Kritik stok
+        updateLowStock(data.lowStock);
+        
+        // Son siparişler
+        updateRecentOrders(data.recentOrders);
 
     } catch (error) {
-        console.error('Dashboard veri yükleme hatası:', error);
-        showToast('error', 'Dashboard verisi yüklenemedi');
+        console.error('Dashboard veri hatası:', error);
+        showToast('error', 'Veriler yüklenemedi');
     }
+}
+
+function updateStats(stats) {
+    document.getElementById('ordersToday').textContent = `${stats.total_orders || 0}`;
+    document.getElementById('deliveredOrders').textContent = `${stats.delivered_orders || 0}`;
+    document.getElementById('pendingDeliveries').textContent = `${stats.pending_orders || 0}`;
+    document.getElementById('lowStockCount').textContent = `${stats.low_stock_count || 0}`;
 }
 
 async function loadRecentOrders() {
@@ -85,7 +75,30 @@ async function loadRecentOrders() {
     }
 }
 
-// Yardımcı fonksiyonlar
+// Dashboard yardımcı fonksiyonları
+function updateDeliveryProgram(summary) {
+    document.getElementById('today-orders').textContent = `${summary[0]?.count || 0} Sipariş`;
+    document.getElementById('tomorrow-orders').textContent = `${summary[1]?.count || 0} Sipariş`;
+    document.getElementById('future-orders').textContent = `${summary[2]?.count || 0} Sipariş`;
+}
+
+function updateTomorrowNeeds(needs) {
+    const stockList = document.getElementById('low-stock-list');
+    stockList.innerHTML = needs.length > 0 
+        ? needs.map(item => `
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">${item.name}</h6>
+                        <small class="text-muted">Mevcut: ${item.current_stock}</small>
+                    </div>
+                    <span class="badge bg-warning">${item.needed_quantity} gerekli</span>
+                </div>
+            </div>
+        `).join('')
+        : '<div class="list-group-item text-center">Kritik stok yok</div>';
+}
+
 function getStatusColor(status) {
     const colors = {
         'new': 'info',
@@ -108,5 +121,26 @@ function formatDeliveryTime(time) {
     return times[time] || time;
 }
 
-// 5 dakikada bir güncelle
-setInterval(loadDashboardData, 5 * 60 * 1000);
+function updateRecentOrders(orders) {
+    const tbody = document.querySelector('#recentOrders tbody');
+    if (!orders?.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Sipariş bulunmuyor</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = orders.map(order => `
+        <tr>
+            <td>
+                <div>${order.customer_name}</div>
+                <small class="text-muted">${formatPhoneNumber(order.customer_phone)}</small>
+            </td>
+            <td>${order.items_summary}</td>
+            <td>
+                <div>${formatDate(order.delivery_date)}</div>
+                <small class="text-muted">${formatDeliveryTime(order.delivery_time)}</small>
+            </td>
+            <td>${getStatusBadge(order.status)}</td>
+            <td>${formatPrice(order.total_amount)}</td>
+        </tr>
+    `).join('');
+}

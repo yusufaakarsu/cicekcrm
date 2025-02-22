@@ -22,7 +22,7 @@ const BASE_URL = window.location.origin; // Mevcut domaini kullan
     
 const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev/api';
 
-// Header yükleme fonksiyonu
+// Genel utility fonksiyonları
 async function loadSideBar() {
     const response = await fetch('/common/sidebar.html');  // header.html -> sidebar.html
     const html = await response.text();
@@ -46,48 +46,6 @@ function formatPrice(amount) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }).format(amount);
-}
-
-// API temel URL'i ve endpoint'leri
-const API_ENDPOINTS = {
-    CATEGORIES: '/product-categories', 
-    PRODUCTS: '/products',
-    CUSTOMERS: '/customers',
-    ORDERS: '/orders'
-};
-
-// API çağrıları için yardımcı fonksiyon
-async function fetchAPI(endpoint, options = {}) {
-    const url = `${API_URL}${endpoint}`;
-    console.log('API Request:', url);
-
-    const defaultOptions = {
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    };
-
-    try {
-        const response = await fetch(url, { ...defaultOptions, ...options });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('API Error:', error);
-        throw error;
-    }
-}
-
-function showLoading(element) {
-    element.classList.add('loading');
-}
-
-function hideLoading(element) {
-    element.classList.remove('loading');
 }
 
 // Format tarih - sadece tarih için
@@ -259,82 +217,46 @@ function showToast(type, message) {
     bsToast.show();
 }
 
-async function loadDashboardData() {
+function showLoading(element) {
+    element.classList.add('loading');
+}
+
+function hideLoading(element) {
+    element.classList.remove('loading');
+}
+
+// API işlemleri için genel fonksiyonlar
+async function fetchAPI(endpoint, options = {}) {
+    const url = `${API_URL}${endpoint}`;
+    console.log('API Request:', url);
+
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+
     try {
-        // /api/api/dashboard yerine /api/dashboard kullanılacak
-        const response = await fetch(`/api/dashboard`); // api/ prefix'i kaldırıldı
-        if (!response.ok) throw new Error('API Hatası');
+        const response = await fetch(url, { ...defaultOptions, ...options });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
-
-        // İstatistik kartları güncelleme
-        document.getElementById('ordersToday').textContent = `${data.deliveryStats.total_orders} Sipariş`;
-        document.getElementById('deliveredOrders').textContent = `${data.deliveryStats.delivered_orders} Teslim Edilen`;
-        document.getElementById('pendingDeliveries').textContent = `${data.deliveryStats.pending_orders} Teslimat`;
-
-        // Teslimat programı güncelleme
-        const summary = data.orderSummary;
-        document.getElementById('today-orders').textContent = `${summary[0]?.count || 0} Sipariş`;
-        document.getElementById('tomorrow-orders').textContent = `${summary[1]?.count || 0} Sipariş`;
-        document.getElementById('future-orders').textContent = `${summary[2]?.count || 0} Sipariş`;
-
-        // Yarının ürün ihtiyaçları
-        const stockList = document.getElementById('low-stock-list');
-        if (data.tomorrowNeeds && data.tomorrowNeeds.length > 0) {
-            stockList.innerHTML = data.tomorrowNeeds.map(item => `
-                <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>${item.name}</span>
-                    <span>İhtiyaç: ${item.needed_quantity} adet</span>
-                </div>
-            `).join('');
-        } else {
-            stockList.innerHTML = '<div class="list-group-item">Yarın için sipariş yok</div>';
-        }
-
-        // Düşük stok
-        document.getElementById('lowStockCount').textContent = `${data.lowStock} Ürün`;
-
-        // Son güncelleme
-        document.getElementById('status').innerHTML = `
-            <i class="bi bi-check-circle"></i> Son güncelleme: ${new Date().toLocaleTimeString()}
-        `;
+        return data;
     } catch (error) {
-        console.error('Dashboard hatası:', error);
-        document.getElementById('status').innerHTML = `
-            <i class="bi bi-exclamation-triangle"></i> Bağlantı hatası!
-        `;
+        console.error('API Error:', error);
+        throw error;
     }
 }
 
-async function loadRecentOrders() {
-    try {
-        const response = await fetch(`/api/orders`);
-        if (!response.ok) throw new Error('API Hatası');
-        const orders = await response.json();
-        
-        const recentOrdersTable = document.getElementById('recentOrders').getElementsByTagName('tbody')[0];
-        
-        if (orders && orders.length > 0) {
-            recentOrdersTable.innerHTML = orders.map(order => `
-                <tr>
-                    <td>${order.customer_name}</td>
-                    <td>${order.items ? order.items.map(item => `${item.quantity}x ${item.name}`).join('<br>') : '-'}</td>
-                    <td>
-                        ${formatDate(order.delivery_date)}<br>
-                        <small class="text-muted">${order.delivery_address}</small>
-                    </td>
-                    <td>${getStatusBadge(order.status)}</td>
-                    <td>${formatCurrency(order.total_amount)}</td>
-                </tr>
-            `).join('');
-        }
-    } catch (error) {
-        console.error('Recent orders error:', error);
-    }
-}
-
-// Export
+// Export common utilities
 window.API_URL = API_URL;
 window.formatCurrency = formatCurrency;
+window.formatPrice = formatPrice;
+window.formatDate = formatDate;
 window.loadSideBar = loadSideBar;
 window.showError = showError;
 window.showSuccess = showSuccess;
+window.showToast = showToast;
