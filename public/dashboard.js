@@ -5,30 +5,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadDashboard() {
     try {
+        console.log('Loading dashboard...');
         const response = await fetch(getApiUrl('/dashboard'));
+        
         if (!response.ok) {
             const errorText = await response.text();
             console.error('API Error Response:', errorText);
-            throw new Error('API Error: ' + response.status);
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
         }
         
         const data = await response.json();
+        console.log('Dashboard data:', data);
+
         if (!data.success) {
             throw new Error(data.error || 'API Error');
         }
 
-        console.log('Dashboard data:', data); // Debug için
+        // Null check ekle
+        if (!data.metrics || !data.todayOrders) {
+            throw new Error('Invalid API response format');
+        }
 
-        // Metrikleri güncelle 
         updateMetrics(data.metrics);
-        
-        // Bugünün siparişlerini listele
         renderTodayOrders(data.todayOrders);
 
     } catch (error) {
         console.error('Dashboard error:', error);
         showError('Dashboard yüklenemedi: ' + error.message);
+        
+        // Hata durumunda UI'ı temizle
+        clearDashboard();
     }
+}
+
+// Hata durumunda UI'ı temizle
+function clearDashboard() {
+    const metrics = {
+        total_orders: '-',
+        new_orders: '-',
+        active_deliveries: '-',
+        today_deliveries: '-',
+        total_customers: '-',
+        total_revenue: '-',
+        today_orders: '-',
+        delivered_orders: '-',
+        pending_deliveries: '-',
+        low_stock_count: '-'
+    };
+    
+    updateMetrics(metrics);
+    renderTodayOrders([]);
 }
 
 function updateMetrics(metrics) {
