@@ -1,156 +1,122 @@
-<!-- Sol Menü - Desktop -->
-<div class="bg-dark" style="width: 200px;">
-    <!-- Desktop Menu Content -->
-    <div class="d-none d-md-flex flex-column flex-shrink-0 p-3 text-white bg-dark h-100">
-        <h5 class="mb-4">Çiçek CRM</h5>
-        <ul class="nav nav-pills flex-column mb-auto">
-            <!-- Dashboard -->
-            <li class="nav-item">
-                <a href="/dashboard/dashboard.html" class="nav-link text-white" data-page="dashboard">
-                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                </a>
-            </li>
-
-            <!-- Siparişler Dropdown -->
-            <li class="nav-item dropend">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="dropdown">
-                    <i class="bi bi-box me-2"></i> Siparişler
-                </a>
-                <ul class="dropdown-menu dropdown-menu-dark">
-                    <li><a class="dropdown-item" href="/orders/orders.html">Sipariş Listesi</a></li>
-                    <li><a class="dropdown-item" href="/orders/new-order.html">Yeni Sipariş</a></li>
-                </ul>
-            </li>
-
-            <!-- Ürünler & Stok Dropdown -->
-            <li class="nav-item dropend">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="dropdown">
-                    <i class="bi bi-box-seam me-2"></i> Ürünler & Stok
-                </a>
-                <ul class="dropdown-menu dropdown-menu-dark">
-                    <li><a class="dropdown-item" href="/products/products.html">Ürün Listesi</a></li>
-                    <li><a class="dropdown-item" href="/products/categories.html">Kategoriler</a></li>
-                    <li><a class="dropdown-item" href="/stock/stock.html">Stok Yönetimi</a></li>
-                    <li><a class="dropdown-item" href="/suppliers/suppliers.html">Tedarikçiler</a></li>
-                </ul>
-            </li>
-
-            <!-- Normal menü itemları -->
-            <li class="nav-item">
-                <a href="/customers/customers.html" class="nav-link text-white" data-page="customers">
-                    <i class="bi bi-people me-2"></i> Müşteriler
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="/delivery/delivery.html" class="nav-link text-white" data-page="delivery">
-                    <i class="bi bi-truck me-2"></i> Teslimat
-                </a>
-            </li>
-
-            <!-- Finans Dropdown -->
-            <li class="nav-item dropend">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="dropdown">
-                    <i class="bi bi-wallet2 me-2"></i> Finans
-                </a>
-                <ul class="dropdown-menu dropdown-menu-dark">
-                    <li><a class="dropdown-item" href="/finance/dashboard.html">Genel Durum</a></li>
-                    <li><a class="dropdown-item" href="/finance/transactions.html">İşlemler</a></li>
-                    <li><a class="dropdown-item" href="/finance/reports.html">Raporlar</a></li>
-                </ul>
-            </li>
-
-            <li class="nav-item">
-                <a href="/calendar/calendar.html" class="nav-link text-white" data-page="calendar">
-                    <i class="bi bi-calendar3 me-2"></i> Takvim
-                </a>
-            </li>
-        </ul>
-    </div>
+<div class="d-none d-md-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 200px; height: 100vh;">
+    <h5 class="mb-4">Dashboard Menu</h5>
+    <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item">
+            <a href="#" class="nav-link text-white">Ana Sayfa</a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link text-white">Ürünler</a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link text-white">Müşteriler</a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link text-white">Raporlar</a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link text-white">İstatistikler</a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link text-white">Ayarlar</a>
+        </li>
+        <li class="nav-item">
+            <a href="#" class="nav-link text-white">Profil</a>
+        </li>
+    </ul>
 </div>
 
-<!-- Mobil Menu Butonu -->
-<button class="btn btn-dark d-md-none position-fixed top-0 start-0 m-2" type="button"
-        data-bs-toggle="offcanvas" data-bs-target="#sidebar">
+<!-- Mobile Menu Button -->
+<button class="btn btn-dark d-md-none position-fixed top-0 start-0 m-2 z-3" type="button" data-bs-toggle="offcanvas"
+    data-bs-target="#sidebar">
     ☰
 </button>
 
-<!-- Mobil Menü (Offcanvas) -->
+<!-- Mobile Sidebar (Offcanvas) -->
 <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebar">
     <div class="offcanvas-header">
-        <h5 class="offcanvas-title">Çiçek CRM</h5>
+        <h5 class="offcanvas-title">Dashboard Menu</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body">
         <ul class="nav nav-pills flex-column">
-            <!-- Desktop menüsüyle aynı dropdown yapısı -->
-            <!-- Dashboard -->
             <li class="nav-item">
-                <a href="/dashboard/dashboard.html" class="nav-link text-white" data-page="dashboard">
-                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                </a>
+                <a href="#" class="nav-link text-white">Ana Sayfa</a>
             </li>
-
-            <!-- Siparişler Dropdown -->
-            <li class="nav-item dropend">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="dropdown">
-                    <i class="bi bi-box me-2"></i> Siparişler
-                </a>
-                <ul class="dropdown-menu dropdown-menu-dark">
-                    <li><a class="dropdown-item" href="/orders/orders.html">Sipariş Listesi</a></li>
-                    <li><a class="dropdown-item" href="/orders/new-order.html">Yeni Sipariş</a></li>
-                </ul>
-            </li>
-
-            <!-- Ürünler & Stok Dropdown -->
-            <li class="nav-item dropend">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="dropdown">
-                    <i class="bi bi-box-seam me-2"></i> Ürünler & Stok
-                </a>
-                <ul class="dropdown-menu dropdown-menu-dark">
-                    <li><a class="dropdown-item" href="/products/products.html">Ürün Listesi</a></li>
-                    <li><a class="dropdown-item" href="/products/categories.html">Kategoriler</a></li>
-                    <li><a class="dropdown-item" href="/stock/stock.html">Stok Yönetimi</a></li>
-                    <li><a class="dropdown-item" href="/suppliers/suppliers.html">Tedarikçiler</a></li>
-                </ul>
-            </li>
-
-            <!-- Normal menü itemları -->
             <li class="nav-item">
-                <a href="/customers/customers.html" class="nav-link text-white" data-page="customers">
-                    <i class="bi bi-people me-2"></i> Müşteriler
-                </a>
+                <a href="#" class="nav-link text-white">Ürünler</a>
             </li>
-
             <li class="nav-item">
-                <a href="/delivery/delivery.html" class="nav-link text-white" data-page="delivery">
-                    <i class="bi bi-truck me-2"></i> Teslimat
-                </a>
+                <a href="#" class="nav-link text-white">Müşteriler</a>
             </li>
-
-            <!-- Finans Dropdown -->
-            <li class="nav-item dropend">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="dropdown">
-                    <i class="bi bi-wallet2 me-2"></i> Finans
-                </a>
-                <ul class="dropdown-menu dropdown-menu-dark">
-                    <li><a class="dropdown-item" href="/finance/dashboard.html">Genel Durum</a></li>
-                    <li><a class="dropdown-item" href="/finance/transactions.html">İşlemler</a></li>
-                    <li><a class="dropdown-item" href="/finance/reports.html">Raporlar</a></li>
-                </ul>
-            </li>
-
             <li class="nav-item">
-                <a href="/calendar/calendar.html" class="nav-link text-white" data-page="calendar">
-                    <i class="bi bi-calendar3 me-2"></i> Takvim
-                </a>
+                <a href="#" class="nav-link text-white">Raporlar</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link text-white">İstatistikler</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link text-white">Ayarlar</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link text-white">Profil</a>
             </li>
         </ul>
     </div>
 </div>
 
-<!-- Sağ İçerik - Padding mobilde daha az -->
-<div class="flex-grow-1 overflow-auto p-2 p-lg-3">
-    <div id="pageContent">
+<!-- Main Content -->
+<div class="flex-grow-1 p-3">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Günlük Ziyaretçi</h5>
+                        <p class="card-text">1,234 kullanıcı bugün siteyi ziyaret etti.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Aktif Kullanıcılar</h5>
+                        <p class="card-text">Şu anda 456 kullanıcı çevrimiçi.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Toplam Satış</h5>
+                        <p class="card-text">Bu ay 45,678₺ satış gerçekleşti.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Son Aktiviteler</h5>
+                        <ul class="list-unstyled">
+                            <li>Yeni üye kaydı - 5 dakika önce</li>
+                            <li>Sipariş tamamlandı #12345 - 15 dakika önce</li>
+                            <li>Yeni yorum eklendi - 1 saat önce</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Popüler Ürünler</h5>
+                        <ul class="list-unstyled">
+                            <li>Akıllı Telefon X - 120 satış</li>
+                            <li>Kablosuz Kulaklık Y - 89 satış</li>
+                            <li>Tablet Z - 67 satış</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 </div>
