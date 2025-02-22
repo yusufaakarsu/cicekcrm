@@ -1,14 +1,14 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
     <div class="container">
-        <a class="navbar-brand" href="/">🌸 ÇiçekCRM</a>
+        <a class="navbar-brand" href="/"><i class="bi bi-flower1"></i> Çiçek CRM</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav">
-                <!-- Dashboard -->
+            <ul class="navbar-nav ms-auto">
+                <!-- Ana Sayfa -->
                 <li class="nav-item">
-                    <a class="nav-link" data-page="dashboard" href="/dashboard">
+                    <a class="nav-link" href="/" data-page="dashboard">
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
                 </li>
@@ -40,7 +40,12 @@
                     <ul class="dropdown-menu">
                         <li>
                             <a class="dropdown-item" href="/products">
-                                <i class="bi bi-grid"></i> Ürünler
+                                <i class="bi bi-list"></i> Ürün Listesi
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/products/categories">
+                                <i class="bi bi-folder"></i> Kategoriler
                             </a>
                         </li>
                         <li>
@@ -62,65 +67,24 @@
                 </li>
 
                 <!-- Müşteriler -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-page="customers">
+                <li class="nav-item">
+                    <a class="nav-link" href="/customers" data-page="customers">
                         <i class="bi bi-people"></i> Müşteriler
                     </a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="/customers">
-                                <i class="bi bi-list"></i> Müşteri Listesi
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="/customers/new">
-                                <i class="bi bi-person-plus"></i> Yeni Müşteri
-                            </a>
-                        </li>
-                    </ul>
                 </li>
 
                 <!-- Teslimat -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-page="delivery">
+                <li class="nav-item">
+                    <a class="nav-link" href="/delivery" data-page="delivery">
                         <i class="bi bi-truck"></i> Teslimat
                     </a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="/delivery">
-                                <i class="bi bi-list"></i> Teslimat Listesi
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="/delivery/regions">
-                                <i class="bi bi-geo-alt"></i> Teslimat Bölgeleri
-                            </a>
-                        </li>
-                    </ul>
                 </li>
 
                 <!-- Finans -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-page="finance">
+                <li class="nav-item">
+                    <a class="nav-link" href="/finance" data-page="finance">
                         <i class="bi bi-wallet2"></i> Finans
                     </a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="/finance">
-                                <i class="bi bi-graph-up"></i> Genel Durum
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="/finance/transactions">
-                                <i class="bi bi-credit-card"></i> İşlemler
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="/finance/accounts">
-                                <i class="bi bi-bank"></i> Hesaplar
-                            </a>
-                        </li>
-                    </ul>
                 </li>
 
                 <!-- Takvim -->
