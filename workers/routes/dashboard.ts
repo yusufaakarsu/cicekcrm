@@ -7,79 +7,56 @@ router.get('/', async (c) => {
     const tenant_id = c.get('tenant_id');
 
     try {
-        // Teslimat istatistikleri - bugünün siparişleri
-        const deliveryStats = await db.prepare(`
+        // Özet metrikleri al
+        const metrics = await db.prepare(`
             SELECT 
-                COUNT(*) as total_orders,
-                SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered_orders,
-                SUM(CASE WHEN status IN ('new','preparing','ready','delivering') THEN 1 ELSE 0 END) as pending_orders,
-                SUM(CASE WHEN payment_status = 'paid' THEN total_amount ELSE 0 END) as total_revenue
-            FROM orders 
-            WHERE tenant_id = ?
-            AND date(delivery_date) = date('now')
-            AND status != 'cancelled'
+                COUNT(DISTINCT o.id) as total_orders,
+                COUNT(DISTINCT CASE WHEN o.status = 'new' THEN o.id END) as new_orders,
+                COUNT(DISTINCT CASE WHEN o.status = 'delivering' THEN o.id END) as active_deliveries,
+                COUNT(DISTINCT CASE WHEN DATE(o.delivery_date) = DATE('now') THEN o.id END) as today_deliveries,
+                COUNT(DISTINCT c.id) as total_customers,
+                COALESCE(SUM(CASE WHEN o.status != 'cancelled' THEN o.total_amount END), 0) as total_revenue
+            FROM orders o
+            LEFT JOIN customers c ON c.tenant_id = o.tenant_id
+            WHERE o.tenant_id = ? AND o.deleted_at IS NULL
         `).bind(tenant_id).first();
 
-        // Kritik stok seviyesi - malzeme bazlı
-        const { results: lowStock } = await db.prepare(`
-            SELECT rm.id, rm.name, rm.current_stock, u.name as unit
-            FROM raw_materials rm
-            JOIN units u ON rm.unit_id = u.id
-            WHERE rm.tenant_id = ?
-            AND rm.current_stock <= rm.min_stock
-            AND rm.status = 'active'
-            ORDER BY (rm.min_stock - rm.current_stock) DESC
-            LIMIT 5
-        `).bind(tenant_id).all();
-
-        // Sipariş özeti (bugün/yarın/gelecek)
-        const { results: orderSummary } = await db.prepare(`
+        // Bugünün siparişleri
+        const todayOrders = await db.prepare(`
             SELECT 
-                date(delivery_date) as date,
-                COUNT(*) as count,
-                SUM(total_amount) as total_amount
-            FROM orders
-            WHERE tenant_id = ?
-            AND delivery_date >= date('now')
-            AND status NOT IN ('delivered', 'cancelled')
-            GROUP BY date(delivery_date)
-            ORDER BY delivery_date ASC
-            LIMIT 3
-        `).bind(tenant_id).all();
-
-        // Son 5 sipariş
-        const { results: recentOrders } = await db.prepare(`
-            SELECT 
-                o.id,
-                o.delivery_date,
-                o.delivery_time,
-                o.status,
-                o.total_amount,
+                o.*,
                 c.name as customer_name,
                 c.phone as customer_phone,
-                GROUP_CONCAT(oi.quantity || 'x ' || p.name) as items_summary
+                r.name as recipient_name,
+                r.phone as recipient_phone,
+                a.district as delivery_district,
+                GROUP_CONCAT(p.name || ' x' || oi.quantity) as items
             FROM orders o
-            JOIN customers c ON o.customer_id = c.id
-            JOIN order_items oi ON o.id = oi.order_id
-            JOIN products p ON oi.product_id = p.id
-            WHERE o.tenant_id = ?
+            LEFT JOIN customers c ON o.customer_id = c.id
+            LEFT JOIN recipients r ON o.recipient_id = r.id
+            LEFT JOIN addresses a ON o.address_id = a.id
+            LEFT JOIN order_items oi ON o.order_id = oi.order_id
+            LEFT JOIN products p ON oi.product_id = p.id
+            WHERE o.tenant_id = ? 
+            AND DATE(o.delivery_date) = DATE('now')
+            AND o.status != 'cancelled'
             AND o.deleted_at IS NULL
             GROUP BY o.id
-            ORDER BY o.created_at DESC
-            LIMIT 5
+            ORDER BY o.delivery_time ASC
         `).bind(tenant_id).all();
 
         return c.json({
             success: true,
-            deliveryStats,
-            lowStock,
-            orderSummary,
-            recentOrders
+            metrics,
+            todayOrders: todayOrders.results
         });
 
     } catch (error) {
-        console.error('Dashboard veri hatası:', error);
-        return c.json({ success: false, error: error.message }, 500);
+        console.error('Dashboard error:', error);
+        return c.json({
+            success: false,
+            error: 'Database error'
+        }, 500);
     }
 });
 
