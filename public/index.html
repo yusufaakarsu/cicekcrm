@@ -8,124 +8,126 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 <body data-page="dashboard">
-    <div class="vh-100 d-flex flex-row">
+    <div class="d-flex">
         <!-- Sol Header -->
         <div id="header"></div>
         
-        <!-- Sağ İçerik -->
-        <div class="flex-grow-1 overflow-auto p-3">
-            <!-- İstatistik Kartları -->
-            <div class="row g-3 mb-4">
-                <!-- Günlük Teslimat -->
-                <div class="col-md-3">
-                    <div class="card border-primary h-100">
-                        <div class="card-body">
-                            <h6 class="text-muted mb-2">Bugün Teslimat</h6>
-                            <h3 id="ordersToday" class="mb-0">-</h3>
+        <!-- Ana İçerik - left margin ile header'dan uzaklaştır -->
+        <div class="flex-grow-1 ms-lg-200">
+            <div class="container-fluid p-4">
+                <!-- İstatistik Kartları -->
+                <div class="row g-3 mb-4">
+                    <!-- Günlük Teslimat -->
+                    <div class="col-md-3">
+                        <div class="card border-primary h-100">
+                            <div class="card-body">
+                                <h6 class="text-muted mb-2">Bugün Teslimat</h6>
+                                <h3 id="ordersToday" class="mb-0">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Teslim Edilen -->
+                    <div class="col-md-3">
+                        <div class="card border-success h-100">
+                            <div class="card-body">
+                                <h6 class="text-muted mb-2">Teslim Edildi</h6>
+                                <h3 id="deliveredOrders" class="mb-0">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Bekleyen -->
+                    <div class="col-md-3">
+                        <div class="card border-warning h-100">
+                            <div class="card-body">
+                                <h6 class="text-muted mb-2">Bekleyen</h6>
+                                <h3 id="pendingDeliveries" class="mb-0">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Düşük Stok -->
+                    <div class="col-md-3">
+                        <div class="card border-danger h-100">
+                            <div class="card-body">
+                                <h6 class="text-muted mb-2">Düşük Stok</h6>
+                                <h3 id="lowStockCount" class="mb-0">-</h3>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <!-- Teslim Edilen -->
-                <div class="col-md-3">
-                    <div class="card border-success h-100">
-                        <div class="card-body">
-                            <h6 class="text-muted mb-2">Teslim Edildi</h6>
-                            <h3 id="deliveredOrders" class="mb-0">-</h3>
-                        </div>
-                    </div>
-                </div>
-                <!-- Bekleyen -->
-                <div class="col-md-3">
-                    <div class="card border-warning h-100">
-                        <div class="card-body">
-                            <h6 class="text-muted mb-2">Bekleyen</h6>
-                            <h3 id="pendingDeliveries" class="mb-0">-</h3>
-                        </div>
-                    </div>
-                </div>
-                <!-- Düşük Stok -->
-                <div class="col-md-3">
-                    <div class="card border-danger h-100">
-                        <div class="card-body">
-                            <h6 class="text-muted mb-2">Düşük Stok</h6>
-                            <h3 id="lowStockCount" class="mb-0">-</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Alt Grid -->
-            <div class="row g-3">
-                <!-- Sol Kolon -->
-                <div class="col-md-8">
-                    <div class="card">
-                        <div class="card-header bg-white">
-                            <h5 class="card-title mb-0">Son Siparişler</h5>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table" id="recentOrders">
-                                <thead>
-                                    <tr>
-                                        <th>Müşteri</th>
-                                        <th>Ürünler</th>
-                                        <th>Teslimat</th>
-                                        <th>Durum</th>
-                                        <th>Tutar</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr><td colspan="5" class="text-center">Yükleniyor...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Sağ Kolon -->
-                <div class="col-md-4">
-                    <!-- Teslimat Programı -->
-                    <div class="card mb-3">
-                        <div class="card-header bg-white">
-                            <h5 class="card-title mb-0">Teslimat Programı</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3 pb-2 border-bottom">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div class="small text-muted">Bugün</div>
-                                        <div id="today-orders">-</div>
-                                    </div>
-                                    <a href="/delivery" class="btn btn-sm btn-primary">
-                                        Detay
-                                    </a>
-                                </div>
+                <!-- Alt Grid -->
+                <div class="row g-3">
+                    <!-- Sol Kolon -->
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h5 class="card-title mb-0">Son Siparişler</h5>
                             </div>
-                            <div class="mb-3 pb-2 border-bottom">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div class="small text-muted">Yarın</div>
-                                        <div id="tomorrow-orders">-</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div class="small text-muted">Sonraki Günler</div>
-                                        <div id="future-orders">-</div>
-                                    </div>
-                                </div>
+                            <div class="table-responsive">
+                                <table class="table" id="recentOrders">
+                                    <thead>
+                                        <tr>
+                                            <th>Müşteri</th>
+                                            <th>Ürünler</th>
+                                            <th>Teslimat</th>
+                                            <th>Durum</th>
+                                            <th>Tutar</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="5" class="text-center">Yükleniyor...</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Sağ Kolon -->
+                    <div class="col-md-4">
+                        <!-- Teslimat Programı -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-white">
+                                <h5 class="card-title mb-0">Teslimat Programı</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3 pb-2 border-bottom">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="small text-muted">Bugün</div>
+                                            <div id="today-orders">-</div>
+                                        </div>
+                                        <a href="/delivery" class="btn btn-sm btn-primary">
+                                            Detay
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="mb-3 pb-2 border-bottom">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="small text-muted">Yarın</div>
+                                            <div id="tomorrow-orders">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="small text-muted">Sonraki Günler</div>
+                                            <div id="future-orders">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                    <!-- Yarının İhtiyaçları -->
-                    <div class="card">
-                        <div class="card-header bg-white">
-                            <h5 class="card-title mb-0">Yarının İhtiyaçları</h5>
-                        </div>
-                        <div class="list-group list-group-flush" id="low-stock-list">
-                            <div class="list-group-item text-center">Yükleniyor...</div>
+                        <!-- Yarının İhtiyaçları -->
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h5 class="card-title mb-0">Yarının İhtiyaçları</h5>
+                            </div>
+                            <div class="list-group list-group-flush" id="low-stock-list">
+                                <div class="list-group-item text-center">Yükleniyor...</div>
+                            </div>
                         </div>
                     </div>
                 </div>

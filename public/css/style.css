@@ -3,11 +3,17 @@
     body {
         padding-left: 200px;
     }
+    .ms-lg-200 {
+        margin-left: 200px;
+    }
 }
 
 /* Mobilde üst header yüksekliği kadar padding */
 @media (max-width: 991.98px) {
     body {
         padding-top: 60px;
+    }
+    .ms-lg-200 {
+        margin-left: 0 !important;
     }
 }
