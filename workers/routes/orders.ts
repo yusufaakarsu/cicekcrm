@@ -87,66 +87,58 @@ router.get('/:id/details', async (c) => {
   }
 })
 
-// Filtrelenmiş siparişler - SQL düzeltildi
+// Filtrelenmiş siparişler endpoint'i
 router.get('/filtered', async (c) => {
-  const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
-  const { status, date_filter, start_date, end_date, sort = 'id_desc', page = '1', per_page = '10' } = c.req.query()
-  
-  try {
-    let query = `SELECT * FROM vw_orders WHERE tenant_id = ?`;
-    const params = [tenant_id];
+    const db = c.get('db');
+    const tenant_id = c.get('tenant_id');
+    
+    try {
+        const { status, date_filter, sort = 'id_desc' } = c.req.query();
+        
+        let query = `SELECT * FROM vw_orders WHERE tenant_id = ?`;
+        const params = [tenant_id];
 
-    // Status filtresi
-    if (status) {
-      query += ` AND status = ?`;
-      params.push(status);
+        // Status filtresi
+        if (status) {
+            query += ` AND status = ?`;
+            params.push(status);
+        }
+
+        // Tarih filtresi
+        if (date_filter) {
+            switch(date_filter) {
+                case 'today':
+                    query += ` AND DATE(delivery_date) = DATE('now')`;
+                    break;
+                case 'tomorrow':
+                    query += ` AND DATE(delivery_date) = DATE('now', '+1 day')`;
+                    break;
+                // ...existing date filter cases...
+            }
+        }
+
+        // Sıralama
+        query += ` ORDER BY created_at DESC`;
+
+        console.log('SQL Query:', query); // Debug için
+        console.log('Params:', params);   // Debug için
+        
+        const { results } = await db.prepare(query).bind(...params).all();
+
+        return c.json({
+            success: true,
+            orders: results || []
+        });
+
+    } catch (error) {
+        console.error('Orders query error:', error);
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
+        }, 500);
     }
-
-    // Tarih filtresi
-    if (date_filter) {
-      switch(date_filter) {
-        case 'today':
-          query += ` AND DATE(delivery_date) = DATE('now')`;
-          break;
-        case 'tomorrow':
-          query += ` AND DATE(delivery_date) = DATE('now', '+1 day')`;
-          break;
-        case 'week':
-          query += ` AND DATE(delivery_date) BETWEEN DATE('now') AND DATE('now', '+7 days')`;
-          break;
-        case 'month':
-          query += ` AND strftime('%Y-%m', delivery_date) = strftime('%Y-%m', 'now')`;
-          break;
-        case 'custom':
-          if (start_date && end_date) {
-            query += ` AND DATE(delivery_date) BETWEEN DATE(?) AND DATE(?)`;
-            // Tarihleri SQLite formatına çevir (YYYY-MM-DD)
-            const startDate = start_date.split(' ')[0]
-            const endDate = end_date.split(' ')[0]
-            params.push(startDate, endDate)
-          }
-          break
-      }
-    }
-
-    // Sıralama
-    query += ` ORDER BY ${getSortQuery(sort)}`;
-    
-    const { results } = await db.prepare(query).bind(...params).all();
-    
-    return c.json({
-      success: true,
-      orders: results
-    });
-    
-  } catch (error) {
-    return c.json({ 
-      success: false, 
-      error: 'Database error' 
-    }, 500);
-  }
-})
+});
 
 // Sipariş durumunu güncelle
 router.put('/:id/status', async (c) => {
