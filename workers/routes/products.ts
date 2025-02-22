@@ -86,4 +86,75 @@ router.get('/product-categories', async (c) => {
   }
 })
 
+// Kategori listesi
+router.get('/categories', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    const { results } = await db.prepare(`
+      SELECT * FROM product_categories 
+      WHERE tenant_id = ? 
+      AND deleted_at IS NULL 
+      ORDER BY name
+    `).bind(tenant_id).all()
+    
+    return c.json({
+      success: true,
+      categories: results
+    })
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: 'Database error' 
+    }, 500)
+  }
+})
+
+// Yeni kategori ekle
+router.post('/categories', async (c) => {
+  const body = await c.req.json()
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    const result = await db.prepare(`
+      INSERT INTO product_categories (tenant_id, name, description)
+      VALUES (?, ?, ?)
+    `).bind(tenant_id, body.name, body.description).run()
+
+    return c.json({
+      success: true,
+      id: result.meta?.last_row_id
+    })
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: 'Database error' 
+    }, 500)
+  }
+})
+
+// Kategori sil
+router.delete('/categories/:id', async (c) => {
+  const { id } = c.req.param()
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    await db.prepare(`
+      UPDATE product_categories 
+      SET deleted_at = datetime('now')
+      WHERE id = ? AND tenant_id = ?
+    `).bind(id, tenant_id).run()
+
+    return c.json({ success: true })
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: 'Database error' 
+    }, 500)
+  }
+})
+
 export default router
