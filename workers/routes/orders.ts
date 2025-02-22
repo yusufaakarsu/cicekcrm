@@ -91,39 +91,45 @@ router.get('/:id/details', async (c) => {
 router.get('/filtered', async (c) => {
     const db = c.get('db');
     const tenant_id = c.get('tenant_id');
-    
+
+    // Query parametrelerini al
+    const { start_date, end_date, date_filter = 'delivery_date' } = c.req.query();
+
+    console.log('Debug - Query params:', { start_date, end_date, date_filter, tenant_id }); // Debug log
+
     try {
-        const { status, date_filter, sort = 'id_desc' } = c.req.query();
-        
-        let query = `SELECT * FROM vw_orders WHERE tenant_id = ?`;
-        const params = [tenant_id];
+        const query = `
+            SELECT 
+                o.id,
+                o.delivery_date,
+                o.delivery_time as delivery_time_slot,
+                o.status,
+                r.name as recipient_name,
+                r.phone as recipient_phone,
+                a.district as delivery_district,
+                a.label as delivery_address,
+                o.card_message_id,
+                o.custom_card_message as card_message,
+                GROUP_CONCAT(p.name || ' x' || oi.quantity) as items
+            FROM orders o
+            LEFT JOIN recipients r ON o.recipient_id = r.id
+            LEFT JOIN addresses a ON o.address_id = a.id
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            LEFT JOIN products p ON oi.product_id = p.id
+            WHERE o.tenant_id = ?
+            AND DATE(o.${date_filter}) BETWEEN ? AND ?
+            AND o.deleted_at IS NULL
+            GROUP BY o.id
+            ORDER BY o.delivery_date ASC, o.delivery_time ASC
+        `;
 
-        // Status filtresi
-        if (status) {
-            query += ` AND status = ?`;
-            params.push(status);
-        }
+        console.log('Debug - SQL Query:', query); // Debug log
 
-        // Tarih filtresi
-        if (date_filter) {
-            switch(date_filter) {
-                case 'today':
-                    query += ` AND DATE(delivery_date) = DATE('now')`;
-                    break;
-                case 'tomorrow':
-                    query += ` AND DATE(delivery_date) = DATE('now', '+1 day')`;
-                    break;
-                // ...existing date filter cases...
-            }
-        }
+        const { results } = await db.prepare(query)
+            .bind(tenant_id, start_date, end_date)
+            .all();
 
-        // Sıralama
-        query += ` ORDER BY created_at DESC`;
-
-        console.log('SQL Query:', query); // Debug için
-        console.log('Params:', params);   // Debug için
-        
-        const { results } = await db.prepare(query).bind(...params).all();
+        console.log('Debug - Results:', results); // Debug log
 
         return c.json({
             success: true,
@@ -131,7 +137,7 @@ router.get('/filtered', async (c) => {
         });
 
     } catch (error) {
-        console.error('Orders query error:', error);
+        console.error('Orders filtered error:', error);
         return c.json({
             success: false,
             error: 'Database error',

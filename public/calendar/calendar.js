@@ -265,18 +265,35 @@ function switchToDay(dateStr) {
 // API'den ay verilerini yükle
 async function loadMonthData() {
     try {
+        console.log('Loading month data...'); // Debug log
+
         const startDate = formatDateISO(new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1));
         const endDate = formatDateISO(new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0));
 
-        const response = await fetch(`${API_URL}/orders/filtered?start_date=${startDate}&end_date=${endDate}&per_page=1000&date_filter=delivery_date`);
-        if (!response.ok) throw new Error('API Hatası');
+        console.log('Date range:', { startDate, endDate }); // Debug log
+
+        const response = await fetch(`${API_URL}/orders/filtered?` + new URLSearchParams({
+            start_date: startDate,
+            end_date: endDate,
+            date_filter: 'delivery_date'
+        }));
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API Error (${response.status}): ${errorText}`);
+        }
         
         const data = await response.json();
+        console.log('API Response:', data); // Debug log
         
+        if (!data.success) {
+            throw new Error(data.error || 'API Error');
+        }
+
         // Siparişleri tarihe göre grupla
         const ordersByDay = {};
         data.orders.forEach(order => {
-            const deliveryDate = order.delivery_date.split(' ')[0];
+            const deliveryDate = order.delivery_date.split(' ')[0]; // Tarih kısmını al
             
             if (!ordersByDay[deliveryDate]) {
                 ordersByDay[deliveryDate] = {
@@ -287,39 +304,47 @@ async function loadMonthData() {
                 };
             }
             
-            if (order.delivery_time_slot) {
-                ordersByDay[deliveryDate][order.delivery_time_slot]++;
+            const timeSlot = order.delivery_time_slot;
+            if (timeSlot) {
+                ordersByDay[deliveryDate][timeSlot]++;
                 ordersByDay[deliveryDate].total++;
             }
         });
 
+        console.log('Grouped orders:', ordersByDay); // Debug log
+
         // Takvim günlerini güncelle
-        document.querySelectorAll('.card[data-date]').forEach(dayEl => {
-            const date = dayEl.dataset.date;
-            const dayData = ordersByDay[date] || { morning: 0, afternoon: 0, evening: 0, total: 0 };
-
-            const totalBadge = dayEl.querySelector('.total-orders');
-            const deliveryCounts = dayEl.querySelectorAll('.delivery-count');
-
-            if (totalBadge) {
-                totalBadge.textContent = dayData.total;
-                if (dayData.total > 0) {
-                    totalBadge.classList.remove('bg-warning', 'text-dark');
-                    totalBadge.classList.add('bg-primary', 'text-white');
-                }
-            }
-
-            if (deliveryCounts.length === 3) {
-                deliveryCounts[0].textContent = dayData.morning || '0';
-                deliveryCounts[1].textContent = dayData.afternoon || '0';
-                deliveryCounts[2].textContent = dayData.evening || '0';
-            }
-        });
+        updateCalendarDays(ordersByDay);
 
     } catch (error) {
-        console.error('Veri yükleme hatası:', error);
-        showError('Veriler yüklenemedi');
+        console.error('Month data loading error:', error);
+        showError('Veriler yüklenemedi: ' + error.message);
     }
+}
+
+function updateCalendarDays(ordersByDay) {
+    document.querySelectorAll('.card[data-date]').forEach(dayEl => {
+        const date = dayEl.dataset.date;
+        const dayData = ordersByDay[date] || { morning: 0, afternoon: 0, evening: 0, total: 0 };
+
+        // Toplam sipariş sayısı
+        const totalBadge = dayEl.querySelector('.total-orders');
+        if (totalBadge) {
+            totalBadge.textContent = dayData.total;
+            if (dayData.total > 0) {
+                totalBadge.classList.remove('bg-warning', 'text-dark');
+                totalBadge.classList.add('bg-primary', 'text-white');
+            }
+        }
+
+        // Zaman dilimine göre sipariş sayıları
+        const deliveryCounts = dayEl.querySelectorAll('.delivery-count');
+        if (deliveryCounts.length === 3) {
+            deliveryCounts[0].textContent = dayData.morning || '0';
+            deliveryCounts[1].textContent = dayData.afternoon || '0';
+            deliveryCounts[2].textContent = dayData.evening || '0';
+        }
+    });
 }
 
 // Gün verilerini yükle
