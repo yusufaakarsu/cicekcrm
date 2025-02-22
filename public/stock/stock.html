@@ -9,75 +9,78 @@
 </head>
 <body data-page="stock">
     <div id="header"></div>
-
-    <div class="container mt-5 pt-4">
-        <!-- Başlık ve Butonlar -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="bi bi-box-seam"></i> Stok Yönetimi</h2>
-            <div class="btn-group">
-                <button class="btn btn-outline-primary me-2" onclick="showNewMaterialModal()">
-                    <i class="bi bi-plus-lg"></i> Yeni Ham Madde
-                </button>
-                <button class="btn btn-primary" onclick="showNewMovementModal()">
-                    <i class="bi bi-arrow-left-right"></i> Stok Hareketi
-                </button>
+    
+    <!-- Sayfa içeriğini pageContent div'ine taşıyalım -->
+    <div id="pageContent">
+        <div class="p-4">
+            <!-- Başlık ve Butonlar -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-box-seam"></i> Stok Yönetimi</h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary me-2" onclick="showNewMaterialModal()">
+                        <i class="bi bi-plus-lg"></i> Yeni Ham Madde
+                    </button>
+                    <button class="btn btn-primary" onclick="showNewMovementModal()">
+                        <i class="bi bi-arrow-left-right"></i> Stok Hareketi
+                    </button>
+                </div>
             </div>
-        </div>
 
-        <!-- Filtreler -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Arama</label>
-                        <input type="text" class="form-control" id="searchInput" 
-                               placeholder="Ham madde adı ile ara...">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Durum</label>
-                        <select class="form-select" id="statusFilter">
-                            <option value="">Tümü</option>
-                            <option value="active">Aktif</option>
-                            <option value="passive">Pasif</option>
-                            <option value="critical">Kritik Stok</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Birim</label>
-                        <select class="form-select" id="unitFilter">
-                            <option value="">Tümü</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">&nbsp;</label>
-                        <button class="btn btn-primary w-100" onclick="applyFilters()">
-                            <i class="bi bi-search"></i> Filtrele
-                        </button>
+            <!-- Filtreler -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Arama</label>
+                            <input type="text" class="form-control" id="searchInput" 
+                                   placeholder="Ham madde adı ile ara...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Durum</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">Tümü</option>
+                                <option value="active">Aktif</option>
+                                <option value="passive">Pasif</option>
+                                <option value="critical">Kritik Stok</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Birim</label>
+                            <select class="form-select" id="unitFilter">
+                                <option value="">Tümü</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-primary w-100" onclick="applyFilters()">
+                                <i class="bi bi-search"></i> Filtrele
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Stok Listesi -->
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Ham Madde</th>
-                                <th>Birim</th>
-                                <th>Mevcut Stok</th>
-                                <th>Min. Stok</th>
-                                <th>Durum</th>
-                                <th>Son Hareket</th>
-                                <th>İşlemler</th>
-                            </tr>
-                        </thead>
-                        <tbody id="stockTable">
-                            <!-- JavaScript ile doldurulacak -->
-                        </tbody>
-                    </table>
+            <!-- Stok Listesi -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Ham Madde</th>
+                                    <th>Birim</th>
+                                    <th>Mevcut Stok</th>
+                                    <th>Min. Stok</th>
+                                    <th>Durum</th>
+                                    <th>Son Hareket</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stockTable">
+                                <!-- JavaScript ile doldurulacak -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
