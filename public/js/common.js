@@ -24,24 +24,9 @@ const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev/api';
 
 // Header yükleme fonksiyonu
 async function loadHeader() {
-    try {
-        const headerContainer = document.getElementById('header');
-        if (!headerContainer) return;
-
-        const response = await fetch('/common/header.html');
-        if (!response.ok) throw new Error('Header yüklenemedi');
-        
-        const html = await response.text();
-        headerContainer.innerHTML = html;
-
-        // Active menüyü işaretle
-        const currentPage = document.body.dataset.page;
-        if (currentPage) {
-            document.querySelector(`[data-page="${currentPage}"]`)?.classList.add('active');
-        }
-    } catch (error) {
-        console.error('Header yükleme hatası:', error);
-    }
+    const response = await fetch('/common/sidebar.html');  // header.html -> sidebar.html
+    const html = await response.text();
+    document.getElementById('mainSidebar').innerHTML = html;  // header -> mainSidebar
 }
 
 // Sayfa yüklendiğinde header'ı yükle
