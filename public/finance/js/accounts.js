@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initializeAccountsPage() {
     // Header'ı yükle
-    loadHeader();
+    loadSideBar();
     
     // Hesap listesini yükle
     loadAccounts();

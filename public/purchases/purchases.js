@@ -3,7 +3,7 @@ let materials = []; // Ham maddelerin listesi
 let suppliers = []; // Tedarikçilerin listesi
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadHeader();
+    loadSideBar();
     loadSuppliers();
     loadMaterials();
     loadPurchases();

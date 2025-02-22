@@ -8,7 +8,7 @@ function initializePage() {
     addHiddenInputs();
     
     // Header'ı yükle
-    loadHeader();
+    loadSideBar();
     
     // Filtre dinleyicilerini ayarla
     setupFilterListeners();

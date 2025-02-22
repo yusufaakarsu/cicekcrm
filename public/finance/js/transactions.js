@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initializeTransactionsPage() {
     // Header'ı yükle
-    loadHeader();
+    loadSideBar();
     
     // Form elementi varsa
     const form = document.getElementById('incomeForm') || document.getElementById('expenseForm');

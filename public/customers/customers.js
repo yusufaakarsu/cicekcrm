@@ -2,7 +2,7 @@ let customerModal, detailsModal, editModal;
 let currentCustomerId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadHeader();
+    loadSideBar();
     loadCustomers();
 });
 

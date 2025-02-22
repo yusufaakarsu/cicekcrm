@@ -3,7 +3,7 @@ let productModal;
 let rawMaterials = []; // Ham maddeleri global tutacağız
 
 async function initializePage() {
-    await loadHeader(); // common.js'ten gelen header yükleme fonksiyonu
+    await loadSideBar(); // common.js'ten gelen header yükleme fonksiyonu
     await loadRawMaterials(); // Ham maddeleri yükle
     await loadCategories();
     await loadProducts();

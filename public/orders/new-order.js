@@ -1,7 +1,7 @@
 // Sayfa yüklendiğinde
 document.addEventListener('DOMContentLoaded', () => {
     // Header'ı yükle
-    loadHeader();
+    loadSideBar();
     
     // Müşteri arama dinleyicisini ekle
     setupCustomerSearch();

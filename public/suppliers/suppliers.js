@@ -2,7 +2,7 @@ let supplierModal;
 let editingId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadHeader();
+    loadSideBar();
     loadSuppliers();
 });
 

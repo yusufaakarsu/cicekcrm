@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadHeader();
+    await loadSideBar();
     await loadOrderDetails();
 });
 

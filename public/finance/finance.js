@@ -1,7 +1,7 @@
 let paymentChart;
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadHeader();
+    loadSideBar();
     loadFinanceData();
     loadRecentTransactions();
     setInterval(loadFinanceData, 60000);

@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initializeTransactionsList() {
-    loadHeader();
+    loadSideBar();
     loadFilters();
     loadTransactions();
 

@@ -2,7 +2,7 @@ let materialModal, movementModal;
 let units = []; // Global birimler listesi
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadHeader();
+    loadSideBar();
     loadUnits();
     loadStock();
 });

@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initializeDashboard() {
     // Header'ı yükle
-    loadHeader();
+    loadSideBar();
     
     // 1 dakikada bir yenileme
     setInterval(loadDashboardData, 60000);

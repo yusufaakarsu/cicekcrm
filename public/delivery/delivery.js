@@ -4,7 +4,7 @@ let deliveryModal;
 const ISTANBUL_CENTER = [41.0082, 28.9784];
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadHeader();
+    loadSideBar();
     initMap();
     initModal();
     loadDeliveries();
