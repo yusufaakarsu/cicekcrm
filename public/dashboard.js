@@ -79,24 +79,6 @@ function updateMetrics(metrics) {
             element.textContent = value ?? '-';
         }
     });
-
-    // Teslimat programı - null kontrolü ile
-    updateDeliveryProgram(metrics);
-}
-
-function updateDeliveryProgram(metrics) {
-    const elements = {
-        'today-orders': `${metrics.today_orders || 0} Teslimat`,
-        'tomorrow-orders': `${metrics.tomorrow_orders || 0} Teslimat`,
-        'future-orders': `${metrics.future_orders || 0} Teslimat`
-    };
-
-    Object.entries(elements).forEach(([id, text]) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = text;
-        }
-    });
 }
 
 function renderTodayOrders(orders) {
@@ -156,28 +138,4 @@ function formatDeliveryTime(time) {
         'evening': 'Akşam (17:00-21:00)'
     };
     return times[time] || time;
-}
-
-function updateRecentOrders(orders) {
-    const tbody = document.querySelector('#recentOrders tbody');
-    if (!orders?.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Sipariş bulunmuyor</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = orders.map(order => `
-        <tr>
-            <td>
-                <div>${order.customer_name}</div>
-                <small class="text-muted">${formatPhoneNumber(order.customer_phone)}</small>
-            </td>
-            <td>${order.items_summary}</td>
-            <td>
-                <div>${formatDate(order.delivery_date)}</div>
-                <small class="text-muted">${formatDeliveryTime(order.delivery_time)}</small>
-            </td>
-            <td>${getStatusBadge(order.status)}</td>
-            <td>${formatPrice(order.total_amount)}</td>
-        </tr>
-    `).join('');
 }
