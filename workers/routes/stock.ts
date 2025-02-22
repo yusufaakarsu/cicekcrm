@@ -8,8 +8,9 @@ router.get('/materials', async (c) => {
   const tenant_id = c.get('tenant_id')
   
   try {
-    // SQL sorgusunu düzelttik - movement_date yerine created_at kullanıyoruz
-    const { results } = await db.prepare(`
+    console.log('Getting materials for tenant:', tenant_id); // Debug log
+
+    const query = `
       SELECT 
         rm.*,
         u.name as unit_name,
@@ -35,13 +36,17 @@ router.get('/materials', async (c) => {
       LEFT JOIN units u ON rm.unit_id = u.id
       WHERE rm.tenant_id = ? AND rm.deleted_at IS NULL
       ORDER BY rm.name
-    `).bind(tenant_id).all()
+    `;
+
+    console.log('Executing query:', query); // Debug log
     
-    console.log('Query results:', results); // Debug için log ekledik
+    const { results } = await db.prepare(query).bind(tenant_id).all()
+    
+    console.log('Query results:', results); // Debug log
     
     return c.json({
       success: true,
-      materials: results
+      materials: results || []  // Null check ekledik
     })
   } catch (error) {
     console.error('Database error:', error); // Hata detayını görelim

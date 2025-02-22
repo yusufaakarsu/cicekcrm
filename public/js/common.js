@@ -62,6 +62,17 @@ function formatDateLocale(date) {
     }).format(new Date(date));
 }
 
+function formatDateTime(dateStr) {
+    if (!dateStr) return '-';
+    return new Intl.DateTimeFormat('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(new Date(dateStr));
+}
+
 // Telefon numarası formatlama
 function formatPhoneNumber(phone) {
     if (!phone) return '-';
@@ -263,3 +274,4 @@ window.showError = showError;
 window.showSuccess = showSuccess;
 window.showToast = showToast;
 window.getApiUrl = getApiUrl;
+window.formatDateTime = formatDateTime;

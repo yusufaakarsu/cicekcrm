@@ -59,25 +59,29 @@ async function loadUnits() {
 function renderStockTable(materials) {
     const tbody = document.getElementById('stockTable');
     
-    if (!materials || materials.length === 0) {
-        tbody.innerHTML = `
-            <tr><td colspan="7" class="text-center">Kayıt bulunamadı</td></tr>
-        `;
+    if (!materials?.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center">Kayıt bulunamadı</td></tr>`;
         return;
     }
     
-    tbody.innerHTML = materials.map(material => `
+    tbody.innerHTML = materials.map(material => {
+        // Null check ve default değerler ekle
+        const current_stock = material.current_stock || 0;
+        const unit_code = material.unit_code || '-';
+        const last_movement = material.last_movement ? formatDateTime(material.last_movement) : '-';
+        
+        return `
         <tr>
-            <td>${material.name}</td>
-            <td>${material.unit_name}</td>
+            <td>${material.name || '-'}</td>
+            <td>${material.unit_name || '-'}</td>
             <td>
                 <span class="badge bg-${getStockLevelClass(material)}">
-                    ${material.current_stock} ${material.unit_code}
+                    ${current_stock} ${unit_code}
                 </span>
             </td>
-            <td>${material.min_stock || '-'} ${material.unit_code}</td>
-            <td>${getStatusBadge(material.status)}</td>
-            <td>${material.last_movement ? formatDateTime(material.last_movement) : '-'}</td>
+            <td>${material.min_stock || '-'} ${unit_code}</td>
+            <td>${getStatusBadge(material.status || 'unknown')}</td>
+            <td>${last_movement}</td>
             <td>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-outline-primary me-1" 
@@ -95,7 +99,7 @@ function renderStockTable(materials) {
                 </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
 // Stok seviyesine göre renk class'ı
