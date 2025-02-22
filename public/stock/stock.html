@@ -6,28 +6,15 @@
     <title>Stok Yönetimi - Çiçek CRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        body {
-            overflow: hidden;
-        }
-        #mainContainer {
-            display: flex;
-            height: 100vh;
-        }
-        #content {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 20px;
-        }
-    </style>
 </head>
 <body data-page="stock">
-    <div id="header"></div>
-    <div id="mainContainer">
-        <!-- Sol Sidebar -->
+    <!-- Header ana container'ın içine alındı -->
+    <div class="vh-100 d-flex flex-row">
+        <!-- Header yerleşimi -->
+        <div id="header"></div>
         
-        <!-- Sağdaki içerik alanı -->
-        <div id="content">
+        <!-- Sağ taraf içerik alanı -->
+        <div class="flex-grow-1 overflow-auto p-3">
             <!-- Başlık ve Butonlar -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="bi bi-box-seam"></i> Stok Yönetimi</h2>
