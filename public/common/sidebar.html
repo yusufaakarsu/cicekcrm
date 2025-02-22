@@ -1,68 +1,40 @@
-<!-- Sol Menü - Desktop -->
-<div class="d-none d-md-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 200px; height: 100vh;">
-    <h5 class="mb-4">Çiçek CRM</h5>
+<!-- Sol Menü -->
+<div class="d-flex flex-column flex-shrink-0 p-3 bg-light border-end" style="width: 250px;">
+    <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none">
+        <span class="fs-4">Çiçek CRM</span>
+    </a>
+    <hr>
     <ul class="nav nav-pills flex-column mb-auto">
-        <!-- Dashboard -->
         <li class="nav-item">
-            <a href="/dashboard/dashboard.html" class="nav-link text-white">
-                <i class="bi bi-speedometer2 me-2"></i> Dashboard
+            <a href="/" class="nav-link active" aria-current="page">
+                <i class="bi bi-house-door me-2"></i>
+                Dashboard
             </a>
         </li>
-
-        <!-- Siparişler Dropdown -->
-        <li class="nav-item">
-            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#orders-menu">
-                <i class="bi bi-box me-2"></i> Siparişler
-            </a>
-            <div class="collapse" id="orders-menu">
-                <ul class="nav nav-pills flex-column ms-3 mt-1">
-                    <li><a href="/orders/orders.html" class="nav-link text-white">Sipariş Listesi</a></li>
-                    <li><a href="/orders/new-order.html" class="nav-link text-white">Yeni Sipariş</a></li>
-                </ul>
-            </div>
-        </li>
-
-        <!-- Ürünler Dropdown -->
-        <li class="nav-item">
-            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#products-menu">
-                <i class="bi bi-box-seam me-2"></i> Ürünler & Stok
-            </a>
-            <div class="collapse" id="products-menu">
-                <ul class="nav nav-pills flex-column ms-3 mt-1">
-                    <li><a href="/products/products.html" class="nav-link text-white">Ürün Listesi</a></li>
-                    <li><a href="/products/categories.html" class="nav-link text-white">Kategoriler</a></li>
-                    <li><a href="/stock/stock.html" class="nav-link text-white">Stok Yönetimi</a></li>
-                </ul>
-            </div>
-        </li>
-
-        <!-- Normal Menü Items -->
-        <li class="nav-item">
-            <a href="/customers/customers.html" class="nav-link text-white">
-                <i class="bi bi-people me-2"></i> Müşteriler
-            </a>
-        </li>
-        <li class="nav-item">
-            <a href="/delivery/delivery.html" class="nav-link text-white">
-                <i class="bi bi-truck me-2"></i> Teslimat
-            </a>
-        </li>
-        <li class="nav-item">
-            <a href="/calendar/calendar.html" class="nav-link text-white">
-                <i class="bi bi-calendar3 me-2"></i> Takvim
-            </a>
-        </li>
+            <li>
+                <a href="/orders/orders.html" class="nav-link link-dark">
+                    <i class="bi bi-cart me-2"></i>
+                    Siparişler
+                </a>
+            </li>
+            <li>
+                <a href="/customers/customers.html" class="nav-link link-dark">
+                    <i class="bi bi-people me-2"></i>
+                    Müşteriler
+                </a>
+            </li>
+            <!-- Diğer menü öğeleri... -->
     </ul>
 </div>
 
-<!-- Mobile Menu Button -->
-<button class="btn btn-dark d-md-none position-fixed top-0 start-0 m-2 z-3" type="button" 
-        data-bs-toggle="offcanvas" data-bs-target="#sidebar">
-    ☰
+<!-- Mobile Toggle Button -->
+<button class="btn btn-primary d-md-none position-fixed top-0 start-0 m-2" 
+        type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+    <i class="bi bi-list"></i>
 </button>
 
-<!-- Mobile Menu -->
-<div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebar">
+<!-- Mobile Sidebar -->
+<div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar">
     <div class="offcanvas-header">
         <h5 class="offcanvas-title">Çiçek CRM</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
