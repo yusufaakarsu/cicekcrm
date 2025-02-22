@@ -1,7 +1,7 @@
 <!-- Ana Sol Menu - z-index eklendi -->
 <div class="bg-dark" style="width: 200px; min-height: 100vh;">
-    <!-- Desktop Menu -->
-    <div class="d-none d-lg-block h-100">
+    <!-- Sol Menu - Desktop -->
+    <div class="d-none d-lg-block">
         <!-- Logo -->
         <div class="p-3">
             <a href="/index.html" class="d-flex align-items-center text-white text-decoration-none">
@@ -87,7 +87,7 @@
     </div>
 
     <!-- Mobile Header -->
-    <div class="d-lg-none position-fixed top-0 start-0 end-0 bg-dark" style="height: 60px; z-index: 1030;">
+    <div class="d-lg-none bg-dark position-fixed top-0 start-0 end-0" style="height: 60px; z-index: 1030;">
         <button class="btn btn-dark position-absolute start-0 top-50 translate-middle-y ms-2" 
                 type="button" 
                 data-bs-toggle="offcanvas" 
@@ -100,8 +100,8 @@
         </div>
     </div>
 
-    <!-- Mobile Menu -->
-    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="mobileMenu">
+    <!-- Mobile Menu (Offcanvas) -->
+    <div class="offcanvas offcanvas-start bg-dark text-white d-lg-none" tabindex="-1" id="mobileMenu">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title">Çiçek CRM</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
