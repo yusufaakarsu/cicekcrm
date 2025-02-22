@@ -85,19 +85,32 @@ async function loadOrders(isInitialLoad = false) {
             }
         }
 
-        // API çağrıları güncellendi
-        const response = await fetch(getApiUrl(`/orders/filtered?${params.toString()}`));
-        if (!response.ok) throw new Error('API Hatası');
-        
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error);
+        // URL yapısını düzelt ve debug log ekle
+        const url = getApiUrl('/orders/filtered') + '?' + params.toString();
+        console.log('Loading orders from:', url);
 
-        renderOrders(data.orders);
+        const response = await fetch(url);
+        
+        // Response içeriğini kontrol et
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
+            throw new Error('API Error: ' + response.status);
+        }
+
+        const data = await response.json();
+        console.log('API Response:', data); // Debug için
+
+        if (!data.success) {
+            throw new Error(data.error || 'API Error');
+        }
+
+        renderOrders(data.orders || []);
         updatePagination(data);
 
     } catch (error) {
-        console.error('Siparişler yüklenirken hata:', error);
-        showError('Siparişler yüklenemedi!');
+        console.error('Orders error:', error);
+        showError('Siparişler yüklenemedi: ' + error.message);
     }
 }
 

@@ -1,6 +1,7 @@
-// Environment variables'ı doğrudan tanımla
+// API URL configuration
 const CONFIG = {
-    HERE_API_KEY: '8ga3iUSKvwTytKYkk8PbpnnH5iCFlNDsvFoSyCghhjI' // HERE API KEY buraya eklenecek
+    API_URL: 'https://cicek-crm-api.yusufaakarsu.workers.dev/api',
+    HERE_API_KEY: '8ga3iUSKvwTytKYkk8PbpnnH5iCFlNDsvFoSyCghhjI'
 };
 
 // İstanbul ilçeleri
@@ -14,14 +15,8 @@ const ISTANBUL_DISTRICTS = [
     'Üsküdar', 'Zeytinburnu'
 ];
 
-// Development/Production URL kontrolü
-const isDevelopment = window.location.hostname.includes('pages.dev') || 
-                     window.location.hostname.includes('localhost');
-
 // API ve uygulama URL'leri - düzeltildi
 const BASE_URL = window.location.origin; // Mevcut domaini kullan
-    
-const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev/api';
 
 // Genel utility fonksiyonları
 async function loadSideBar() {
@@ -252,15 +247,14 @@ async function fetchAPI(endpoint, options = {}) {
     }
 }
 
-// API endpoint builder ve export
-const API_BASE = isDevelopment ? '' : 'https://cicek-crm-api.yusufaakarsu.workers.dev';
-
+// getApiUrl fonksiyonu sadeleştirildi
 function getApiUrl(endpoint) {
-    return `${API_BASE}/api${endpoint}`;
+    const cleanEndpoint = endpoint.startsWith('/api/') ? endpoint.substring(4) : endpoint;
+    return `${CONFIG.API_URL}${cleanEndpoint.startsWith('/') ? '' : '/'}${cleanEndpoint}`;
 }
 
 // Export common utilities
-window.API_URL = API_URL;
+window.API_URL = CONFIG.API_URL;
 window.formatCurrency = formatCurrency;
 window.formatPrice = formatPrice;
 window.formatDate = formatDate;
