@@ -14,6 +14,15 @@ const ISTANBUL_DISTRICTS = [
     'Üsküdar', 'Zeytinburnu'
 ];
 
+// Development/Production URL kontrolü
+const isDevelopment = window.location.hostname.includes('localhost');
+const API_BASE = isDevelopment ? '' : 'https://cicek-crm-api.yusufaakarsu.workers.dev';
+
+// API endpoint builder
+function getApiUrl(endpoint) {
+    return `${API_BASE}/api${endpoint}`;
+}
+
 // Development/Production URL kontrolü - dinamik versiyonu
 const isDevelopment = window.location.hostname.includes('pages.dev');
 
@@ -227,7 +236,7 @@ function hideLoading(element) {
 
 // API işlemleri için genel fonksiyonlar
 async function fetchAPI(endpoint, options = {}) {
-    const url = `${API_URL}${endpoint}`;
+    const url = getApiUrl(endpoint);
     console.log('API Request:', url);
 
     const defaultOptions = {
@@ -260,3 +269,4 @@ window.loadSideBar = loadSideBar;
 window.showError = showError;
 window.showSuccess = showSuccess;
 window.showToast = showToast;
+window.getApiUrl = getApiUrl;

@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadDashboardData() {
     try {
-        const response = await fetch('/api/dashboard');
+        const response = await fetch(getApiUrl('/dashboard'));
         const data = await response.json();
 
         if (!data.success) throw new Error(data.error);
@@ -42,7 +42,7 @@ function updateStats(stats) {
 
 async function loadRecentOrders() {
     try {
-        const response = await fetch('/api/dashboard/recent-orders');
+        const response = await fetch(getApiUrl('/dashboard/recent-orders'));
         const data = await response.json();
 
         if (!data.success) throw new Error(data.error);
