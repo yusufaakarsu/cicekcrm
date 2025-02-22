@@ -242,6 +242,23 @@ function showSuccess(message) {
     });
 }
 
+function showToast(type, message) {
+    const toast = document.getElementById('toast');
+    const toastTitle = document.getElementById('toastTitle');
+    const toastMessage = document.getElementById('toastMessage');
+    
+    // Toast tipine göre stil
+    toast.className = `toast ${type === 'error' ? 'bg-danger text-white' : 'bg-success text-white'}`;
+    
+    // Başlık ve mesaj
+    toastTitle.textContent = type === 'error' ? 'Hata' : 'Bilgi';
+    toastMessage.textContent = message;
+    
+    // Bootstrap toast'u göster
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+}
+
 async function loadDashboardData() {
     try {
         // /api/api/dashboard yerine /api/dashboard kullanılacak
