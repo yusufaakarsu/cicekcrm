@@ -6,102 +6,126 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav">
+                <!-- Dashboard -->
                 <li class="nav-item">
                     <a class="nav-link" data-page="dashboard" href="/dashboard">
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
                 </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-box-seam"></i> Ürünler & Stok
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" data-page="products" href="/products">
-                                <i class="bi bi-grid"></i> Ürünler
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" data-page="stock" href="/stock">
-                                <i class="bi bi-box-seam"></i> Stok Yönetimi
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" data-page="purchases" href="/purchases">
-                                <i class="bi bi-cart"></i> Satın Alma
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <!-- Ana Sayfa -->
-                <li class="nav-item">
-                    <a class="nav-link" href="/" data-page="dashboard">
-                        <i class="bi bi-speedometer2"></i> Dashboard
-                    </a>
-                </li>
 
-                <!-- Siparişler Dropdown -->
+                <!-- Siparişler -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-page="orders">
                         <i class="bi bi-box"></i> Siparişler
                     </a>
                     <ul class="dropdown-menu">
                         <li>
-                            <a class="dropdown-item" href="/orders/orders.html">
+                            <a class="dropdown-item" href="/orders">
                                 <i class="bi bi-list"></i> Sipariş Listesi
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="/orders/new-order.html">
+                            <a class="dropdown-item" href="/orders/new">
                                 <i class="bi bi-plus-lg"></i> Yeni Sipariş
                             </a>
                         </li>
                     </ul>
                 </li>
 
-                <!-- Ürünler Dropdown -->
+                <!-- Ürünler & Stok -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-page="products">
-                        <i class="bi bi-box-seam"></i> Ürünler
+                        <i class="bi bi-box-seam"></i> Ürünler & Stok
                     </a>
                     <ul class="dropdown-menu">
                         <li>
-                            <a class="dropdown-item" href="/products/products.html">
-                                <i class="bi bi-list"></i> Ürün Listesi
+                            <a class="dropdown-item" href="/products">
+                                <i class="bi bi-grid"></i> Ürünler
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="/stock/stock.html">
-                                <i class="bi bi-boxes"></i> Stok Yönetimi
+                            <a class="dropdown-item" href="/stock">
+                                <i class="bi bi-box-seam"></i> Stok Yönetimi
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/purchases">
+                                <i class="bi bi-cart"></i> Satın Alma
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/suppliers">
+                                <i class="bi bi-shop"></i> Tedarikçiler
                             </a>
                         </li>
                     </ul>
                 </li>
 
                 <!-- Müşteriler -->
-                <li class="nav-item">
-                    <a class="nav-link" href="/customers/customers.html" data-page="customers">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-page="customers">
                         <i class="bi bi-people"></i> Müşteriler
                     </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="/customers">
+                                <i class="bi bi-list"></i> Müşteri Listesi
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/customers/new">
+                                <i class="bi bi-person-plus"></i> Yeni Müşteri
+                            </a>
+                        </li>
+                    </ul>
                 </li>
 
                 <!-- Teslimat -->
-                <li class="nav-item">
-                    <a class="nav-link" href="/delivery/delivery.html" data-page="delivery">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-page="delivery">
                         <i class="bi bi-truck"></i> Teslimat
                     </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="/delivery">
+                                <i class="bi bi-list"></i> Teslimat Listesi
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/delivery/regions">
+                                <i class="bi bi-geo-alt"></i> Teslimat Bölgeleri
+                            </a>
+                        </li>
+                    </ul>
                 </li>
 
                 <!-- Finans -->
-                <li class="nav-item">
-                    <a class="nav-link" href="/finance/" data-page="finance">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-page="finance">
                         <i class="bi bi-wallet2"></i> Finans
                     </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="/finance">
+                                <i class="bi bi-graph-up"></i> Genel Durum
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/finance/transactions">
+                                <i class="bi bi-credit-card"></i> İşlemler
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/finance/accounts">
+                                <i class="bi bi-bank"></i> Hesaplar
+                            </a>
+                        </li>
+                    </ul>
                 </li>
 
                 <!-- Takvim -->
                 <li class="nav-item">
-                    <a class="nav-link" href="/calendar/calendar.html" data-page="calendar">
+                    <a class="nav-link" href="/calendar" data-page="calendar">
                         <i class="bi bi-calendar3"></i> Takvim
                     </a>
                 </li>
