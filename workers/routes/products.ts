@@ -2,8 +2,11 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
+// API path'lerini düzelt
+const BASE_PATH = '/api/products'
+
 // Ürün listesi - view kullanımı
-router.get('/', async (c) => {
+router.get(`${BASE_PATH}/`, async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
@@ -45,7 +48,7 @@ router.get('/', async (c) => {
 })
 
 // Ürün detayı
-router.get('/:id', async (c) => {
+router.get(`${BASE_PATH}/:id`, async (c) => {
   const { id } = c.req.param()
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -72,7 +75,7 @@ router.get('/:id', async (c) => {
 })
 
 // Yeni ürün ekle
-router.post('/', async (c) => {
+router.post(`${BASE_PATH}/`, async (c) => {
   const body = await c.req.json()
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -105,7 +108,7 @@ router.post('/', async (c) => {
 })
 
 // Ürün güncelle
-router.put('/:id', async (c) => {
+router.put(`${BASE_PATH}/:id`, async (c) => {
   const { id } = c.req.param()
   const body = await c.req.json()
   const db = c.get('db')
@@ -142,7 +145,7 @@ router.put('/:id', async (c) => {
 })
 
 // Ürün sil (soft delete)
-router.delete('/:id', async (c) => {
+router.delete(`${BASE_PATH}/:id`, async (c) => {
   const { id } = c.req.param()
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -163,8 +166,43 @@ router.delete('/:id', async (c) => {
   }
 })
 
+// Ham madde listesi - Endpoint'i başa al (low-stock'tan önce olmalı)
+router.get(`${BASE_PATH}/raw-materials`, async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        rm.*,
+        u.name as unit_name,
+        u.code as unit_code,
+        COALESCE(
+          (SELECT SUM(CASE WHEN sm.movement_type = 'in' THEN sm.quantity ELSE -sm.quantity END)
+           FROM stock_movements sm 
+           WHERE sm.material_id = rm.id AND sm.deleted_at IS NULL
+          ), 0
+        ) as current_stock
+      FROM raw_materials rm
+      LEFT JOIN units u ON rm.unit_id = u.id
+      WHERE rm.tenant_id = ? AND rm.deleted_at IS NULL
+      ORDER BY rm.name
+    `).bind(tenant_id).all()
+    
+    return c.json({
+      success: true,
+      materials: results
+    })
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: 'Database error' 
+    }, 500)
+  }
+})
+
 // Düşük stoklu ürünler
-router.get('/low-stock', async (c) => {
+router.get(`${BASE_PATH}/low-stock`, async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
@@ -196,7 +234,7 @@ router.get('/low-stock', async (c) => {
 })
 
 // Kategori endpoint'lerini products.ts'ye ekleyelim
-router.get('/product-categories', async (c) => {
+router.get(`${BASE_PATH}/product-categories`, async (c) => {
   const db = c.get('db')
   
   try {
@@ -220,8 +258,8 @@ router.get('/product-categories', async (c) => {
   }
 })
 
-// Kategori listesi - view kullanımı
-router.get('/categories', async (c) => {
+// Kategori listesi - View kullanımı ve endpoint düzeltmesi
+router.get(`${BASE_PATH}/categories`, async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
@@ -252,7 +290,7 @@ router.get('/categories', async (c) => {
 })
 
 // Yeni kategori ekle
-router.post('/categories', async (c) => {
+router.post(`${BASE_PATH}/categories`, async (c) => {
   const body = await c.req.json()
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -276,7 +314,7 @@ router.post('/categories', async (c) => {
 })
 
 // Kategori sil
-router.delete('/categories/:id', async (c) => {
+router.delete(`${BASE_PATH}/categories/:id`, async (c) => {
   const { id } = c.req.param()
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -289,42 +327,6 @@ router.delete('/categories/:id', async (c) => {
     `).bind(id, tenant_id).run()
 
     return c.json({ success: true })
-  } catch (error) {
-    return c.json({ 
-      success: false, 
-      error: 'Database error' 
-    }, 500)
-  }
-})
-
-// Raw materials listesi
-router.get('/raw-materials', async (c) => {
-  const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
-  
-  try {
-    // Raw materials view'ını kullanalım
-    const { results } = await db.prepare(`
-      SELECT 
-        rm.*,
-        u.name as unit_name,
-        u.code as unit_code,
-        COALESCE(
-          (SELECT SUM(CASE WHEN sm.movement_type = 'in' THEN sm.quantity ELSE -sm.quantity END)
-           FROM stock_movements sm 
-           WHERE sm.material_id = rm.id AND sm.deleted_at IS NULL
-          ), 0
-        ) as current_stock
-      FROM raw_materials rm
-      LEFT JOIN units u ON rm.unit_id = u.id
-      WHERE rm.tenant_id = ? AND rm.deleted_at IS NULL
-      ORDER BY rm.name
-    `).bind(tenant_id).all()
-    
-    return c.json({
-      success: true,
-      materials: results
-    })
   } catch (error) {
     return c.json({ 
       success: false, 

@@ -328,7 +328,7 @@ async function deleteProduct(id) {
 // Ham maddeleri yükle
 async function loadRawMaterials() {
     try {
-        const response = await fetch(`${API_URL}/products/raw-materials`); // URL düzeltildi
+        const response = await fetch(`${API_URL}/products/raw-materials`); 
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
