@@ -9,28 +9,20 @@ router.get('/', async (c) => {
   
   try {
     const { results } = await db.prepare(`
-      SELECT 
-        o.*,
-        c.name as customer_name,
-        c.phone as customer_phone,
-        GROUP_CONCAT(p.name || ' x' || oi.quantity) as items_list,
-        a.district as delivery_district,
-        a.city as delivery_city,
-        COALESCE(o.total_amount, 0) as total_amount,
-        COALESCE(o.payment_status, 'pending') as payment_status
-      FROM orders o
-      LEFT JOIN customers c ON o.customer_id = c.id 
-      LEFT JOIN addresses a ON o.delivery_address_id = a.id
-      LEFT JOIN order_items oi ON o.id = oi.order_id
-      LEFT JOIN products p ON oi.product_id = p.id
-      WHERE o.tenant_id = ?
-      GROUP BY o.id
-      ORDER BY o.created_at DESC
+      SELECT * FROM vw_orders 
+      WHERE tenant_id = ?
+      ORDER BY created_at DESC
     `).bind(tenant_id).all()
     
-    return c.json(results)
+    return c.json({
+      success: true,
+      orders: results
+    })
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    return c.json({ 
+      success: false, 
+      error: 'Database error' 
+    }, 500)
   }
 })
 
@@ -102,49 +94,33 @@ router.get('/filtered', async (c) => {
   const { status, date_filter, start_date, end_date, sort = 'id_desc', page = '1', per_page = '10' } = c.req.query()
   
   try {
-    let baseQuery = `
-      SELECT 
-        o.*,
-        c.name as customer_name,
-        c.phone as customer_phone,
-        GROUP_CONCAT(p.name || ' x' || oi.quantity) as items,
-        a.district as delivery_district,
-        COALESCE(o.total_amount, 0) as total_amount,
-        COALESCE(o.payment_status, 'pending') as payment_status
-      FROM orders o
-      LEFT JOIN customers c ON o.customer_id = c.id
-      LEFT JOIN addresses a ON o.delivery_address_id = a.id
-      LEFT JOIN order_items oi ON o.id = oi.order_id
-      LEFT JOIN products p ON oi.product_id = p.id
-      WHERE o.tenant_id = ?
-    `
-    
-    const params: any[] = [tenant_id]
+    let query = `SELECT * FROM vw_orders WHERE tenant_id = ?`;
+    const params = [tenant_id];
 
     // Status filtresi
     if (status) {
-      baseQuery += ` AND o.status = ?`
-      params.push(status)
+      query += ` AND status = ?`;
+      params.push(status);
     }
 
-    // Tarih filtresi - düzeltildi
+    // Tarih filtresi
     if (date_filter) {
-      switch (date_filter) {
+      switch(date_filter) {
         case 'today':
-          baseQuery += ` AND DATE(o.delivery_date) = DATE('now')`
-          break
+          query += ` AND DATE(delivery_date) = DATE('now')`;
+          break;
         case 'tomorrow':
-          baseQuery += ` AND DATE(o.delivery_date) = DATE('now', '+1 day')`
-          break
+          query += ` AND DATE(delivery_date) = DATE('now', '+1 day')`;
+          break;
         case 'week':
-          baseQuery += ` AND DATE(o.delivery_date) BETWEEN DATE('now') AND DATE('now', '+7 days')`
-          break
+          query += ` AND DATE(delivery_date) BETWEEN DATE('now') AND DATE('now', '+7 days')`;
+          break;
         case 'month':
-          baseQuery += ` AND strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', 'now')`
-          break
+          query += ` AND strftime('%Y-%m', delivery_date) = strftime('%Y-%m', 'now')`;
+          break;
         case 'custom':
           if (start_date && end_date) {
-            baseQuery += ` AND DATE(o.delivery_date) BETWEEN DATE(?) AND DATE(?)`
+            query += ` AND DATE(delivery_date) BETWEEN DATE(?) AND DATE(?)`;
             // Tarihleri SQLite formatına çevir (YYYY-MM-DD)
             const startDate = start_date.split(' ')[0]
             const endDate = end_date.split(' ')[0]
@@ -154,65 +130,21 @@ router.get('/filtered', async (c) => {
       }
     }
 
-    // Grup ve sıralama
-    baseQuery += ` GROUP BY o.id`
-
     // Sıralama
-    switch(sort) {
-      case 'date_asc':
-        baseQuery += ` ORDER BY o.delivery_date ASC, o.id ASC`
-        break
-      case 'date_desc':
-        baseQuery += ` ORDER BY o.delivery_date DESC, o.id DESC`
-        break
-      case 'amount_asc':
-        baseQuery += ` ORDER BY COALESCE(o.total_amount, 0) ASC, o.id DESC`
-        break
-      case 'amount_desc':
-        baseQuery += ` ORDER BY COALESCE(o.total_amount, 0) DESC, o.id DESC`
-        break
-      default:
-        baseQuery += ` ORDER BY o.id DESC`
-    }
-
-    // Sayfalama
-    baseQuery += ` LIMIT ? OFFSET ?`
-    const pageNum = parseInt(page)
-    const perPage = parseInt(per_page)
-    const offset = (pageNum - 1) * perPage
-    params.push(perPage, offset)
-
-    // Debug log
-    console.log('SQL Query:', baseQuery)
-    console.log('Params:', params)
-
-    const { results } = await db.prepare(baseQuery).bind(...params).all()
+    query += ` ORDER BY ${getSortQuery(sort)}`;
     
-    // Toplam kayıt sayısı için ayrı sorgu
-    const { total } = await db.prepare(`
-      SELECT COUNT(DISTINCT o.id) as total 
-      FROM orders o 
-      WHERE o.tenant_id = ?
-      ${status ? 'AND o.status = ?' : ''}
-      ${date_filter === 'today' ? 'AND DATE(o.delivery_date) = DATE(\'now\')' : ''}
-    `).bind(tenant_id, ...(status ? [status] : [])).first() as any
-
+    const { results } = await db.prepare(query).bind(...params).all();
+    
     return c.json({
       success: true,
-      orders: results || [],
-      total,
-      page: pageNum,
-      per_page: perPage,
-      total_pages: Math.ceil(total / perPage)
-    })
-
+      orders: results
+    });
+    
   } catch (error) {
-    console.error('Orders query error:', error)
     return c.json({ 
-      success: false,
-      error: 'Database error',
-      details: error.message 
-    }, 500)
+      success: false, 
+      error: 'Database error' 
+    }, 500);
   }
 })
 

@@ -86,10 +86,12 @@ async function loadOrders(isInitialLoad = false) {
         }
 
         // API çağrıları güncellendi
-        const response = await fetch(`${API_URL}/orders/filtered?${params.toString()}`);
+        const response = await fetch(getApiUrl(`/orders/filtered?${params.toString()}`));
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
         renderOrders(data.orders);
         updatePagination(data);
 
@@ -248,7 +250,7 @@ let currentOrderId = null;
 // Sipariş detaylarını göster
 async function showOrderDetails(orderId) {
     try {
-        const response = await fetch(`${API_URL}/orders/${orderId}/details`);
+        const response = await fetch(getApiUrl(`/orders/${orderId}/details`));
         if (!response.ok) throw new Error('API Hatası');
         
         const order = await response.json();
