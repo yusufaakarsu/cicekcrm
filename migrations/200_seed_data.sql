@@ -1,83 +1,75 @@
--- Tenant ve kullanıcı
-INSERT INTO tenants (id, name, company_name, contact_email) VALUES 
-(1, 'Test Mağaza', 'Test Çiçekçilik Ltd.', 'test@example.com');
+-- 1. Tenants
+INSERT INTO tenants (id, name, company_name, contact_email, logo_url) VALUES
+(1, 'Çiçek Sepeti', 'Çiçek Sepeti Çiçekçilik Ltd. Şti.', 'info@ciceksepeti.com', 'https://assets.ciceksepeti.com/logo.png');
 
+-- 2. Users
 INSERT INTO users (tenant_id, email, password_hash, name, role) VALUES
-(1, 'admin@test.com', 'hash123', 'Admin User', 'admin'),
-(1, 'staff@test.com', 'hash123', 'Staff User', 'staff');
+(1, 'admin@ciceksepeti.com', '$2a$12$yC2yDx4FT.kY1sZ6wDbKzep.NAzXf8ayxdX0j7dMqjX', 'Admin User', 'admin'),
+(1, 'staff1@ciceksepeti.com', '$2a$12$yC2yDx4FT.kY1sZ6wDbKzep.NAzXf8ayxdX0j7dMqjX', 'Ayşe Yılmaz', 'staff'),
+(1, 'staff2@ciceksepeti.com', '$2a$12$yC2yDx4FT.kY1sZ6wDbKzep.NAzXf8ayxdX0j7dMqjX', 'Mehmet Demir', 'staff');
 
--- Ayarlar
-INSERT INTO tenant_settings (tenant_id, require_stock, track_recipes) VALUES
-(1, true, true);
+-- 3. Tenant Settings
+INSERT INTO tenant_settings (tenant_id, require_stock, track_recipes, allow_negative_stock) VALUES
+(1, 1, 1, 0);
 
--- Birimler
+-- 4. Delivery Regions (Önce ana bölgeler)
+INSERT INTO delivery_regions (tenant_id, name, base_fee, min_order, delivery_notes) VALUES
+(1, 'Avrupa Yakası', 50.00, 150.00, 'Standart teslimat süresi 2-4 saat'),
+(1, 'Anadolu Yakası', 50.00, 150.00, 'Standart teslimat süresi 2-4 saat');
+
+-- Alt bölgeler
+INSERT INTO delivery_regions (tenant_id, name, parent_id, base_fee, min_order) VALUES
+(1, 'Beşiktaş', 1, 40.00, 100.00),
+(1, 'Şişli', 1, 40.00, 100.00),
+(1, 'Kadıköy', 2, 40.00, 100.00),
+(1, 'Üsküdar', 2, 40.00, 100.00);
+
+-- 5. Units (Birimler)
 INSERT INTO units (tenant_id, name, code, description) VALUES
 (1, 'Adet', 'PCS', 'Tek parça ürünler için'),
-(1, 'Dal', 'STM', 'Çiçekler için'),
-(1, 'Demet', 'BUN', 'Hazır demetler'),
-(1, 'Gram', 'GR', 'Ağırlık birimi');
+(1, 'Dal', 'STM', 'Tek dal çiçekler için'),
+(1, 'Demet', 'BUN', 'Demet halinde çiçekler'),
+(1, 'Gram', 'GR', 'Ağırlık birimi'),
+(1, 'Kilogram', 'KG', 'Ağırlık birimi'),
+(1, 'Metre', 'M', 'Uzunluk birimi'),
+(1, 'Santimetre', 'CM', 'Uzunluk birimi'),
+(1, 'Paket', 'PKT', 'Paketli ürünler');
 
--- Teslimat bölgeleri
-INSERT INTO delivery_regions (tenant_id, name, base_fee, min_order) VALUES
-(1, 'Kadıköy', 50.00, 200),
-(1, 'Üsküdar', 50.00, 200),
-(1, 'Beşiktaş', 75.00, 250);
+-- 6. Suppliers (Tedarikçiler)
+INSERT INTO suppliers (tenant_id, name, contact_name, phone, email, tax_number, address) VALUES
+(1, 'Flora Çiçekçilik', 'Ahmet Yılmaz', '05551234567', 'flora@gmail.com', '1234567890', 'Tahtakale Mah. Çiçek Sk. No:1 Fatih/İstanbul'),
+(1, 'Yeşil Bahçe Ltd.', 'Mehmet Kaya', '05552345678', 'yesil@gmail.com', '2345678901', 'Çiçekçiler Hali No:15 Bakırköy/İstanbul'),
+(1, 'Anadolu Çiçek Market', 'Ayşe Demir', '05553456789', 'anadolu@gmail.com', '3456789012', 'Çiçek Pazarı No:5 Kadıköy/İstanbul');
 
--- Ham maddeler
-INSERT INTO raw_materials (tenant_id, name, unit_id, status) VALUES
-(1, 'Kırmızı Gül', 2, 'active'),        -- Dal
-(1, 'Beyaz Gül', 2, 'active'),          -- Dal
-(1, 'Pembe Gül', 2, 'active'),          -- Dal
-(1, 'Papatya', 2, 'active'),            -- Dal
-(1, 'Lilyum', 2, 'active'),             -- Dal
-(1, 'Yeşillik', 2, 'active'),           -- Dal
-(1, 'Kurdele', 1, 'active'),            -- Adet
-(1, 'Cam Vazo', 1, 'active'),           -- Adet
-(1, 'Süsleme Malzemesi', 1, 'active'),  -- Adet
-(1, 'Ambalaj', 1, 'active');            -- Adet
+-- 7. Product Categories (Ürün Kategorileri)
+INSERT INTO product_categories (tenant_id, name, description) VALUES
+(1, 'Buketler', 'Özel hazırlanmış çiçek buketleri'),
+(1, 'Aranjmanlar', 'Vazolu çiçek aranjmanları'),
+(1, 'Saksı Çiçekleri', 'İç mekan bitkileri ve saksı çiçekleri'),
+(1, 'Teraryumlar', 'Mini bahçe tasarımları'),
+(1, 'Kutuda Çiçekler', 'Özel tasarım kutularda çiçekler');
 
--- Ürün kategorileri
-INSERT INTO product_categories (tenant_id, name) VALUES
-(1, 'Buketler'),
-(1, 'Aranjmanlar'),
-(1, 'Vazo Çiçekleri'),
-(1, 'Kutuda Çiçekler');
+-- 8. Card Messages (Hazır Mesajlar)
+INSERT INTO card_messages (tenant_id, category, title, content, display_order) VALUES
+(1, 'birthday', 'Doğum Günü Mesajı 1', 'Nice mutlu yıllara! Doğum gününüz kutlu olsun.', 1),
+(1, 'birthday', 'Doğum Günü Mesajı 2', 'En güzel günler sizin olsun. İyi ki doğdunuz!', 2),
+(1, 'anniversary', 'Yıldönümü Mesajı', 'Nice mutlu senelere. Yıldönümünüz kutlu olsun.', 1),
+(1, 'get_well', 'Geçmiş Olsun', 'Acil şifalar dileriz. Geçmiş olsun.', 1);
 
--- Örnek ürünler
-INSERT INTO products (tenant_id, category_id, name, base_price, status) VALUES
-(1, 1, '11 Kırmızı Gül Buketi', 350.00, 'active'),
-(1, 1, 'Renkli Mevsim Buketi', 250.00, 'active'),
-(1, 2, 'Cam Vazoda Papatya', 300.00, 'active'),
-(1, 3, 'Lilyum Aranjmanı', 450.00, 'active');
-
--- Reçeteler ve malzemeleri
--- Örnek: 11 Kırmızı Gül Buketi reçetesi
-INSERT INTO recipes (tenant_id, product_id, name, labor_cost) VALUES
-(1, 1, 'Standart 11 Gül Buketi', 50.00);
-
--- Reçete kalemleri
-INSERT INTO recipe_items (recipe_id, material_id, quantity, unit_id) VALUES
-(1, 1, 11, 2),    -- 11 dal kırmızı gül
-(1, 6, 3, 2),     -- 3 dal yeşillik
-(1, 7, 1, 1),     -- 1 adet kurdele
-(1, 10, 1, 1);    -- 1 adet ambalaj
-
--- Hazır kart mesajları
-INSERT INTO card_messages (tenant_id, category, title, content) VALUES
-(1, 'birthday', 'Doğum Günü - 1', 'Nice mutlu yıllara!'),
-(1, 'birthday', 'Doğum Günü - 2', 'İyi ki doğdun!'),
-(1, 'love', 'Romantik - 1', 'Seni seviyorum!'),
-(1, 'celebration', 'Kutlama', 'Tebrikler!');
-
--- Finans kategorileri
+-- 9. Transaction Categories (İşlem Kategorileri)
 INSERT INTO transaction_categories (tenant_id, name, type, reporting_code) VALUES
-(1, 'Satış Geliri', 'in', 'SALES'),
-(1, 'Tedarikçi Ödemesi', 'out', 'SUPPLIER'),
-(1, 'İşletme Gideri', 'out', 'OPEX'),
-(1, 'Personel Gideri', 'out', 'PAYROLL');
+(1, 'Satış Geliri', 'in', 'SALE'),
+(1, 'Malzeme Alımı', 'out', 'PURCHASE'),
+(1, 'Personel Maaşı', 'out', 'SALARY'),
+(1, 'Kira Gideri', 'out', 'RENT'),
+(1, 'Diğer Gelirler', 'in', 'OTHER_IN'),
+(1, 'Diğer Giderler', 'out', 'OTHER_OUT');
 
--- Hesaplar
-INSERT INTO accounts (tenant_id, name, type, initial_balance) VALUES
-(1, 'Ana Kasa', 'cash', 1000.00),
-(1, 'Banka Hesabı', 'bank', 5000.00),
-(1, 'POS Cihazı', 'pos', 0.00);
+-- 10. Accounts (Hesaplar)
+INSERT INTO accounts (tenant_id, name, type, initial_balance, status) VALUES
+(1, 'Ana Kasa', 'cash', 5000.00, 'active'),
+(1, 'Banka Hesabı', 'bank', 10000.00, 'active'),
+(1, 'POS 1', 'pos', 0.00, 'active'),
+(1, 'Online Ödeme', 'online', 0.00, 'active');
+
+-- İkinci kısım (raw_materials, recipes vs.) ayrı bir dosyada devam edecek...
