@@ -2,11 +2,8 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// API path'lerini düzelt
-const BASE_PATH = '/api/products'
-
-// Ürün listesi - view kullanımı
-router.get(`${BASE_PATH}/`, async (c) => {
+// Ürün listesi 
+router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
@@ -48,7 +45,7 @@ router.get(`${BASE_PATH}/`, async (c) => {
 })
 
 // Ürün detayı
-router.get(`${BASE_PATH}/:id`, async (c) => {
+router.get('/:id', async (c) => {
   const { id } = c.req.param()
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -75,7 +72,7 @@ router.get(`${BASE_PATH}/:id`, async (c) => {
 })
 
 // Yeni ürün ekle
-router.post(`${BASE_PATH}/`, async (c) => {
+router.post('/', async (c) => {
   const body = await c.req.json()
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -108,7 +105,7 @@ router.post(`${BASE_PATH}/`, async (c) => {
 })
 
 // Ürün güncelle
-router.put(`${BASE_PATH}/:id`, async (c) => {
+router.put('/:id', async (c) => {
   const { id } = c.req.param()
   const body = await c.req.json()
   const db = c.get('db')
@@ -145,7 +142,7 @@ router.put(`${BASE_PATH}/:id`, async (c) => {
 })
 
 // Ürün sil (soft delete)
-router.delete(`${BASE_PATH}/:id`, async (c) => {
+router.delete('/:id', async (c) => {
   const { id } = c.req.param()
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -166,8 +163,8 @@ router.delete(`${BASE_PATH}/:id`, async (c) => {
   }
 })
 
-// Ham madde listesi - Endpoint'i başa al (low-stock'tan önce olmalı)
-router.get(`${BASE_PATH}/raw-materials`, async (c) => {
+// Ham madde listesi
+router.get('/raw-materials', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
@@ -202,7 +199,7 @@ router.get(`${BASE_PATH}/raw-materials`, async (c) => {
 })
 
 // Düşük stoklu ürünler
-router.get(`${BASE_PATH}/low-stock`, async (c) => {
+router.get('/low-stock', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
@@ -234,7 +231,7 @@ router.get(`${BASE_PATH}/low-stock`, async (c) => {
 })
 
 // Kategori endpoint'lerini products.ts'ye ekleyelim
-router.get(`${BASE_PATH}/product-categories`, async (c) => {
+router.get('/product-categories', async (c) => {
   const db = c.get('db')
   
   try {
@@ -259,7 +256,7 @@ router.get(`${BASE_PATH}/product-categories`, async (c) => {
 })
 
 // Kategori listesi - View kullanımı ve endpoint düzeltmesi
-router.get(`${BASE_PATH}/categories`, async (c) => {
+router.get('/categories', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
@@ -290,7 +287,7 @@ router.get(`${BASE_PATH}/categories`, async (c) => {
 })
 
 // Yeni kategori ekle
-router.post(`${BASE_PATH}/categories`, async (c) => {
+router.post('/categories', async (c) => {
   const body = await c.req.json()
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -314,7 +311,7 @@ router.post(`${BASE_PATH}/categories`, async (c) => {
 })
 
 // Kategori sil
-router.delete(`${BASE_PATH}/categories/:id`, async (c) => {
+router.delete('/categories/:id', async (c) => {
   const { id } = c.req.param()
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')

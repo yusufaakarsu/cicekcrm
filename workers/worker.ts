@@ -34,7 +34,7 @@ app.route('/api/customers', customerRoutes)
 app.route('/api/orders', orderRoutes)
 app.route('/api/finance', financeRoutes)
 app.route('/api/addresses', addressRoutes)
-app.route('/api', productRoutes) // /api/products yerine /api
+app.route('/api/products', productRoutes) // Düzeltildi
 
 // 404 handler - Not Found
 app.notFound((c) => c.json({
