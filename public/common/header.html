@@ -1,4 +1,4 @@
-<div class="d-flex" style="width: 200px;">
+<div class="h-100 bg-dark" style="width: 200px;">
     <!-- Hamburger Menu - En üstte -->
     <button class="btn btn-dark d-lg-none position-fixed top-0 start-0 mt-2 ms-2 z-3" 
             type="button" 
@@ -8,10 +8,9 @@
     </button>
 
     <!-- Sol Menu -->
-    <div class="offcanvas-lg offcanvas-start bg-dark text-white" 
+    <div class="offcanvas-lg offcanvas-start bg-dark text-white w-100 h-100" 
          tabindex="-1" 
-         id="sideMenu" 
-         style="width: 200px;">
+         id="sideMenu">
         
         <div class="offcanvas-header d-lg-none">
             <h5 class="offcanvas-title text-white">Çiçek CRM</h5>
@@ -21,7 +20,7 @@
                     data-bs-target="#sideMenu"></button>
         </div>
 
-        <!-- Menu İçeriği - Logo ve menü öğeleri dikey -->
+        <!-- Menu İçeriği -->
         <div class="d-flex flex-column h-100">
             <!-- Logo -->
             <div class="p-3">
@@ -32,8 +31,8 @@
             </div>
             <hr class="border-secondary mx-3 my-0">
             
-            <!-- Menu Items - Sola yaslı -->
-            <div class="nav nav-pills flex-column p-2">
+            <!-- Menu Items -->
+            <div class="nav nav-pills flex-column p-2 flex-grow-1">
                 <!-- Dashboard -->
                 <li class="nav-item">
                     <a href="/dashboard/dashboard.html" class="nav-link text-white" data-page="dashboard">
