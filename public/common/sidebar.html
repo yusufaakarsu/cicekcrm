@@ -8,88 +8,89 @@
     </div>
 </nav>
 
-<!-- Desktop Sidebar -->
-<div class="d-none d-md-flex flex-column flex-shrink-0 bg-dark text-white" 
-     style="width: 250px; min-height: 100vh; margin-top: 56px; position: fixed;">
-    <div class="p-3">
-        <ul class="nav nav-pills flex-column mb-auto">
-            <!-- Dashboard -->
-            <li class="nav-item">
-                <a href="/" class="nav-link text-white">
-                    <i class="bi bi-house-door me-2"></i>
-                    Dashboard
-                </a>
-            </li>
+<!-- Sol Menü - Desktop -->
+<div class="d-none d-md-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 200px; height: 100vh;">
+    <h5 class="mb-4">Çiçek CRM</h5>
+    <ul class="nav nav-pills flex-column mb-auto">
+        <!-- Dashboard -->
+        <li class="nav-item">
+            <a href="/dashboard/dashboard.html" class="nav-link text-white">
+                <i class="bi bi-speedometer2 me-2"></i> Dashboard
+            </a>
+        </li>
 
-            <!-- Siparişler Dropdown -->
-            <li class="nav-item">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#orders-menu">
-                    <i class="bi bi-cart me-2"></i>
-                    Siparişler
-                </a>
-                <div class="collapse" id="orders-menu">
-                    <ul class="nav nav-pills flex-column ms-3 mt-1">
-                        <li><a href="/orders/orders.html" class="nav-link text-white">Sipariş Listesi</a></li>
-                        <li><a href="/orders/new-order.html" class="nav-link text-white">Yeni Sipariş</a></li>
-                        <li><a href="/purchases/purchases.html" class="nav-link text-white">Satın Alma</a></li>
-                    </ul>
-                </div>
-            </li>
+        <!-- Siparişler Dropdown -->
+        <li class="nav-item">
+            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#orders-menu">
+                <i class="bi bi-box me-2"></i> Siparişler
+            </a>
+            <div class="collapse" id="orders-menu">
+                <ul class="nav nav-pills flex-column ms-3 mt-1">
+                    <li><a href="/orders/orders.html" class="nav-link text-white">Sipariş Listesi</a></li>
+                    <li><a href="/orders/new-order.html" class="nav-link text-white">Yeni Sipariş</a></li>
+                </ul>
+            </div>
+        </li>
 
-            <!-- Ürünler & Stok Dropdown -->
-            <li class="nav-item">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#products-menu">
-                    <i class="bi bi-box-seam me-2"></i>
-                    Ürünler & Stok
-                </a>
-                <div class="collapse" id="products-menu">
-                    <ul class="nav nav-pills flex-column ms-3 mt-1">
-                        <li><a href="/products/products.html" class="nav-link text-white">Ürün Listesi</a></li>
-                        <li><a href="/stock/stock.html" class="nav-link text-white">Stok Yönetimi</a></li>
-                        <li><a href="/suppliers/suppliers.html" class="nav-link text-white">Tedarikçiler</a></li>
-                    </ul>
-                </div>
-            </li>
+        <!-- Ürünler & Stok Dropdown -->
+        <li class="nav-item">
+            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#products-menu">
+                <i class="bi bi-box-seam me-2"></i>
+                Ürünler & Stok
+            </a>
+            <div class="collapse" id="products-menu">
+                <ul class="nav nav-pills flex-column ms-3 mt-1">
+                    <li><a href="/products/products.html" class="nav-link text-white">Ürün Listesi</a></li>
+                    <li><a href="/stock/stock.html" class="nav-link text-white">Stok Yönetimi</a></li>
+                    <li><a href="/suppliers/suppliers.html" class="nav-link text-white">Tedarikçiler</a></li>
+                </ul>
+            </div>
+        </li>
 
-            <!-- Normal menü öğeleri -->
-            <li class="nav-item">
-                <a href="/customers/customers.html" class="nav-link text-white">
-                    <i class="bi bi-people me-2"></i>
-                    Müşteriler
-                </a>
-            </li>
+        <!-- Normal menü öğeleri -->
+        <li class="nav-item">
+            <a href="/customers/customers.html" class="nav-link text-white">
+                <i class="bi bi-people me-2"></i>
+                Müşteriler
+            </a>
+        </li>
 
-            <!-- Finans Dropdown -->
-            <li class="nav-item">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#finance-menu">
-                    <i class="bi bi-currency-dollar me-2"></i>
-                    Finans
-                </a>
-                <div class="collapse" id="finance-menu">
-                    <ul class="nav nav-pills flex-column ms-3 mt-1">
-                        <li><a href="/finance/index.html" class="nav-link text-white">Genel Durum</a></li>
-                        <li><a href="/finance/transactions.html" class="nav-link text-white">Hareketler</a></li>
-                        <li><a href="/finance/accounts.html" class="nav-link text-white">Hesaplar</a></li>
-                        <li><a href="/finance/reports.html" class="nav-link text-white">Raporlar</a></li>
-                    </ul>
-                </div>
-            </li>
+        <!-- Finans Dropdown -->
+        <li class="nav-item">
+            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#finance-menu">
+                <i class="bi bi-currency-dollar me-2"></i>
+                Finans
+            </a>
+            <div class="collapse" id="finance-menu">
+                <ul class="nav nav-pills flex-column ms-3 mt-1">
+                    <li><a href="/finance/index.html" class="nav-link text-white">Genel Durum</a></li>
+                    <li><a href="/finance/transactions.html" class="nav-link text-white">Hareketler</a></li>
+                    <li><a href="/finance/accounts.html" class="nav-link text-white">Hesaplar</a></li>
+                    <li><a href="/finance/reports.html" class="nav-link text-white">Raporlar</a></li>
+                </ul>
+            </div>
+        </li>
 
-            <li class="nav-item">
-                <a href="/delivery/delivery.html" class="nav-link text-white">
-                    <i class="bi bi-truck me-2"></i>
-                    Teslimat
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="/calendar/calendar.html" class="nav-link text-white">
-                    <i class="bi bi-calendar3 me-2"></i>
-                    Takvim
-                </a>
-            </li>
-        </ul>
-    </div>
+        <li class="nav-item">
+            <a href="/delivery/delivery.html" class="nav-link text-white">
+                <i class="bi bi-truck me-2"></i>
+                Teslimat
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="/calendar/calendar.html" class="nav-link text-white">
+                <i class="bi bi-calendar3 me-2"></i>
+                Takvim
+            </a>
+        </li>
+    </ul>
 </div>
+
+<!-- Mobile Menu Button -->
+<button class="btn btn-dark d-md-none position-fixed top-0 start-0 m-2 z-3" type="button" 
+        data-bs-toggle="offcanvas" data-bs-target="#sidebar">
+    ☰
+</button>
 
 <!-- Mobile Menu -->
 <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebar">
