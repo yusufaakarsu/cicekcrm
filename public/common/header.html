@@ -2,38 +2,64 @@
 <div class="d-none d-md-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 200px; height: 100vh;">
     <h5 class="mb-4">Çiçek CRM</h5>
     <ul class="nav nav-pills flex-column mb-auto">
+        <!-- Dashboard -->
         <li class="nav-item">
-            <a href="/dashboard" class="nav-link text-white" data-page="dashboard">
+            <a href="/dashboard/dashboard.html" class="nav-link text-white" data-page="dashboard">
                 <i class="bi bi-speedometer2 me-2"></i> Dashboard
             </a>
         </li>
-        <li class="nav-item">
-            <a href="/orders" class="nav-link text-white" data-page="orders">
+
+        <!-- Siparişler Dropdown -->
+        <li class="nav-item dropend">
+            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="bi bi-box me-2"></i> Siparişler
             </a>
+            <ul class="dropdown-menu dropdown-menu-dark">
+                <li><a class="dropdown-item" href="/orders/orders.html">Sipariş Listesi</a></li>
+                <li><a class="dropdown-item" href="/orders/new-order.html">Yeni Sipariş</a></li>
+            </ul>
         </li>
-        <li class="nav-item">
-            <a href="/products" class="nav-link text-white" data-page="products">
-                <i class="bi bi-box-seam me-2"></i> Ürünler
+
+        <!-- Ürünler & Stok Dropdown -->
+        <li class="nav-item dropend">
+            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-box-seam me-2"></i> Ürünler & Stok
             </a>
+            <ul class="dropdown-menu dropdown-menu-dark">
+                <li><a class="dropdown-item" href="/products/products.html">Ürün Listesi</a></li>
+                <li><a class="dropdown-item" href="/products/categories.html">Kategoriler</a></li>
+                <li><a class="dropdown-item" href="/stock/stock.html">Stok Yönetimi</a></li>
+                <li><a class="dropdown-item" href="/suppliers/suppliers.html">Tedarikçiler</a></li>
+            </ul>
         </li>
+
+        <!-- Normal menü itemları -->
         <li class="nav-item">
-            <a href="/customers" class="nav-link text-white" data-page="customers">
+            <a href="/customers/customers.html" class="nav-link text-white" data-page="customers">
                 <i class="bi bi-people me-2"></i> Müşteriler
             </a>
         </li>
+
         <li class="nav-item">
-            <a href="/delivery" class="nav-link text-white" data-page="delivery">
+            <a href="/delivery/delivery.html" class="nav-link text-white" data-page="delivery">
                 <i class="bi bi-truck me-2"></i> Teslimat
             </a>
         </li>
-        <li class="nav-item">
-            <a href="/finance" class="nav-link text-white" data-page="finance">
+
+        <!-- Finans Dropdown -->
+        <li class="nav-item dropend">
+            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="bi bi-wallet2 me-2"></i> Finans
             </a>
+            <ul class="dropdown-menu dropdown-menu-dark">
+                <li><a class="dropdown-item" href="/finance/dashboard.html">Genel Durum</a></li>
+                <li><a class="dropdown-item" href="/finance/transactions.html">İşlemler</a></li>
+                <li><a class="dropdown-item" href="/finance/reports.html">Raporlar</a></li>
+            </ul>
         </li>
+
         <li class="nav-item">
-            <a href="/calendar" class="nav-link text-white" data-page="calendar">
+            <a href="/calendar/calendar.html" class="nav-link text-white" data-page="calendar">
                 <i class="bi bi-calendar3 me-2"></i> Takvim
             </a>
         </li>
@@ -54,39 +80,65 @@
     </div>
     <div class="offcanvas-body">
         <ul class="nav nav-pills flex-column">
-            <!-- Desktop menüsüyle aynı öğeler -->
+            <!-- Desktop menüsüyle aynı dropdown yapısı -->
+            <!-- Dashboard -->
             <li class="nav-item">
-                <a href="/dashboard" class="nav-link text-white" data-page="dashboard">
+                <a href="/dashboard/dashboard.html" class="nav-link text-white" data-page="dashboard">
                     <i class="bi bi-speedometer2 me-2"></i> Dashboard
                 </a>
             </li>
-            <li class="nav-item">
-                <a href="/orders" class="nav-link text-white" data-page="orders">
+
+            <!-- Siparişler Dropdown -->
+            <li class="nav-item dropend">
+                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="dropdown">
                     <i class="bi bi-box me-2"></i> Siparişler
                 </a>
+                <ul class="dropdown-menu dropdown-menu-dark">
+                    <li><a class="dropdown-item" href="/orders/orders.html">Sipariş Listesi</a></li>
+                    <li><a class="dropdown-item" href="/orders/new-order.html">Yeni Sipariş</a></li>
+                </ul>
             </li>
-            <li class="nav-item">
-                <a href="/products" class="nav-link text-white" data-page="products">
-                    <i class="bi bi-box-seam me-2"></i> Ürünler
+
+            <!-- Ürünler & Stok Dropdown -->
+            <li class="nav-item dropend">
+                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="bi bi-box-seam me-2"></i> Ürünler & Stok
                 </a>
+                <ul class="dropdown-menu dropdown-menu-dark">
+                    <li><a class="dropdown-item" href="/products/products.html">Ürün Listesi</a></li>
+                    <li><a class="dropdown-item" href="/products/categories.html">Kategoriler</a></li>
+                    <li><a class="dropdown-item" href="/stock/stock.html">Stok Yönetimi</a></li>
+                    <li><a class="dropdown-item" href="/suppliers/suppliers.html">Tedarikçiler</a></li>
+                </ul>
             </li>
+
+            <!-- Normal menü itemları -->
             <li class="nav-item">
-                <a href="/customers" class="nav-link text-white" data-page="customers">
+                <a href="/customers/customers.html" class="nav-link text-white" data-page="customers">
                     <i class="bi bi-people me-2"></i> Müşteriler
                 </a>
             </li>
+
             <li class="nav-item">
-                <a href="/delivery" class="nav-link text-white" data-page="delivery">
+                <a href="/delivery/delivery.html" class="nav-link text-white" data-page="delivery">
                     <i class="bi bi-truck me-2"></i> Teslimat
                 </a>
             </li>
-            <li class="nav-item">
-                <a href="/finance" class="nav-link text-white" data-page="finance">
+
+            <!-- Finans Dropdown -->
+            <li class="nav-item dropend">
+                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="dropdown">
                     <i class="bi bi-wallet2 me-2"></i> Finans
                 </a>
+                <ul class="dropdown-menu dropdown-menu-dark">
+                    <li><a class="dropdown-item" href="/finance/dashboard.html">Genel Durum</a></li>
+                    <li><a class="dropdown-item" href="/finance/transactions.html">İşlemler</a></li>
+                    <li><a class="dropdown-item" href="/finance/reports.html">Raporlar</a></li>
+                </ul>
             </li>
+
             <li class="nav-item">
-                <a href="/calendar" class="nav-link text-white" data-page="calendar">
+                <a href="/calendar/calendar.html" class="nav-link text-white" data-page="calendar">
                     <i class="bi bi-calendar3 me-2"></i> Takvim
                 </a>
             </li>
