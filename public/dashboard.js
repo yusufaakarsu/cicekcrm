@@ -58,23 +58,45 @@ function clearDashboard() {
 }
 
 function updateMetrics(metrics) {
-    document.getElementById('totalOrders').textContent = metrics.total_orders;
-    document.getElementById('newOrders').textContent = metrics.new_orders;
-    document.getElementById('activeDeliveries').textContent = metrics.active_deliveries;
-    document.getElementById('todayDeliveries').textContent = metrics.today_deliveries;
-    document.getElementById('totalCustomers').textContent = metrics.total_customers;
-    document.getElementById('totalRevenue').textContent = formatCurrency(metrics.total_revenue);
+    // Her bir metrik güncellemesi için null kontrolü ekle
+    const elements = {
+        'totalOrders': metrics.total_orders,
+        'newOrders': metrics.new_orders,
+        'activeDeliveries': metrics.active_deliveries,
+        'todayDeliveries': metrics.today_deliveries,
+        'totalCustomers': metrics.total_customers,
+        'totalRevenue': metrics.total_revenue,
+        'ordersToday': metrics.today_orders,
+        'deliveredOrders': metrics.delivered_orders,
+        'pendingDeliveries': metrics.pending_deliveries,
+        'lowStockCount': metrics.low_stock_count
+    };
 
-    // İstatistik kartları
-    document.getElementById('ordersToday').textContent = metrics.today_orders;
-    document.getElementById('deliveredOrders').textContent = metrics.delivered_orders;
-    document.getElementById('pendingDeliveries').textContent = metrics.pending_deliveries;
-    document.getElementById('lowStockCount').textContent = metrics.low_stock_count;
+    // Güvenli güncelleme
+    Object.entries(elements).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value ?? '-';
+        }
+    });
 
-    // Teslimat programı
-    document.getElementById('today-orders').textContent = `${metrics.today_orders} Teslimat`;
-    document.getElementById('tomorrow-orders').textContent = `${metrics.tomorrow_orders} Teslimat`;
-    document.getElementById('future-orders').textContent = `${metrics.future_orders} Teslimat`;
+    // Teslimat programı - null kontrolü ile
+    updateDeliveryProgram(metrics);
+}
+
+function updateDeliveryProgram(metrics) {
+    const elements = {
+        'today-orders': `${metrics.today_orders || 0} Teslimat`,
+        'tomorrow-orders': `${metrics.tomorrow_orders || 0} Teslimat`,
+        'future-orders': `${metrics.future_orders || 0} Teslimat`
+    };
+
+    Object.entries(elements).forEach(([id, text]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = text;
+        }
+    });
 }
 
 function renderTodayOrders(orders) {

@@ -10,18 +10,22 @@ router.get('/', async (c) => {
         // Debug için metrikler
         console.log('Fetching metrics for tenant:', tenant_id);
 
-        // Özet metrikleri al - SQL'i basitleştirelim
+        // Metrikleri genişlet
         const metrics = await db.prepare(`
             SELECT 
                 (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND deleted_at IS NULL) as total_orders,
                 (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND status = 'new' AND deleted_at IS NULL) as new_orders,
                 (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND status = 'delivering' AND deleted_at IS NULL) as active_deliveries,
-                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND DATE(delivery_date) = DATE('now') AND deleted_at IS NULL) as today_deliveries,
+                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND DATE(delivery_date) = DATE('now') AND deleted_at IS NULL) as today_orders,
+                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND DATE(delivery_date) = DATE('now', '+1 day') AND deleted_at IS NULL) as tomorrow_orders,
+                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND DATE(delivery_date) > DATE('now', '+1 day') AND deleted_at IS NULL) as future_orders,
+                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND status = 'delivered' AND deleted_at IS NULL) as delivered_orders,
+                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND status IN ('new', 'preparing', 'ready') AND deleted_at IS NULL) as pending_deliveries,
                 (SELECT COUNT(*) FROM customers WHERE tenant_id = ? AND deleted_at IS NULL) as total_customers,
                 (SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE tenant_id = ? AND status != 'cancelled' AND deleted_at IS NULL) as total_revenue
-        `).bind(tenant_id, tenant_id, tenant_id, tenant_id, tenant_id, tenant_id).first();
+        `).bind(tenant_id, tenant_id, tenant_id, tenant_id, tenant_id, tenant_id, tenant_id, tenant_id, tenant_id, tenant_id).first();
 
-        // Bugünün siparişleri - SQL'i basitleştirelim
+        // Bugünün siparişleri - SQL hatasını düzelt
         const { results: todayOrders } = await db.prepare(`
             SELECT 
                 o.id, o.delivery_time, o.status, o.total_amount,
@@ -31,7 +35,7 @@ router.get('/', async (c) => {
             FROM orders o
             LEFT JOIN customers c ON o.customer_id = c.id
             LEFT JOIN recipients r ON o.recipient_id = r.id
-            LEFT JOIN addresses a ON o.delivery_address_id = a.id
+            LEFT JOIN addresses a ON o.address_id = a.id  /* delivery_address_id -> address_id */
             WHERE o.tenant_id = ? 
             AND DATE(o.delivery_date) = DATE('now')
             AND o.deleted_at IS NULL
