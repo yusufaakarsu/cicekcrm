@@ -400,9 +400,9 @@ function renderDayOrders(container, orders) {
                                                 <i class="bi bi-chat-quote"></i> ${order.card_message}
                                             </div>` : ''
                                         }
-                                    </div>
-                                    <div>
-                                        ${getStatusBadge(order.status)}
+                                        <div>
+                                            ${getStatusBadge(order.status)}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
