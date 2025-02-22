@@ -115,7 +115,7 @@
 
     <!-- Ürün Ekleme/Düzenleme Modal -->
     <div class="modal fade" id="productModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
@@ -126,36 +126,86 @@
                 <div class="modal-body">
                     <form id="productForm">
                         <input type="hidden" name="id">
-                        <div class="mb-3">
-                            <label class="form-label">Kategori</label>
-                            <select class="form-select" name="category_id" required>
-                                <option value="">Seçiniz</option>
-                                <!-- Kategoriler JavaScript ile doldurulacak -->
-                            </select>
+                        
+                        <!-- Temel Bilgiler -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Ürün Adı *</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Kategori *</label>
+                                <select class="form-select" name="category_id" required>
+                                    <option value="">Seçiniz</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Ürün Adı</label>
-                            <input type="text" class="form-control" name="name" required>
+
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label">Açıklama</label>
+                                <textarea class="form-control" name="description" rows="2"></textarea>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Açıklama</label>
-                            <textarea class="form-control" name="description" rows="3"></textarea>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Satış Fiyatı</label>
+
+                        <!-- Fiyat ve Durum -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Satış Fiyatı *</label>
                                 <div class="input-group">
                                     <span class="input-group-text">₺</span>
                                     <input type="number" class="form-control" name="base_price" required
                                            min="0" step="0.01">
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Maliyet</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₺</span>
+                                    <input type="number" class="form-control" id="cost" disabled>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label">Durum</label>
                                 <select class="form-select" name="status" required>
                                     <option value="active">Aktif</option>
                                     <option value="passive">Pasif</option>
                                 </select>
+                            </div>
+                        </div>
+
+                        <!-- Reçete Bilgileri -->
+                        <div class="card mt-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Ürün Reçetesi</h6>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addRecipeItem()">
+                                    <i class="bi bi-plus-lg"></i> Malzeme Ekle
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="recipeItems">
+                                    <!-- JavaScript ile doldurulacak -->
+                                </div>
+                                
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Hazırlama Süresi (dk)</label>
+                                        <input type="number" class="form-control" name="preparation_time" min="1">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">İşçilik Maliyeti</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">₺</span>
+                                            <input type="number" class="form-control" name="labor_cost" 
+                                                   min="0" step="0.01" value="0">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group mt-3">
+                                    <label class="form-label">Hazırlama Talimatları</label>
+                                    <textarea class="form-control" name="instructions" rows="3"></textarea>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -167,6 +217,35 @@
             </div>
         </div>
     </div>
+
+    <!-- Malzeme Seçimi Template -->
+    <template id="recipeItemTemplate">
+        <div class="recipe-item border-bottom pb-2 mb-2">
+            <div class="row">
+                <div class="col-md-5">
+                    <select class="form-select material-select" required>
+                        <option value="">Malzeme Seçin</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <input type="number" class="form-control quantity-input" 
+                               min="0.01" step="0.01" required>
+                        <span class="input-group-text unit-text">-</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" placeholder="Not">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-outline-danger btn-sm" 
+                            onclick="removeRecipeItem(this)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/common.js"></script>

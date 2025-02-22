@@ -1,8 +1,10 @@
 let categoryModal;
 let productModal;
+let rawMaterials = []; // Ham maddeleri global tutacağız
 
 async function initializePage() {
     await loadHeader(); // common.js'ten gelen header yükleme fonksiyonu
+    await loadRawMaterials(); // Ham maddeleri yükle
     await loadCategories();
     await loadProducts();
 
@@ -265,8 +267,22 @@ async function saveProduct() {
         return;
     }
 
+    // Form verilerini al
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
+    
+    // Reçete verilerini ekle
+    data.recipe = {
+        labor_cost: parseFloat(data.labor_cost) || 0,
+        preparation_time: parseInt(data.preparation_time) || null,
+        instructions: data.instructions,
+        items: Array.from(document.querySelectorAll('.recipe-item')).map(item => ({
+            material_id: item.querySelector('.material-select').value,
+            quantity: parseFloat(item.querySelector('.quantity-input').value),
+            notes: item.querySelector('input[type="text"]').value
+        })).filter(item => item.material_id && item.quantity)
+    };
+
     const isEdit = !!data.id;
 
     try {
@@ -307,6 +323,78 @@ async function deleteProduct(id) {
         console.error('Product delete error:', error);
         showError('Ürün silinemedi');
     }
+}
+
+// Ham maddeleri yükle
+async function loadRawMaterials() {
+    try {
+        const response = await fetch(`${API_URL}/raw-materials`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        rawMaterials = data.materials || [];
+    } catch (error) {
+        console.error('Raw materials loading error:', error);
+        showError('Ham maddeler yüklenemedi');
+    }
+}
+
+// Reçeteye yeni malzeme satırı ekle
+function addRecipeItem() {
+    const template = document.getElementById('recipeItemTemplate');
+    const container = document.getElementById('recipeItems');
+    
+    const clone = template.content.cloneNode(true);
+    const select = clone.querySelector('.material-select');
+    
+    // Ham maddeleri select'e doldur
+    select.innerHTML = `
+        <option value="">Malzeme Seçin</option>
+        ${rawMaterials.map(m => `
+            <option value="${m.id}" data-unit="${m.unit_name}">
+                ${m.name}
+            </option>
+        `).join('')}
+    `;
+    
+    // Malzeme seçildiğinde birim güncellensin
+    select.addEventListener('change', (e) => {
+        const unit = e.target.selectedOptions[0].dataset.unit;
+        const unitText = e.target.closest('.recipe-item').querySelector('.unit-text');
+        unitText.textContent = unit || '-';
+    });
+
+    container.appendChild(clone);
+    calculateTotalCost(); // Maliyeti güncelle
+}
+
+// Reçete malzemesini kaldır
+function removeRecipeItem(button) {
+    button.closest('.recipe-item').remove();
+    calculateTotalCost(); // Maliyeti güncelle
+}
+
+// Toplam maliyeti hesapla
+function calculateTotalCost() {
+    const recipeItems = document.querySelectorAll('.recipe-item');
+    let totalCost = 0;
+    
+    recipeItems.forEach(item => {
+        const materialId = item.querySelector('.material-select').value;
+        const quantity = parseFloat(item.querySelector('.quantity-input').value) || 0;
+        
+        const material = rawMaterials.find(m => m.id == materialId);
+        if (material) {
+            totalCost += material.unit_price * quantity;
+        }
+    });
+
+    // İşçilik maliyetini ekle
+    const laborCost = parseFloat(document.querySelector('[name="labor_cost"]').value) || 0;
+    totalCost += laborCost;
+
+    // Maliyeti göster
+    document.getElementById('cost').value = totalCost.toFixed(2);
 }
 
 // Initialize

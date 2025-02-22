@@ -2,53 +2,36 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// Ürün listesi - filtreleme eklendi
+// Ürün listesi - view kullanımı
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
-  // URL parametrelerini al
   const { searchParams } = new URL(c.req.url)
   const category_id = searchParams.get('category_id')
   const status = searchParams.get('status')
   const search = searchParams.get('search')
   
   try {
-    let sql = `
-      SELECT 
-        p.*,
-        pc.name as category_name,
-        COALESCE(
-          (SELECT COUNT(*) 
-           FROM recipes r 
-           WHERE r.product_id = p.id 
-           AND r.deleted_at IS NULL
-          ), 0
-        ) as recipe_count
-      FROM products p
-      LEFT JOIN product_categories pc ON p.category_id = pc.id
-      WHERE p.tenant_id = ?
-      AND p.deleted_at IS NULL
-    `
+    let sql = `SELECT * FROM vw_products WHERE tenant_id = ?`
     const params: any[] = [tenant_id]
 
-    // Filtreleri ekle
     if (category_id) {
-      sql += ' AND p.category_id = ?'
+      sql += ' AND category_id = ?'
       params.push(category_id)
     }
 
     if (status) {
-      sql += ' AND p.status = ?'
+      sql += ' AND status = ?'
       params.push(status)
     }
 
     if (search) {
-      sql += ' AND (p.name LIKE ? OR p.description LIKE ?)'
+      sql += ' AND (name LIKE ? OR description LIKE ?)'
       params.push(`%${search}%`, `%${search}%`)
     }
 
-    sql += ' ORDER BY p.name'
+    sql += ' ORDER BY name'
 
     const { results } = await db.prepare(sql).bind(...params).all()
     
@@ -57,11 +40,7 @@ router.get('/', async (c) => {
       products: results
     })
   } catch (error) {
-    return c.json({ 
-      success: false,
-      error: 'Database error',
-      message: error.message 
-    }, 500)
+    return c.json({ error: 'Database error' }, 500)
   }
 })
 
@@ -241,14 +220,14 @@ router.get('/product-categories', async (c) => {
   }
 })
 
-// Kategori listesi
+// Kategori listesi - view kullanımı
 router.get('/categories', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
   try {
     const { results } = await db.prepare(`
-      SELECT * FROM product_categories 
+      SELECT * FROM vw_category_products 
       WHERE tenant_id = ? 
       AND deleted_at IS NULL 
       ORDER BY name
