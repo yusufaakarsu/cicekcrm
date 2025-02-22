@@ -22,7 +22,7 @@ async function initializePage() {
 
 async function loadCategories() {
     try {
-        const response = await fetch(`${API_URL}/products/categories`); // URL düzeltildi
+        const response = await fetch(`${API_URL}/categories`); // /products/ prefix'ini kaldır
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
@@ -216,7 +216,7 @@ function showProductModal(id = null) {
 // Select için kategorileri yükle
 async function loadCategoriesForSelect() {
     try {
-        const response = await fetch(`${API_URL}/products/categories`);
+        const response = await fetch(`${API_URL}/categories`); // /products/ prefix'ini kaldır
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
@@ -328,7 +328,7 @@ async function deleteProduct(id) {
 // Ham maddeleri yükle
 async function loadRawMaterials() {
     try {
-        const response = await fetch(`${API_URL}/products/raw-materials`); 
+        const response = await fetch(`${API_URL}/raw-materials`); // /products/ prefix'ini kaldır
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
