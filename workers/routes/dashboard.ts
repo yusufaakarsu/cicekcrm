@@ -10,36 +10,65 @@ router.get('/', async (c) => {
         // Debug için metrikler
         console.log('Fetching metrics for tenant:', tenant_id);
 
-        // Metrikleri genişlet
+        // Tüm metrikleri tek sorguda al
         const metrics = await db.prepare(`
             SELECT 
-                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND deleted_at IS NULL) as total_orders,
-                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND status = 'new' AND deleted_at IS NULL) as new_orders,
-                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND status = 'delivering' AND deleted_at IS NULL) as active_deliveries,
-                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND DATE(delivery_date) = DATE('now') AND deleted_at IS NULL) as today_orders,
-                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND DATE(delivery_date) = DATE('now', '+1 day') AND deleted_at IS NULL) as tomorrow_orders,
-                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND DATE(delivery_date) > DATE('now', '+1 day') AND deleted_at IS NULL) as future_orders,
-                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND status = 'delivered' AND deleted_at IS NULL) as delivered_orders,
-                (SELECT COUNT(*) FROM orders WHERE tenant_id = ? AND status IN ('new', 'preparing', 'ready') AND deleted_at IS NULL) as pending_deliveries,
-                (SELECT COUNT(*) FROM customers WHERE tenant_id = ? AND deleted_at IS NULL) as total_customers,
-                (SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE tenant_id = ? AND status != 'cancelled' AND deleted_at IS NULL) as total_revenue
-        `).bind(tenant_id, tenant_id, tenant_id, tenant_id, tenant_id, tenant_id, tenant_id, tenant_id, tenant_id, tenant_id).first();
+                -- Toplam ve yeni siparişler
+                (SELECT COUNT(*) FROM orders 
+                    WHERE tenant_id = ? AND deleted_at IS NULL) as total_orders,
+                (SELECT COUNT(*) FROM orders 
+                    WHERE tenant_id = ? AND status = 'new' 
+                    AND deleted_at IS NULL) as new_orders,
 
-        // Bugünün siparişleri - SQL hatasını düzelt
+                -- Bugünün siparişleri ve durumları
+                (SELECT COUNT(*) FROM orders 
+                    WHERE tenant_id = ? AND DATE(delivery_date) = DATE('now') 
+                    AND deleted_at IS NULL) as today_orders,
+                (SELECT COUNT(*) FROM orders 
+                    WHERE tenant_id = ? AND status = 'delivering' 
+                    AND deleted_at IS NULL) as active_deliveries,
+                (SELECT COUNT(*) FROM orders 
+                    WHERE tenant_id = ? AND status = 'delivered' 
+                    AND DATE(delivery_date) = DATE('now')
+                    AND deleted_at IS NULL) as delivered_orders,
+                (SELECT COUNT(*) FROM orders 
+                    WHERE tenant_id = ? AND status IN ('new', 'preparing', 'ready') 
+                    AND deleted_at IS NULL) as pending_deliveries,
+
+                -- Gelir bilgisi
+                (SELECT COALESCE(SUM(total_amount), 0) FROM orders 
+                    WHERE tenant_id = ? AND status != 'cancelled' 
+                    AND deleted_at IS NULL) as total_revenue
+        `).bind(
+            tenant_id, tenant_id, tenant_id, tenant_id, 
+            tenant_id, tenant_id, tenant_id
+        ).first();
+
+        // Bugünün siparişleri
         const { results: todayOrders } = await db.prepare(`
             SELECT 
                 o.id, o.delivery_time, o.status, o.total_amount,
                 c.name as customer_name, c.phone as customer_phone,
                 r.name as recipient_name, r.phone as recipient_phone,
-                a.district as delivery_district
+                a.district as delivery_district,
+                GROUP_CONCAT(p.name || ' x' || oi.quantity) as items
             FROM orders o
             LEFT JOIN customers c ON o.customer_id = c.id
             LEFT JOIN recipients r ON o.recipient_id = r.id
-            LEFT JOIN addresses a ON o.address_id = a.id  /* delivery_address_id -> address_id */
+            LEFT JOIN addresses a ON o.address_id = a.id
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            LEFT JOIN products p ON oi.product_id = p.id
             WHERE o.tenant_id = ? 
             AND DATE(o.delivery_date) = DATE('now')
             AND o.deleted_at IS NULL
-            ORDER BY o.delivery_time ASC
+            GROUP BY o.id
+            ORDER BY 
+                CASE o.delivery_time
+                    WHEN 'morning' THEN 1
+                    WHEN 'afternoon' THEN 2
+                    WHEN 'evening' THEN 3
+                END,
+                o.created_at ASC
         `).bind(tenant_id).all();
 
         // Debug için response
