@@ -1,13 +1,13 @@
-<div class="vh-100 d-flex flex-row">
-    <!-- Mobil Hamburger Menu -->
-    <button class="btn btn-dark d-lg-none position-fixed start-0 top-0 mt-2 ms-2" 
+<div class="d-flex" style="width: 200px;">
+    <!-- Hamburger Menu - En üstte -->
+    <button class="btn btn-dark d-lg-none position-fixed top-0 start-0 mt-2 ms-2 z-3" 
             type="button" 
             data-bs-toggle="offcanvas" 
             data-bs-target="#sideMenu">
         <i class="bi bi-list"></i>
     </button>
 
-    <!-- Sol Menu - Mobilde offcanvas olarak görünür -->
+    <!-- Sol Menu -->
     <div class="offcanvas-lg offcanvas-start bg-dark text-white" 
          tabindex="-1" 
          id="sideMenu" 
@@ -21,16 +21,19 @@
                     data-bs-target="#sideMenu"></button>
         </div>
 
-        <!-- Mevcut Menu İçeriği -->
-        <div class="offcanvas-body p-0">
+        <!-- Menu İçeriği - Logo ve menü öğeleri dikey -->
+        <div class="d-flex flex-column h-100">
+            <!-- Logo -->
             <div class="p-3">
                 <a href="/index.html" class="d-flex align-items-center text-white text-decoration-none">
                     <i class="bi bi-flower1 me-2"></i>
                     <span>Çiçek CRM</span>
                 </a>
             </div>
-            <hr class="border-secondary mx-3">
-            <ul class="nav nav-pills flex-column mb-auto">
+            <hr class="border-secondary mx-3 my-0">
+            
+            <!-- Menu Items - Sola yaslı -->
+            <div class="nav nav-pills flex-column p-2">
                 <!-- Dashboard -->
                 <li class="nav-item">
                     <a href="/dashboard/dashboard.html" class="nav-link text-white" data-page="dashboard">
@@ -101,13 +104,13 @@
                         Takvim
                     </a>
                 </li>
-            </ul>
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- Sağ İçerik - Padding mobilde daha az -->
-    <div class="flex-grow-1 overflow-auto p-2 p-lg-3 mt-5 mt-lg-0">
-        <div id="pageContent">
-        </div>
+<!-- Sağ İçerik - Padding mobilde daha az -->
+<div class="flex-grow-1 overflow-auto p-2 p-lg-3 mt-5 mt-lg-0">
+    <div id="pageContent">
     </div>
 </div>
