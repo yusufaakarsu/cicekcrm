@@ -69,8 +69,8 @@ async function loadProducts() {
         const response = await fetch(`${API_URL}/products?${params}`);
         if (!response.ok) throw new Error('API Hatası');
         
-        const products = await response.json();
-        renderProducts(products);
+        const data = await response.json();
+        renderProducts(data.products); // data.products'ı gönder
     } catch (error) {
         console.error('Products loading error:', error);
         showError('Ürünler yüklenemedi');
@@ -86,7 +86,7 @@ async function applyFilters() {
 function renderProducts(products) {
     const tbody = document.getElementById('productsTable');
     
-    if (!products || products.length === 0) {
+    if (!Array.isArray(products) || products.length === 0) { // Array kontrolü ekle
         tbody.innerHTML = `
             <tr>
                 <td colspan="6" class="text-center">Ürün bulunamadı</td>
