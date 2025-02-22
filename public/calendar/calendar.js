@@ -6,8 +6,8 @@ let state = {
 
 // Sayfa yüklendiğinde
 document.addEventListener('DOMContentLoaded', () => {
-    loadHeader();
     loadSideBar();
+    initCalendar();
 });
 
 // Takvim başlatma
