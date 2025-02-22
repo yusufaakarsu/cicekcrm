@@ -8,18 +8,19 @@ router.get('/materials', async (c) => {
   const tenant_id = c.get('tenant_id')
   
   try {
+    // SQL sorgusunu düzelttik - movement_date yerine created_at kullanıyoruz
     const { results } = await db.prepare(`
       SELECT 
         rm.*,
         u.name as unit_name,
         u.code as unit_code,
         (
-          SELECT movement_date 
+          SELECT created_at
           FROM stock_movements 
           WHERE material_id = rm.id 
           AND tenant_id = rm.tenant_id 
           AND deleted_at IS NULL 
-          ORDER BY movement_date DESC 
+          ORDER BY created_at DESC 
           LIMIT 1
         ) as last_movement,
         COALESCE(
@@ -36,14 +37,18 @@ router.get('/materials', async (c) => {
       ORDER BY rm.name
     `).bind(tenant_id).all()
     
+    console.log('Query results:', results); // Debug için log ekledik
+    
     return c.json({
       success: true,
       materials: results
     })
   } catch (error) {
+    console.error('Database error:', error); // Hata detayını görelim
     return c.json({ 
       success: false, 
-      error: 'Database error' 
+      error: 'Database error',
+      details: error.message // Hata detayını ekledik
     }, 500)
   }
 })
