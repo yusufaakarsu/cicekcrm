@@ -23,14 +23,14 @@ const BASE_URL = window.location.origin; // Mevcut domaini kullan
 const API_URL = 'https://cicek-crm-api.yusufaakarsu.workers.dev/api';
 
 // Header yükleme fonksiyonu
-async function loadHeader() {
+async function loadSideBar() {
     const response = await fetch('/common/sidebar.html');  // header.html -> sidebar.html
     const html = await response.text();
     document.getElementById('mainSidebar').innerHTML = html;  // header -> mainSidebar
 }
 
 // Sayfa yüklendiğinde header'ı yükle
-document.addEventListener('DOMContentLoaded', loadHeader);
+document.addEventListener('DOMContentLoaded', loadSideBar);
 
 // Format para birimi
 function formatCurrency(amount) {
@@ -318,6 +318,6 @@ async function loadRecentOrders() {
 // Export
 window.API_URL = API_URL;
 window.formatCurrency = formatCurrency;
-window.loadHeader = loadHeader;
+window.loadSideBar = loadSideBar;
 window.showError = showError;
 window.showSuccess = showSuccess;
