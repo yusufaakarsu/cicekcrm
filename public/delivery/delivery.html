@@ -10,72 +10,76 @@
     <link href="/css/style.css" rel="stylesheet">
 </head>
 <body data-page="delivery">
-    <div id="header"></div>
-
-    <div class="container-fluid mt-5 pt-4">
-        <!-- Üst Kartlar -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-3">
-                <div class="card border-primary">
-                    <div class="card-body">
-                        <h6 class="text-muted mb-2">Bugün Teslim Edilecek</h6>
-                        <h3 id="todayCount" class="mb-0">-</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card border-success">
-                    <div class="card-body">
-                        <h6 class="text-muted mb-2">Teslim Edildi</h6>
-                        <h3 id="deliveredCount" class="mb-0">-</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card border-warning">
-                    <div class="card-body">
-                        <h6 class="text-muted mb-2">Yolda</h6>
-                        <h3 id="onWayCount" class="mb-0">-</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card border-info">
-                    <div class="card-body">
-                        <h6 class="text-muted mb-2">Hazırlanıyor</h6>
-                        <h3 id="preparingCount" class="mb-0">-</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <!-- Harita -->
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Teslimat Haritası</h5>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-outline-primary" id="refreshMap">
-                                <i class="bi bi-arrow-clockwise"></i> Yenile
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary" id="centerMap">
-                                <i class="bi bi-geo-alt"></i> Merkeze Dön
-                            </button>
+    <div class="vh-100 d-flex flex-row">
+        <!-- Sol Header -->
+        <div id="header"></div>
+        
+        <!-- Sağ İçerik -->
+        <div class="flex-grow-1 overflow-auto p-3">
+            <!-- Üst Kartlar -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Bugün Teslim Edilecek</h6>
+                            <h3 id="todayCount" class="mb-0">-</h3>
                         </div>
                     </div>
-                    <div id="deliveryMap" style="height: 600px"></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-success">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Teslim Edildi</h6>
+                            <h3 id="deliveredCount" class="mb-0">-</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-warning">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Yolda</h6>
+                            <h3 id="onWayCount" class="mb-0">-</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-info">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Hazırlanıyor</h6>
+                            <h3 id="preparingCount" class="mb-0">-</h3>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Sağ Panel - Teslimat Listesi -->
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Bugünün Teslimatları</h5>
+            <div class="row">
+                <!-- Harita -->
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Teslimat Haritası</h5>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-primary" id="refreshMap">
+                                    <i class="bi bi-arrow-clockwise"></i> Yenile
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" id="centerMap">
+                                    <i class="bi bi-geo-alt"></i> Merkeze Dön
+                                </button>
+                            </div>
+                        </div>
+                        <div id="deliveryMap" style="height: 600px"></div>
                     </div>
-                    <div class="list-group list-group-flush" id="deliveryList" style="max-height: 600px; overflow-y: auto;">
-                        <!-- JS ile doldurulacak -->
+                </div>
+
+                <!-- Teslimat Listesi -->
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Bugünün Teslimatları</h5>
+                        </div>
+                        <div class="list-group list-group-flush" id="deliveryList" style="max-height: 600px; overflow-y: auto;">
+                            <!-- JS ile doldurulacak -->
+                        </div>
                     </div>
                 </div>
             </div>

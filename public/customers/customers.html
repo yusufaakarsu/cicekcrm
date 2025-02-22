@@ -6,41 +6,45 @@
     <title>Müşteriler - Çiçek CRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/style.css" rel="stylesheet">
 </head>
 <body data-page="customers">
-    <div id="header"></div>
+    <div class="vh-100 d-flex flex-row">
+        <!-- Sol Header -->
+        <div id="header"></div>
+        
+        <!-- Sağ İçerik -->
+        <div class="flex-grow-1 overflow-auto p-3">
+            <!-- Başlık -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-people"></i> Müşteriler</h2>
+                <button class="btn btn-primary" onclick="showAddCustomerModal()">
+                    <i class="bi bi-plus-lg"></i> Yeni Müşteri
+                </button>
+            </div>
 
-    <div class="container mt-5 pt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="bi bi-people"></i> Müşteriler</h2>
-            <button class="btn btn-primary" onclick="showAddCustomerModal()">
-                <i class="bi bi-plus-lg"></i> Yeni Müşteri
-            </button>
-        </div>
-
-        <!-- Müşteri Tablosu -->
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover" id="customersTable">
-                        <thead>
-                            <tr>
-                                <th>Müşteri Adı</th>
-                                <th>Telefon</th>
-                                <th>Email</th>
-                                <th>Adresler</th>
-                                <th>Son Sipariş</th>
-                                <th>Sipariş Bilgisi</th>
-                                <th>İşlemler</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="7" class="text-center">Yükleniyor...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <!-- Müşteri Tablosu -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="customersTable">
+                            <thead>
+                                <tr>
+                                    <th>Müşteri Adı</th>
+                                    <th>Telefon</th>
+                                    <th>Email</th>
+                                    <th>Adresler</th>
+                                    <th>Son Sipariş</th>
+                                    <th>Sipariş Bilgisi</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="7" class="text-center">Yükleniyor...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
