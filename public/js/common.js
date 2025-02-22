@@ -15,16 +15,8 @@ const ISTANBUL_DISTRICTS = [
 ];
 
 // Development/Production URL kontrolü
-const isDevelopment = window.location.hostname.includes('localhost');
-const API_BASE = isDevelopment ? '' : 'https://cicek-crm-api.yusufaakarsu.workers.dev';
-
-// API endpoint builder
-function getApiUrl(endpoint) {
-    return `${API_BASE}/api${endpoint}`;
-}
-
-// Development/Production URL kontrolü - dinamik versiyonu
-const isDevelopment = window.location.hostname.includes('pages.dev');
+const isDevelopment = window.location.hostname.includes('pages.dev') || 
+                     window.location.hostname.includes('localhost');
 
 // API ve uygulama URL'leri - düzeltildi
 const BASE_URL = window.location.origin; // Mevcut domaini kullan
@@ -258,6 +250,13 @@ async function fetchAPI(endpoint, options = {}) {
         console.error('API Error:', error);
         throw error;
     }
+}
+
+// API endpoint builder ve export
+const API_BASE = isDevelopment ? '' : 'https://cicek-crm-api.yusufaakarsu.workers.dev';
+
+function getApiUrl(endpoint) {
+    return `${API_BASE}/api${endpoint}`;
 }
 
 // Export common utilities
