@@ -2,10 +2,21 @@ let paymentChart;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
+    initFinancePage();
+});
+
+// Ana sayfa başlatma
+function initFinancePage() {
     loadFinanceData();
     loadRecentTransactions();
-    setInterval(loadFinanceData, 60000);
-});
+    
+    // Periyodik güncelleme
+    const UPDATE_INTERVAL = 60000; // 60 saniye
+    setInterval(() => {
+        loadFinanceData();
+        loadRecentTransactions();
+    }, UPDATE_INTERVAL);
+}
 
 async function loadFinanceData() {
     try {
