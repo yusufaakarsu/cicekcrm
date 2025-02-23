@@ -131,9 +131,9 @@ function addMaterialToOrder(materialId) {
     row.innerHTML = `
         <td>
             <input type="hidden" name="material_id" value="${material.id}">
-            <div class="fw-bold">${material.name}</div>
-            <small class="text-muted">${material.category_name}</small>
+            ${material.name}
         </td>
+        <td>${material.category_name}</td>
         <td>
             <div class="input-group input-group-sm">
                 <input type="number" class="form-control quantity" 
