@@ -305,8 +305,7 @@ async function savePurchase() {
                 items.push({
                     material_id: parseInt(material_id),
                     quantity,
-                    unit_price,
-                    notes: null
+                    unit_price
                 });
             }
         });

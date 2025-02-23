@@ -13,9 +13,12 @@ router.get('/orders', async (c) => {
                 po.*,
                 s.name as supplier_name,
                 u.name as created_by_name,
-                (SELECT COALESCE(SUM(quantity * unit_price), 0) 
-                 FROM purchase_order_items 
-                 WHERE order_id = po.id AND deleted_at IS NULL) as total_amount
+                COALESCE((
+                    SELECT SUM(quantity * unit_price) 
+                    FROM purchase_order_items 
+                    WHERE order_id = po.id 
+                    AND deleted_at IS NULL
+                ), 0) as total_amount
             FROM purchase_orders po
             LEFT JOIN suppliers s ON po.supplier_id = s.id
             LEFT JOIN users u ON po.created_by = u.id
@@ -131,14 +134,13 @@ router.post('/orders', async (c) => {
             await db.prepare(`
                 INSERT INTO purchase_order_items (
                     order_id, material_id, quantity,
-                    unit_price, notes
-                ) VALUES (?, ?, ?, ?, ?)
+                    unit_price
+                ) VALUES (?, ?, ?, ?)
             `).bind(
                 order_id,
                 item.material_id,
                 item.quantity,
-                item.unit_price,
-                item.notes || null
+                item.unit_price
             ).run();
         }
 
