@@ -152,7 +152,6 @@ function addMaterialToOrder(materialId) {
             <input type="hidden" name="items[][material_id]" value="${material.id}">
             ${material.name}
         </td>
-        <td>${material.category_name || '-'}</td>
         <td>
             <div class="input-group input-group-sm">
                 <input type="number" 
