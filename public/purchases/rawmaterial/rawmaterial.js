@@ -153,10 +153,11 @@ async function saveMaterial() {
 
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
+    const isUpdate = !!data.id; // id varsa güncelleme
 
     try {
-        const response = await fetch(`${API_URL}/materials`, {
-            method: 'POST',
+        const response = await fetch(`${API_URL}/materials${isUpdate ? '/' + data.id : ''}`, {
+            method: isUpdate ? 'PUT' : 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
@@ -167,13 +168,13 @@ async function saveMaterial() {
             throw new Error(result.error || 'API Hatası');
         }
 
-        showSuccess('Ham madde başarıyla eklendi');
+        showSuccess(`Ham madde başarıyla ${isUpdate ? 'güncellendi' : 'eklendi'}`);
         materialModal.hide();
-        loadMaterials(); // Listeyi yenile
+        loadMaterials();
 
     } catch (error) {
-        console.error('Kayıt hatası:', error);
-        showError('Ham madde eklenemedi: ' + error.message);
+        console.error('İşlem hatası:', error);
+        showError(`Ham madde ${isUpdate ? 'güncellenemedi' : 'eklenemedi'}: ` + error.message);
     }
 }
 
@@ -231,10 +232,19 @@ async function showEditModal(id) {
         form.elements['notes'].value = data.material.notes || '';
         form.elements['status'].value = data.material.status;
 
+        // Form elemanlarını disable etmeyi kaldır
+        form.elements['unit_id'].disabled = false;
+        form.elements['category_id'].disabled = false;
+        
+        // Form'a material_id ekle
+        const hiddenId = document.createElement('input');
+        hiddenId.type = 'hidden';
+        hiddenId.name = 'id';
+        hiddenId.value = id;
+        form.appendChild(hiddenId);
+
         // Form elemanlarını readonly yap
         form.elements['name'].readOnly = true;
-        form.elements['unit_id'].disabled = true;
-        form.elements['category_id'].disabled = true;
 
         // Modal'ı göster
         materialModal.show();
@@ -273,7 +283,13 @@ async function updateMaterialStatus(id, newStatus) {
 
 // Modal kapatıldığında form sıfırlama
 document.getElementById('materialModal').addEventListener('hidden.bs.modal', () => {
-    document.getElementById('materialForm').reset();
+    const form = document.getElementById('materialForm');
+    form.reset();
+    form.classList.remove('was-validated');
+    // Hidden input varsa kaldır
+    const hiddenId = form.querySelector('input[name="id"]');
+    if (hiddenId) hiddenId.remove();
+    // Status group'u gizle
     document.getElementById('statusGroup').classList.add('d-none');
 });
 
