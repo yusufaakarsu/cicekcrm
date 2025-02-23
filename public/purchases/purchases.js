@@ -290,7 +290,8 @@ function calculateRowTotal(input) {
 function calculateTotalAmount() {
     let total = 0;
     document.querySelectorAll('.row-total').forEach(span => {
-        total += parseCurrency(span.textContent);
+        const text = span.textContent;
+        total += parseCurrency(text);
     });
     document.getElementById('totalAmount').textContent = formatCurrency(total);
 }
@@ -303,34 +304,54 @@ async function savePurchase() {
         return;
     }
 
-    // Form verilerini topla
-    const data = {
-        supplier_id: form.querySelector('[name="supplier_id"]').value,
-        order_date: form.querySelector('[name="order_date"]').value,
-        notes: form.querySelector('[name="notes"]').value,
-        items: []
-    };
+    // Form verilerini kontrol et
+    const supplier_id = form.querySelector('[name="supplier_id"]').value;
+    const order_date = form.querySelector('[name="order_date"]').value;
     
-    // Kalem verilerini ekle
+    if (!supplier_id || !order_date) {
+        showError('Lütfen tedarikçi ve sipariş tarihini seçin');
+        return;
+    }
+
+    // Kalem kontrolü
+    const items = [];
+    let hasError = false;
+    
     document.querySelectorAll('#itemsTableBody tr').forEach(row => {
-        data.items.push({
-            material_id: row.querySelector('[name$="[material_id]"]').value,
-            quantity: parseFloat(row.querySelector('[name$="[quantity]"]').value),
-            unit_price: parseFloat(row.querySelector('[name$="[unit_price]"]').value)
-        });
+        const material_id = row.querySelector('[name$="[material_id]"]').value;
+        const quantity = parseFloat(row.querySelector('[name$="[quantity]"]').value);
+        const unit_price = parseFloat(row.querySelector('[name$="[unit_price]"]').value);
+        
+        if (!material_id || !quantity || !unit_price) {
+            hasError = true;
+            return;
+        }
+        
+        items.push({ material_id, quantity, unit_price });
     });
 
+    if (hasError || items.length === 0) {
+        showError('Lütfen en az bir kalem ekleyin ve tüm alanları doldurun');
+        return;
+    }
+
+    // API isteği gönder
     try {
         const response = await fetch(`${API_URL}/purchase/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify({
+                supplier_id: supplier_id,
+                order_date: order_date,
+                notes: form.querySelector('[name="notes"]').value,
+                items: items
+            })
         });
 
-        if (!response.ok) throw new Error('API Hatası');
-        
         const result = await response.json();
-        if (!result.success) throw new Error(result.error);
+        if (!result.success) {
+            throw new Error(result.error || 'API Hatası');
+        }
 
         showSuccess('Satın alma siparişi oluşturuldu');
         purchaseModal.hide();

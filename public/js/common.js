@@ -28,12 +28,18 @@ async function loadSideBar() {
 // Sayfa yüklendiğinde header'ı yükle
 document.addEventListener('DOMContentLoaded', loadSideBar);
 
-// Format para birimi
+// Para formatları
 function formatCurrency(amount) {
-    return new Intl.NumberFormat('tr-TR', {
-        style: 'currency',
-        currency: 'TRY'
-    }).format(amount);
+    if (!amount && amount !== 0) return '0,00 ₺';
+    return amount.toLocaleString('tr-TR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + ' ₺';
+}
+
+function parseCurrency(text) {
+    if (!text) return 0;
+    return parseFloat(text.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
 }
 
 // Para formatı
