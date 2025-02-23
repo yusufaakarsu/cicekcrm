@@ -266,63 +266,14 @@ function showNewPurchaseModal() {
     purchaseModal = new bootstrap.Modal(document.getElementById('purchaseModal'));
     document.getElementById('purchaseForm').reset();
     document.getElementById('itemsTableBody').innerHTML = '';
-    addNewRow(); // İlk satırı ekle
     purchaseModal.show();
+    filterMaterials(); // Ham madde listesini hazırla
 }
 
-// Yeni ürün satırı ekle
-function addNewRow() {
-    const tbody = document.getElementById('itemsTableBody');
-    const row = document.createElement('tr');
-    row.innerHTML = `
-        <td>
-            <select class="form-select" required onchange="updateUnitAndPrice(this)">
-                <option value="">Seçiniz</option>
-                ${materials.map(m => `
-                    <option value="${m.id}" 
-                            data-unit="${m.unit_name}"
-                            data-code="${m.unit_code}">
-                        ${m.name}
-                    </option>
-                `).join('')}
-            </select>
-        </td>
-        <td>
-            <input type="number" class="form-control" required
-                   min="0.01" step="0.01" onchange="calculateRowTotal(this)">
-        </td>
-        <td>
-            <span class="unit-text">-</span>
-        </td>
-        <td>
-            <input type="number" class="form-control" required
-                   min="0.01" step="0.01" onchange="calculateRowTotal(this)">
-        </td>
-        <td>
-            <span class="row-total">0,00 TL</span>
-        </td>
-        <td>
-            <button type="button" class="btn btn-sm btn-outline-danger"
-                    onclick="this.closest('tr').remove(); calculateTotalAmount();">
-                <i class="bi bi-trash"></i>
-            </button>
-        </td>
-    `;
-    tbody.appendChild(row);
-}
-
-// Birim güncelle
-function updateUnitAndPrice(select) {
-    const row = select.closest('tr');
-    const option = select.selectedOptions[0];
-    const unitText = row.querySelector('.unit-text');
-    
-    if (option) {
-        unitText.textContent = option.dataset.unit;
-    } else {
-        unitText.textContent = '-';
-    }
-}
+// Kaldırılan fonksiyonlar:
+// - addNewRow
+// - updateUnitAndPrice
+// Artık sadece addMaterialToOrder kullanılacak
 
 // Satır toplamını hesapla
 function calculateRowTotal(input) {
