@@ -2,8 +2,7 @@
 --------------------------------------------------------------------------------
 -- Tenant
 INSERT INTO tenants (id, name, company_name, contact_email) VALUES 
-(1, 'Kardelen Çiçekçilik', 'Kardelen Çiçekçilik Ltd. Şti.', 'info@kardelen.com'),
-(2, 'Demo Hesap', 'Demo Şirketi', 'demo@example.com');
+(1, 'Kardelen Çiçekçilik', 'Kardelen Çiçekçilik Ltd. Şti.', 'info@kardelen.com');
 
 -- Users
 INSERT INTO users (tenant_id, email, password_hash, name, role) VALUES
@@ -13,8 +12,7 @@ INSERT INTO users (tenant_id, email, password_hash, name, role) VALUES
 
 -- Settings
 INSERT INTO tenant_settings (tenant_id, require_stock, track_recipes) VALUES
-(1, 1, 1), -- Stok ve reçete takibi aktif
-(2, 0, 0); -- Demo hesap basit ayarlar
+(1, 1, 1); -- Stok ve reçete takibi aktif
 
 -- 2. STOCK MANAGEMENT
 --------------------------------------------------------------------------------
@@ -24,14 +22,20 @@ INSERT INTO units (tenant_id, name, code) VALUES
 (1, 'Dal', 'STEM'),
 (1, 'Demet', 'BUNCH'),
 (1, 'Gram', 'GR'),
-(1, 'Metre', 'M');
+(1, 'Metre', 'M'),
+(1, 'Adet', 'PCS'),
+(1, 'Dal', 'STM'),
+(1, 'Demet', 'BUN');
 
 -- Raw Material Categories
-INSERT INTO raw_material_categories (tenant_id, name, display_order) VALUES
-(1, 'Kesme Çiçek', 10),
-(1, 'Yeşillik', 20),
-(1, 'Ambalaj', 30),
-(1, 'Aksesuar', 40);
+INSERT INTO raw_material_categories (tenant_id, name) VALUES
+(1, 'Kesme Çiçek'),
+(1, 'Yeşillik'),
+(1, 'Ambalaj'),
+(1, 'Aksesuar'),
+(1, 'Çiçekler'),
+(1, 'Yeşillikler'),
+(1, 'Ambalaj');
 
 -- Raw Materials (Örnek çeşitlilik ile)
 INSERT INTO raw_materials (tenant_id, name, unit_id, category_id, status) VALUES
@@ -123,7 +127,9 @@ INSERT INTO material_price_history (tenant_id, material_id, supplier_id, unit_pr
 INSERT INTO suppliers (tenant_id, name, contact_name, phone) VALUES
 (1, 'Flora Çiçekçilik', 'Ahmet Bey', '5551112233'),
 (1, 'Yeşil Bahçe Ltd.', 'Mehmet Bey', '5552223344'),
-(1, 'Anadolu Çiçek', 'Ayşe Hanım', '5553334455');
+(1, 'Anadolu Çiçek', 'Ayşe Hanım', '5553334455'),
+(1, 'Çiçek Hali', '5551112233'),
+(1, 'Ambalaj Market', '5552223344');
 
 -- Sample Purchase Orders
 INSERT INTO purchase_orders (tenant_id, supplier_id, order_date, created_by) VALUES

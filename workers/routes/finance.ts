@@ -11,13 +11,17 @@ router.get('/accounts', async (c) => {
     const { results } = await db.prepare(`
       SELECT 
         a.*,
-        COUNT(t.id) as transaction_count,
-        SUM(CASE WHEN t.type = 'in' THEN t.amount ELSE -t.amount END) as total_movement
+        COALESCE(
+          (SELECT SUM(CASE WHEN type = 'in' THEN amount ELSE -amount END) 
+           FROM transactions 
+           WHERE account_id = a.id 
+           AND status = 'completed'
+           AND deleted_at IS NULL
+          ), 0
+        ) as total_movement
       FROM accounts a
-      LEFT JOIN transactions t ON t.account_id = a.id
       WHERE a.tenant_id = ?
-      AND a.is_active = 1
-      GROUP BY a.id
+      AND a.deleted_at IS NULL
       ORDER BY a.name ASC
     `).bind(tenant_id).all()
 
@@ -77,12 +81,12 @@ router.get('/transactions', async (c) => {
       SELECT 
         t.*,
         a.name as account_name,
-        c.name as category_name,
-        c.color as category_color
+        tc.name as category_name
       FROM transactions t
       LEFT JOIN accounts a ON t.account_id = a.id
-      LEFT JOIN transaction_categories c ON t.category_id = c.id
+      LEFT JOIN transaction_categories tc ON t.category_id = tc.id
       WHERE t.tenant_id = ?
+      AND t.deleted_at IS NULL
       ORDER BY t.date DESC, t.id DESC
       LIMIT 100
     `).bind(tenant_id).all()
@@ -240,10 +244,12 @@ router.get('/stats', async (c) => {
     // Toplam bakiyeler
     const balances = await db.prepare(`
       SELECT 
-        SUM(current_balance) as total_balance,
+        SUM(balance_calculated) as total_balance,
         COUNT(*) as total_accounts
       FROM accounts 
-      WHERE tenant_id = ? AND is_active = 1
+      WHERE tenant_id = ? 
+      AND deleted_at IS NULL
+      AND status = 'active'
     `).bind(tenant_id).first()
 
     // Günlük işlemler
@@ -254,13 +260,25 @@ router.get('/stats', async (c) => {
         COUNT(*) as transaction_count
       FROM transactions
       WHERE tenant_id = ?
-      AND date(date) = date('now')
+      AND DATE(date) = DATE('now')
+      AND status = 'completed'
+      AND deleted_at IS NULL
+    `).bind(tenant_id).first()
+
+    // Bekleyen tahsilatlar (orders tablosundan)
+    const pendingPayments = await db.prepare(`
+      SELECT SUM(total_amount - paid_amount) as total
+      FROM orders
+      WHERE tenant_id = ?
+      AND status NOT IN ('cancelled', 'delivered')
+      AND payment_status = 'pending'
+      AND deleted_at IS NULL
     `).bind(tenant_id).first()
 
     return c.json({
-      balances,
-      dailyStats,
-      timestamp: new Date().toISOString()
+      balances: balances || { total_balance: 0, total_accounts: 0 },
+      dailyStats: dailyStats || { income: 0, expense: 0, transaction_count: 0 },
+      pendingPayments: pendingPayments?.total || 0
     })
   } catch (error) {
     return c.json({ error: 'Database error' }, 500)

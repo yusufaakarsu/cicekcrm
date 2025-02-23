@@ -1,7 +1,7 @@
 -- Core System Triggers
 -- Yeni tenant oluşturulduğunda otomatik ayarlar oluştur
-CREATE TRIGGER trg_after_tenant_insert AFTER INSERT ON tenants 
-FOR EACH ROW
+CREATE TRIGGER trg_after_tenant_insert 
+AFTER INSERT ON tenants 
 BEGIN
     -- Varsayılan ayarlar oluştur
     INSERT INTO tenant_settings (tenant_id, require_stock, track_recipes)
@@ -17,8 +17,8 @@ BEGIN
 END;
 
 -- Tenant silinmeden önce ilişkili kayıtları kontrol et
-CREATE TRIGGER trg_before_tenant_delete BEFORE DELETE ON tenants 
-FOR EACH ROW
+CREATE TRIGGER trg_before_tenant_delete 
+BEFORE DELETE ON tenants 
 BEGIN
     SELECT CASE
         -- Aktif kullanıcı kontrolü
@@ -31,9 +31,31 @@ BEGIN
     END;
 END;
 
--- User işlemlerini logla
-CREATE TRIGGER trg_after_user_change AFTER INSERT OR UPDATE ON users 
-FOR EACH ROW
+-- User INSERT işlemlerini logla
+CREATE TRIGGER trg_after_user_insert
+AFTER INSERT ON users 
+BEGIN
+    INSERT INTO audit_log (
+        tenant_id, 
+        user_id, 
+        action, 
+        table_name, 
+        record_id, 
+        new_data
+    )
+    VALUES (
+        NEW.tenant_id,
+        NEW.id,
+        'INSERT',
+        'users',
+        NEW.id,
+        json_object('role', NEW.role, 'is_active', NEW.is_active)
+    );
+END;
+
+-- User UPDATE işlemlerini logla
+CREATE TRIGGER trg_after_user_update
+AFTER UPDATE ON users 
 BEGIN
     INSERT INTO audit_log (
         tenant_id, 
@@ -47,23 +69,17 @@ BEGIN
     VALUES (
         NEW.tenant_id,
         NEW.id,
-        CASE 
-            WHEN NEW.id IS NULL THEN 'INSERT'
-            ELSE 'UPDATE' 
-        END,
+        'UPDATE',
         'users',
         NEW.id,
-        CASE 
-            WHEN OLD.id IS NOT NULL THEN json_object('role', OLD.role, 'is_active', OLD.is_active)
-            ELSE NULL 
-        END,
+        json_object('role', OLD.role, 'is_active', OLD.is_active),
         json_object('role', NEW.role, 'is_active', NEW.is_active)
     );
 END;
 
 -- Settings değişikliklerini logla
-CREATE TRIGGER trg_after_settings_update AFTER UPDATE ON tenant_settings
-FOR EACH ROW
+CREATE TRIGGER trg_after_settings_update 
+AFTER UPDATE ON tenant_settings
 BEGIN
     INSERT INTO audit_log (
         tenant_id, 
@@ -90,3 +106,4 @@ BEGIN
         )
     );
 END;
+

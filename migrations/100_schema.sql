@@ -405,8 +405,8 @@ CREATE TABLE orders (
     FOREIGN KEY (address_id) REFERENCES addresses(id),
     FOREIGN KEY (card_message_id) REFERENCES card_messages(id),
     FOREIGN KEY (created_by) REFERENCES users(id),
-    FOREIGN KEY (updated_by) REFERENCES users(id)
-    FOREIGN KEY (delivered_by) REFERENCES users(id);
+    FOREIGN KEY (updated_by) REFERENCES users(id),
+    FOREIGN KEY (delivered_by) REFERENCES users(id)
 );
 
 -- Sipariş kalemleri (order_items) - orders ve products arasındaki ilişki
