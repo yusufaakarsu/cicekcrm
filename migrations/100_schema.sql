@@ -1,35 +1,40 @@
--- Önce bağımlı tablolar drop edilmeli
+-- 1. Finansal İşlemler (en bağımlı)
 DROP TABLE IF EXISTS transactions;
 DROP TABLE IF EXISTS transaction_categories;
 DROP TABLE IF EXISTS accounts;
 
+-- 2. Sipariş Detayları ve Malzeme Kullanımı
+DROP TABLE IF EXISTS order_items_materials;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS card_messages;
 
+-- 3. Müşteri İlişkili Tablolar
 DROP TABLE IF EXISTS addresses;
+DROP TABLE IF EXISTS card_messages;
 DROP TABLE IF EXISTS recipients;
 DROP TABLE IF EXISTS customers;
 
-DROP TABLE IF EXISTS recipe_items;
-DROP TABLE IF EXISTS recipes;
+-- 4. Ürün ve Reçete Sistemi
+DROP TABLE IF EXISTS product_materials;
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS product_categories;
 
+-- 5. Stok ve Satın Alma Sistemi
 DROP TABLE IF EXISTS stock_movements;
-
 DROP TABLE IF EXISTS purchase_order_items;
 DROP TABLE IF EXISTS purchase_orders;
-drop table if exists raw_material_categories;
 DROP TABLE IF EXISTS raw_materials;
+DROP TABLE IF EXISTS raw_material_categories;
 DROP TABLE IF EXISTS suppliers;
 DROP TABLE IF EXISTS units;
 
+-- 6. Sistem ve Yönetim Tabloları (en bağımsız)
 DROP TABLE IF EXISTS audit_log;
 DROP TABLE IF EXISTS tenant_settings;
-DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS delivery_regions;
+DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS tenants;
+
 
 -- Ana tablolar
 CREATE TABLE tenants (
@@ -141,6 +146,19 @@ CREATE TABLE raw_materials (
     FOREIGN KEY (unit_id) REFERENCES units(id)
 );
 
+CREATE TABLE material_price_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id INTEGER NOT NULL,
+    material_id INTEGER NOT NULL,
+    supplier_id INTEGER NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    valid_from DATE NOT NULL,
+    valid_to DATE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (material_id) REFERENCES raw_materials(id),
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+);
+
 -- Tedarikçiler tablosu 
 CREATE TABLE suppliers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -242,36 +260,18 @@ CREATE TABLE products (
     FOREIGN KEY (category_id) REFERENCES product_categories(id)
 );
 
--- Reçeteler tablosu
-CREATE TABLE recipes (
+-- Ürün-Hammadde ilişkisi (taslak reçete)
+CREATE TABLE product_materials (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tenant_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,         -- hangi ürün için
-    name TEXT NOT NULL,                  -- "Kırmızı Gül Buketi - Standard"
-    labor_cost DECIMAL(10,2) DEFAULT 0,  -- işçilik maliyeti
-    preparation_time INTEGER,            -- hazırlama süresi (dk)
-    instructions TEXT,                   -- hazırlama talimatları
-    notes TEXT,                         -- özel notlar
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    deleted_at DATETIME,
-    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
-    FOREIGN KEY (product_id) REFERENCES products(id)
-);
-
--- Reçete malzemeleri
-CREATE TABLE recipe_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    recipe_id INTEGER NOT NULL,          
-    material_id INTEGER NOT NULL,        -- hammadde referansı
-    quantity DECIMAL(10,2) NOT NULL,     -- standart miktar
-    unit_id INTEGER NOT NULL,            -- birim
-    instructions TEXT,                   -- özel hazırlık talimatı
+    product_id INTEGER NOT NULL,
+    material_id INTEGER NOT NULL,
+    default_quantity DECIMAL(10,2) NOT NULL, -- önerilen miktar
+    is_required BOOLEAN DEFAULT 1, -- zorunlu malzeme mi?
+    notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     deleted_at DATETIME,
-    FOREIGN KEY (recipe_id) REFERENCES recipes(id),
-    FOREIGN KEY (material_id) REFERENCES raw_materials(id),
-    FOREIGN KEY (unit_id) REFERENCES units(id)
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    FOREIGN KEY (material_id) REFERENCES raw_materials(id)
 );
 
 -- Sadece temel müşteri bilgileri
@@ -362,8 +362,7 @@ CREATE TABLE orders (
     -- Teslimat bilgileri
     delivery_date DATE NOT NULL,
     delivery_time TEXT CHECK(delivery_time IN ('morning','afternoon','evening')) NOT NULL,
-    delivery_status TEXT CHECK(delivery_status IN ('pending','assigned','in_progress','completed','failed')) DEFAULT 'pending',
-    
+ 
     -- Sipariş durumu
     status TEXT CHECK(status IN ('new','confirmed','preparing','ready','delivering','delivered','cancelled')) DEFAULT 'new',
     status_updated_at DATETIME,
@@ -391,6 +390,14 @@ CREATE TABLE orders (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_by INTEGER,
     deleted_at DATETIME,
+
+    prepared_by INTEGER REFERENCES users(id),
+    preparation_start DATETIME,
+    preparation_end DATETIME,
+
+    delivered_at DATETIME,       -- Teslimat tamamlanma zamanı
+    delivered_by INTEGER,        -- Teslim eden kurye
+    delivery_proof TEXT,         -- Teslimat fotoğrafı/imza
     
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (customer_id) REFERENCES customers(id),
@@ -399,28 +406,39 @@ CREATE TABLE orders (
     FOREIGN KEY (card_message_id) REFERENCES card_messages(id),
     FOREIGN KEY (created_by) REFERENCES users(id),
     FOREIGN KEY (updated_by) REFERENCES users(id)
+    FOREIGN KEY (delivered_by) REFERENCES users(id);
 );
 
--- Sipariş kalemleri (optimize edildi)
+-- Sipariş kalemleri (order_items) - orders ve products arasındaki ilişki
 CREATE TABLE order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
-    
-    quantity INTEGER NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
     unit_price DECIMAL(10,2) NOT NULL,
-    discount_amount DECIMAL(10,2) DEFAULT 0,
-    total_price DECIMAL(10,2) NOT NULL,  -- miktar * birim fiyat - indirim
-    
-    recipe_data TEXT,                    -- Reçeteli ürünün o anki içeriği (JSON)
-    customization_notes TEXT,            -- Özelleştirme notları
-    staff_notes TEXT,                    -- İç notlar
-    
+    total_amount DECIMAL(10,2) NOT NULL,
+    notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     deleted_at DATETIME,
-    
     FOREIGN KEY (order_id) REFERENCES orders(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+-- Sipariş malzemeleri (kesin reçete)
+CREATE TABLE order_items_materials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL, 
+    order_item_id INTEGER NOT NULL,     -- Hangi sipariş kalemine ait
+    material_id INTEGER NOT NULL,       -- Hangi ham madde
+    quantity DECIMAL(10,2) NOT NULL,    -- Kullanılan miktar
+    unit_price DECIMAL(10,2) NOT NULL,  -- Birim fiyat
+    total_amount DECIMAL(10,2) NOT NULL,-- Toplam tutar
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    FOREIGN KEY (order_item_id) REFERENCES order_items(id),
+    FOREIGN KEY (material_id) REFERENCES raw_materials(id)
 );
 
 -- Para hesapları (kasa, banka vs)
