@@ -92,22 +92,24 @@ router.get('/orders/:id', async (c) => {
 router.post('/orders', async (c) => {
     const db = c.get('db');
     const tenant_id = c.get('tenant_id');
-    const user_id = c.get('user_id') || 1; // Geçici çözüm
+    const user_id = c.get('user_id') || 1;
     
     try {
         const data = await c.req.json();
         const { supplier_id, order_date, notes, items } = data;
 
+        console.log('Request data:', { supplier_id, order_date, notes, items });
+
         // Validasyon
-        if (!supplier_id || !order_date || !items?.length) {
+        if (!supplier_id || !order_date || !Array.isArray(items) || items.length === 0) {
             return c.json({
                 success: false,
-                error: 'Missing required fields'
+                error: 'Missing or invalid required fields'
             }, 400);
         }
 
-        // Transaction başlat
-        const result = await db.prepare(`
+        // Ana siparişi oluştur
+        const orderResult = await db.prepare(`
             INSERT INTO purchase_orders (
                 tenant_id, supplier_id, order_date, 
                 notes, created_by
@@ -120,10 +122,14 @@ router.post('/orders', async (c) => {
             user_id
         ).run();
 
-        const order_id = result.lastRowId;
+        const order_id = orderResult.lastRowId;
 
         // Kalemleri ekle
         for (const item of items) {
+            if (!item.material_id || !item.quantity || !item.unit_price) {
+                continue; // Hatalı kalemleri atla
+            }
+
             await db.prepare(`
                 INSERT INTO purchase_order_items (
                     order_id, material_id, quantity,

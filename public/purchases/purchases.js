@@ -85,9 +85,7 @@ function filterMaterials() {
     
     filteredMaterials = materials.filter(m => {
         const categoryMatch = !categoryId || m.category_id == categoryId;
-        const searchMatch = !searchText || 
-            m.name.toLowerCase().includes(searchText);
-        
+        const searchMatch = !searchText || m.name.toLowerCase().includes(searchText);
         return categoryMatch && searchMatch;
     });
     
@@ -103,31 +101,14 @@ function renderMaterialButtons() {
         return;
     }
     
-    // Kategorilere göre grupla
-    const groupedMaterials = {};
-    filteredMaterials.forEach(m => {
-        if (!groupedMaterials[m.category_name]) {
-            groupedMaterials[m.category_name] = [];
-        }
-        groupedMaterials[m.category_name].push(m);
-    });
-
-    // Her kategori için ayrı bir bölüm oluştur
-    container.innerHTML = Object.entries(groupedMaterials).map(([category, items]) => `
-        <div class="col-12 mb-3">
-            <h6 class="border-bottom pb-2">${category || 'Kategorisiz'}</h6>
-            <div class="row g-2">
-                ${items.map(m => `
-                    <div class="col-md-3">
-                        <button type="button" 
-                                class="btn btn-outline-primary w-100 text-start" 
-                                onclick="addMaterialToOrder(${m.id})">
-                            <div class="fw-bold">${m.name}</div>
-                            <small class="text-muted d-block">${m.unit_name}</small>
-                        </button>
-                    </div>
-                `).join('')}
-            </div>
+    container.innerHTML = filteredMaterials.map(m => `
+        <div class="col-md-3 mb-2">
+            <button type="button" 
+                    class="btn btn-outline-primary w-100 text-start" 
+                    onclick="addMaterialToOrder(${m.id})">
+                <div class="fw-bold">${m.name}</div>
+                <small class="text-muted d-block">${m.unit_name}</small>
+            </button>
         </div>
     `).join('');
 }
@@ -304,47 +285,45 @@ async function savePurchase() {
         return;
     }
 
-    // Form verilerini kontrol et
-    const supplier_id = form.querySelector('[name="supplier_id"]').value;
-    const order_date = form.querySelector('[name="order_date"]').value;
-    
-    if (!supplier_id || !order_date) {
-        showError('Lütfen tedarikçi ve sipariş tarihini seçin');
-        return;
-    }
-
-    // Kalem kontrolü
-    const items = [];
-    let hasError = false;
-    
-    document.querySelectorAll('#itemsTableBody tr').forEach(row => {
-        const material_id = row.querySelector('[name$="[material_id]"]').value;
-        const quantity = parseFloat(row.querySelector('[name$="[quantity]"]').value);
-        const unit_price = parseFloat(row.querySelector('[name$="[unit_price]"]').value);
-        
-        if (!material_id || !quantity || !unit_price) {
-            hasError = true;
-            return;
-        }
-        
-        items.push({ material_id, quantity, unit_price });
-    });
-
-    if (hasError || items.length === 0) {
-        showError('Lütfen en az bir kalem ekleyin ve tüm alanları doldurun');
-        return;
-    }
-
-    // API isteği gönder
     try {
+        // Form verilerini kontrol et
+        const supplier_id = form.querySelector('[name="supplier_id"]').value;
+        const order_date = form.querySelector('[name="order_date"]').value;
+        
+        if (!supplier_id || !order_date) {
+            throw new Error('Lütfen tedarikçi ve sipariş tarihini seçin');
+        }
+
+        // Kalem verilerini topla
+        const items = [];
+        document.querySelectorAll('#itemsTableBody tr').forEach(row => {
+            const material_id = row.querySelector('[name$="[material_id]"]').value;
+            const quantity = parseFloat(row.querySelector('[name$="[quantity]"]').value);
+            const unit_price = parseFloat(row.querySelector('[name$="[unit_price]"]').value);
+            
+            if (material_id && quantity && unit_price) {
+                items.push({
+                    material_id: parseInt(material_id),
+                    quantity,
+                    unit_price,
+                    notes: null
+                });
+            }
+        });
+
+        if (items.length === 0) {
+            throw new Error('Lütfen en az bir kalem ekleyin');
+        }
+
+        // API isteği gönder
         const response = await fetch(`${API_URL}/purchase/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                supplier_id: supplier_id,
-                order_date: order_date,
-                notes: form.querySelector('[name="notes"]').value,
-                items: items
+                supplier_id: parseInt(supplier_id),
+                order_date,
+                notes: form.querySelector('[name="notes"]').value || null,
+                items
             })
         });
 
@@ -355,7 +334,7 @@ async function savePurchase() {
 
         showSuccess('Satın alma siparişi oluşturuldu');
         purchaseModal.hide();
-        loadPurchases();
+        await loadPurchases();
     } catch (error) {
         console.error('Purchase save error:', error);
         showError('Satın alma siparişi oluşturulamadı: ' + error.message);
