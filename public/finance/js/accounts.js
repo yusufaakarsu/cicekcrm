@@ -48,7 +48,7 @@ function renderAccountSummary(accounts) {
                     <h6 class="card-title text-success">
                         <i class="bi bi-cash"></i> Nakit Kasalar
                     </h6>
-                    <h3 class="mb-2">${formatMoney(totals.cash || 0)}</h3>
+                    <h3 class="mb-2">${formatCurrency(totals.cash || 0)}</h3>
                     <small class="text-muted">
                         ${accounts.filter(a => a.type === 'cash').length} aktif kasa
                     </small>
@@ -65,7 +65,7 @@ function renderAccountSummary(accounts) {
                     <h6 class="card-title text-primary">
                         <i class="bi bi-bank"></i> Banka Hesapları
                     </h6>
-                    <h3 class="mb-2">${formatMoney(totals.bank || 0)}</h3>
+                    <h3 class="mb-2">${formatCurrency(totals.bank || 0)}</h3>
                     <small class="text-muted">
                         ${accounts.filter(a => a.type === 'bank').length} aktif hesap
                     </small>
@@ -82,7 +82,7 @@ function renderAccountSummary(accounts) {
                     <h6 class="card-title text-info">
                         <i class="bi bi-credit-card"></i> POS Hesapları
                     </h6>
-                    <h3 class="mb-2">${formatMoney(totals.pos || 0)}</h3>
+                    <h3 class="mb-2">${formatCurrency(totals.pos || 0)}</h3>
                     <small class="text-muted">
                         ${accounts.filter(a => a.type === 'pos').length} aktif POS
                     </small>
@@ -100,7 +100,7 @@ function renderAccountSummary(accounts) {
                     <h6 class="card-title">
                         <i class="bi bi-wallet2"></i> Toplam Varlık
                     </h6>
-                    <h3 class="mb-2">${formatMoney(total)}</h3>
+                    <h3 class="mb-2">${formatCurrency(total)}</h3>
                     <small class="text-muted">
                         ${accounts.length} aktif hesap
                     </small>
@@ -127,8 +127,8 @@ function renderAccountsTable(accounts) {
                 ${account.bank_name ? `<small class="text-muted">${account.bank_name}</small>` : ''}
             </td>
             <td>${getAccountTypeBadge(account.type)}</td>
-            <td class="text-end">${formatMoney(account.initial_balance)}</td>
-            <td class="text-end fw-bold">${formatMoney(account.balance_calculated)}</td>
+            <td class="text-end">${formatCurrency(account.initial_balance)}</td>
+            <td class="text-end fw-bold">${formatCurrency(account.balance_calculated)}</td>
             <td>${account.last_verified_at ? formatDate(account.last_verified_at) : '-'}</td>
             <td>${getStatusBadge(account.status)}</td>
             <td>
@@ -277,8 +277,8 @@ function renderMovementsTable(movements) {
                     <td>${m.type === 'in' ? 
                         '<span class="text-success">Giriş</span>' : 
                         '<span class="text-danger">Çıkış</span>'}</td>
-                    <td class="text-end">${formatMoney(m.amount)}</td>
-                    <td class="text-end">${formatMoney(m.balance_after)}</td>
+                    <td class="text-end">${formatCurrency(m.amount)}</td>
+                    <td class="text-end">${formatCurrency(m.balance_after)}</td>
                 </tr>
             `).join('')}
         </tbody>

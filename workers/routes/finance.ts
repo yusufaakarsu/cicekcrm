@@ -25,9 +25,67 @@ router.get('/accounts', async (c) => {
       ORDER BY a.name ASC
     `).bind(tenant_id).all()
 
-    return c.json(results)
+    return c.json({ success: true, accounts: results })
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Accounts error:', error)
+    return c.json({ success: false, error: 'Database error' }, 500)
+  }
+})
+
+// Hesap detayı
+router.get('/accounts/:id', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  const id = c.req.param('id')
+
+  try {
+    const account = await db.prepare(`
+      SELECT * FROM accounts
+      WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL
+    `).bind(id, tenant_id).first()
+
+    if (!account) {
+      return c.json({ success: false, error: 'Account not found' }, 404)
+    }
+
+    return c.json({ success: true, account })
+  } catch (error) {
+    console.error('Account detail error:', error)
+    return c.json({ success: false, error: 'Database error' }, 500)
+  }
+})
+
+// Hesap hareketleri
+router.get('/accounts/:id/movements', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  const id = c.req.param('id')
+
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        t.*,
+        COALESCE(
+          (SELECT SUM(CASE WHEN type = 'in' THEN amount ELSE -amount END)
+           FROM transactions 
+           WHERE account_id = ? 
+           AND id <= t.id
+           AND status = 'completed'
+           AND deleted_at IS NULL
+          ), 0
+        ) as balance_after
+      FROM transactions t
+      WHERE t.account_id = ?
+      AND t.tenant_id = ?
+      AND t.deleted_at IS NULL
+      ORDER BY t.date DESC, t.id DESC
+      LIMIT 100
+    `).bind(id, id, tenant_id).all()
+
+    return c.json({ success: true, movements: results })
+  } catch (error) {
+    console.error('Account movements error:', error)
+    return c.json({ success: false, error: 'Database error' }, 500)
   }
 })
 
@@ -244,14 +302,14 @@ router.get('/categories', async (c) => {
   }
 })
 
-// Finansal istatistikler
+// İstatistikler
 router.get('/stats', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
 
   try {
-    // Toplam bakiyeler
-    const balancesResult = await db.prepare(`
+    // Hesap bakiyeleri
+    const balances = await db.prepare(`
       SELECT 
         SUM(balance_calculated) as total_balance,
         COUNT(*) as total_accounts
@@ -261,13 +319,8 @@ router.get('/stats', async (c) => {
       AND status = 'active'
     `).bind(tenant_id).first()
 
-    const balances = balancesResult || { 
-      total_balance: 0, 
-      total_accounts: 0 
-    }
-
     // Günlük işlemler
-    const dailyStatsResult = await db.prepare(`
+    const dailyStats = await db.prepare(`
       SELECT
         COALESCE(SUM(CASE WHEN type = 'in' THEN amount ELSE 0 END), 0) as income,
         COALESCE(SUM(CASE WHEN type = 'out' THEN amount ELSE 0 END), 0) as expense,
@@ -279,37 +332,85 @@ router.get('/stats', async (c) => {
       AND deleted_at IS NULL
     `).bind(tenant_id).first()
 
-    const dailyStats = dailyStatsResult || {
-      income: 0,
-      expense: 0,
-      transaction_count: 0
-    }
+    // Aylık özet
+    const monthlyStats = await db.prepare(`
+      SELECT
+        COALESCE(SUM(CASE WHEN type = 'in' THEN amount ELSE 0 END), 0) as income,
+        COALESCE(SUM(CASE WHEN type = 'out' THEN amount ELSE 0 END), 0) as expense
+      FROM transactions
+      WHERE tenant_id = ?
+      AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
+      AND status = 'completed'
+      AND deleted_at IS NULL
+    `).bind(tenant_id).first()
 
     // Bekleyen tahsilatlar
-    const pendingResult = await db.prepare(`
-      SELECT COALESCE(SUM(total_amount - paid_amount), 0) as total
-      FROM orders
+    const pendingPayments = await db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as total
+      FROM transactions
       WHERE tenant_id = ?
-      AND status NOT IN ('cancelled', 'delivered')
-      AND payment_status = 'pending'
+      AND type = 'in'
+      AND status = 'pending'
       AND deleted_at IS NULL
     `).bind(tenant_id).first()
 
     return c.json({
       success: true,
-      balances,
-      dailyStats,
-      pendingPayments: pendingResult?.total || 0
+      balances: balances || { total_balance: 0, total_accounts: 0 },
+      dailyStats: dailyStats || { income: 0, expense: 0, transaction_count: 0 },
+      monthlyStats: monthlyStats || { income: 0, expense: 0 },
+      pendingPayments: pendingPayments?.total || 0
     })
-
   } catch (error) {
-    console.error('Stats error:', error);
-    return c.json({ 
-      success: false, 
-      error: 'Database error',
-      details: error.message
-    }, 500)
+    console.error('Stats error:', error)
+    return c.json({ success: false, error: 'Database error' }, 500)
   }
 })
+
+// Gelir/Gider grafiği için veri
+router.get('/reports/income-expense', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+
+  try {
+    const { results } = await db.prepare(`
+      WITH RECURSIVE dates(date) AS (
+        SELECT date('now', '-11 months')
+        UNION ALL
+        SELECT date(date, '+1 month')
+        FROM dates
+        WHERE date < date('now')
+      )
+      SELECT 
+        strftime('%Y-%m', dates.date) as month,
+        COALESCE(SUM(CASE WHEN t.type = 'in' THEN t.amount ELSE 0 END), 0) as income,
+        COALESCE(SUM(CASE WHEN t.type = 'out' THEN t.amount ELSE 0 END), 0) as expense
+      FROM dates
+      LEFT JOIN transactions t ON strftime('%Y-%m', t.date) = strftime('%Y-%m', dates.date)
+        AND t.tenant_id = ?
+        AND t.status = 'completed'
+        AND t.deleted_at IS NULL
+      GROUP BY strftime('%Y-%m', dates.date)
+      ORDER BY month ASC
+    `).bind(tenant_id).all()
+
+    // Ayları ve verileri ayır
+    const labels = results.map(r => r.month)
+    const income = results.map(r => r.income)
+    const expense = results.map(r => r.expense)
+
+    return c.json({
+      success: true,
+      labels,
+      income,
+      expense
+    })
+  } catch (error) {
+    console.error('Report error:', error)
+    return c.json({ success: false, error: 'Database error' }, 500)
+  }
+})
+
+// ... Diğer raporlar ve işlemler için benzer endpointler ...
 
 export default router
