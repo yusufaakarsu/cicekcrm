@@ -27,7 +27,7 @@ function renderUsersTable(users) {
     const tbody = document.getElementById('usersTable');
     
     if (!users?.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Kullanıcı bulunamadı</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Kullanıcı bulunamadı</td></tr>';
         return;
     }
 
@@ -35,15 +35,22 @@ function renderUsersTable(users) {
         <tr>
             <td>${user.name}</td>
             <td>${user.email}</td>
-            <td>${getRoleBadge(user.role)}</td>
-            <td>${getStatusBadge(user.status)}</td>
-            <td>${user.last_login ? formatDateTime(user.last_login) : '-'}</td>
             <td>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id})">
+                <span class="badge bg-${user.role === 'admin' ? 'primary' : 'secondary'}">
+                    ${user.role === 'admin' ? 'Yönetici' : 'Personel'}
+                </span>
+            </td>
+            <td>
+                <span class="badge bg-${user.is_active ? 'success' : 'danger'}">
+                    ${user.is_active ? 'Aktif' : 'Pasif'}
+                </span>
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" onclick="editUser(${user.id})">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteUser(${user.id})">
+                    <button class="btn btn-outline-danger ms-1" onclick="deleteUser(${user.id})">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
