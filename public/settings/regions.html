@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teslimat Bölgeleri - Çiçek CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet'>
+</head>
+<body data-page="settings">
+    <div class="d-flex h-100">
+        <div id="mainSidebar" class="position-fixed h-100"></div>
+        
+        <!-- Ana içerik -->
+        <div class="flex-grow-1 p-4" style="margin-left: 200px;">
+            <!-- Üst Başlık -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-geo-alt"></i> Teslimat Bölgeleri</h2>
+                <button class="btn btn-primary" onclick="showNewRegionModal()">
+                    <i class="bi bi-plus-lg"></i> Yeni Bölge
+                </button>
+            </div>
+
+            <div class="row g-4">
+                <!-- Sol Kolon: Bölge Listesi -->
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-transparent">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Bölge Ara..." 
+                                       id="regionSearch" onkeyup="filterRegions()">
+                            </div>
+                        </div>
+                        <div class="list-group list-group-flush" id="regionsList">
+                            <!-- JavaScript ile doldurulacak -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sağ Kolon: Harita -->
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div id="map" style="height: 600px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bölge Modal -->
+    <div class="modal fade" id="regionModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Yeni Teslimat Bölgesi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="regionForm">
+                        <div class="mb-3">
+                            <label class="form-label">Bölge Adı *</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Teslimat Ücreti *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="delivery_fee" 
+                                       min="0" step="0.01" required>
+                                <span class="input-group-text">₺</span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label class="form-label">Min. Süre (dk)</label>
+                                <input type="number" class="form-control" name="min_time" 
+                                       min="0" value="30">
+                            </div>
+                            <div class="col">
+                                <label class="form-label">Max. Süre (dk)</label>
+                                <input type="number" class="form-control" name="max_time" 
+                                       min="0" value="60">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Durum</label>
+                            <select class="form-select" name="status">
+                                <option value="active">Aktif</option>
+                                <option value="passive">Pasif</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notlar</label>
+                            <textarea class="form-control" name="notes" rows="2"></textarea>
+                        </div>
+                        <input type="hidden" name="coordinates" id="coordinates">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveRegion()">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.0/mapbox-gl-draw.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/settings/js/regions.js"></script>
+</body>
+</html>

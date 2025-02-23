@@ -1,0 +1,70 @@
+let templateModal;
+let editingTemplateId = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadSideBar();
+    
+    templateModal = new bootstrap.Modal(document.getElementById('templateModal'));
+    
+    // Tab değişiminde şablonları yükle
+    document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', (e) => {
+            const type = e.target.getAttribute('href').replace('#', '');
+            loadTemplates(type);
+        });
+    });
+
+    // İlk yükleme
+    loadTemplates('sms');
+});
+
+async function loadTemplates(type) {
+    try {
+        const response = await fetch(`${API_URL}/settings/message-templates?type=${type}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        renderTemplates(type, data.templates);
+    } catch (error) {
+        console.error('Templates loading error:', error);
+        showError('Şablonlar yüklenemedi');
+    }
+}
+
+function renderTemplates(type, templates) {
+    const tbody = document.getElementById(`${type}Templates`);
+    
+    if (!templates?.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Şablon bulunamadı</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = templates.map(template => `
+        <tr>
+            <td>${template.name}</td>
+            <td>
+                <small class="text-muted">${template.content}</small>
+            </td>
+            <td>
+                ${template.variables.map(v => `
+                    <span class="badge bg-secondary">${v}</span>
+                `).join(' ')}
+            </td>
+            <td>${formatDateTime(template.updated_at)}</td>
+            <td>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editTemplate(${template.id})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteTemplate(${template.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// ... saveTemplate, editTemplate, deleteTemplate fonksiyonları eklenecek ...
