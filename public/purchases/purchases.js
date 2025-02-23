@@ -80,14 +80,13 @@ async function loadCategories() {
 
 // Ham maddeleri filtrele
 function filterMaterials() {
-    const categoryId = document.getElementById('modalCategoryFilter').value;
-    const searchText = document.getElementById('modalSearchInput').value.toLowerCase();
+    const categoryId = document.getElementById('categoryFilter').value;
+    const searchText = document.getElementById('materialSearch').value.toLowerCase();
     
     filteredMaterials = materials.filter(m => {
         const categoryMatch = !categoryId || m.category_id == categoryId;
         const searchMatch = !searchText || 
-            m.name.toLowerCase().includes(searchText) ||
-            m.description?.toLowerCase().includes(searchText);
+            m.name.toLowerCase().includes(searchText);
         
         return categoryMatch && searchMatch;
     });
@@ -99,16 +98,36 @@ function filterMaterials() {
 function renderMaterialButtons() {
     const container = document.getElementById('materialButtonsContainer');
     
-    container.innerHTML = filteredMaterials.map(m => `
-        <div class="col-md-3 mb-2">
-            <button type="button" 
-                    class="btn btn-outline-primary w-100 text-start" 
-                    onclick="addMaterialToOrder(${m.id})">
-                <div class="fw-bold">${m.name}</div>
-                <small class="text-muted d-block">
-                    ${m.category_name} - ${m.unit_name}
-                </small>
-            </button>
+    if (!filteredMaterials.length) {
+        container.innerHTML = '<div class="col-12"><div class="alert alert-info">Ham madde bulunamadı</div></div>';
+        return;
+    }
+    
+    // Kategorilere göre grupla
+    const groupedMaterials = {};
+    filteredMaterials.forEach(m => {
+        if (!groupedMaterials[m.category_name]) {
+            groupedMaterials[m.category_name] = [];
+        }
+        groupedMaterials[m.category_name].push(m);
+    });
+
+    // Her kategori için ayrı bir bölüm oluştur
+    container.innerHTML = Object.entries(groupedMaterials).map(([category, items]) => `
+        <div class="col-12 mb-3">
+            <h6 class="border-bottom pb-2">${category || 'Kategorisiz'}</h6>
+            <div class="row g-2">
+                ${items.map(m => `
+                    <div class="col-md-3">
+                        <button type="button" 
+                                class="btn btn-outline-primary w-100 text-start" 
+                                onclick="addMaterialToOrder(${m.id})">
+                            <div class="fw-bold">${m.name}</div>
+                            <small class="text-muted d-block">${m.unit_name}</small>
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
         </div>
     `).join('');
 }
@@ -131,10 +150,10 @@ function addMaterialToOrder(materialId) {
     row.innerHTML = `
         <td>
             <input type="hidden" name="items[][material_id]" value="${material.id}">
-            <div class="fw-bold">${material.name}</div>
+            ${material.name}
         </td>
         <td>${material.category_name || '-'}</td>
-        <td style="width: 150px;">
+        <td>
             <div class="input-group input-group-sm">
                 <input type="number" 
                        class="form-control" 
@@ -147,7 +166,7 @@ function addMaterialToOrder(materialId) {
                 <span class="input-group-text">${material.unit_name}</span>
             </div>
         </td>
-        <td style="width: 150px;">
+        <td>
             <div class="input-group input-group-sm">
                 <span class="input-group-text">₺</span>
                 <input type="number" 
@@ -160,10 +179,10 @@ function addMaterialToOrder(materialId) {
                        onchange="calculateRowTotal(this)">
             </div>
         </td>
-        <td class="text-end" style="width: 120px;">
+        <td class="text-end">
             <span class="row-total">0,00 ₺</span>
         </td>
-        <td style="width: 50px;">
+        <td>
             <button type="button" class="btn btn-sm btn-outline-danger"
                     onclick="removeRow(this)">
                 <i class="bi bi-trash"></i>
