@@ -13,21 +13,41 @@ async function loadDatabaseStats() {
         if (!data.success) throw new Error(data.error);
 
         // İstatistikleri güncelle
-        document.getElementById('totalRecords').textContent = data.total_records.toLocaleString();
-        document.getElementById('totalTables').textContent = data.total_tables;
-        document.getElementById('databaseSize').textContent = formatFileSize(data.size);
-        document.getElementById('lastBackup').textContent = data.last_backup 
-            ? formatDateTime(data.last_backup) 
+        document.getElementById('totalRecords').textContent = data.stats.total_records.toLocaleString();
+        document.getElementById('totalTables').textContent = data.stats.total_tables;
+        document.getElementById('databaseSize').textContent = formatFileSize(data.stats.size || 0);
+        document.getElementById('lastBackup').textContent = data.stats.last_backup 
+            ? formatDateTime(data.stats.last_backup) 
             : 'Hiç yedeklenmemiş';
+
     } catch (error) {
         console.error('Database stats error:', error);
         showError('Veritabanı istatistikleri alınamadı');
     }
 }
 
+async function loadTables() {
+    try {
+        const response = await fetch(`${API_URL}/settings/database/tables`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        renderTablesTable(data.tables);
+    } catch (error) {
+        console.error('Tables loading error:', error);
+        showError('Tablo listesi yüklenemedi');
+    }
+}
+
 async function executeQuery() {
     const query = document.getElementById('sqlQuery').value.trim();
     if (!query) return;
+
+    if (!confirm('Bu sorguyu çalıştırmak istediğinize emin misiniz?')) {
+        return;
+    }
 
     try {
         const response = await fetch(`${API_URL}/settings/database/query`, {
@@ -42,6 +62,7 @@ async function executeQuery() {
         if (!data.success) throw new Error(data.error);
 
         renderQueryResult(data.results);
+        showSuccess('Sorgu başarıyla çalıştırıldı');
     } catch (error) {
         console.error('Query error:', error);
         showError('Sorgu çalıştırılamadı: ' + error.message);
@@ -62,7 +83,7 @@ function renderQueryResult(results) {
     resultDiv.innerHTML = `
         <div class="table-responsive">
             <table class="table table-sm table-bordered">
-                <thead>
+                <thead class="table-light">
                     <tr>${columns.map(col => `<th>${col}</th>`).join('')}</tr>
                 </thead>
                 <tbody>
@@ -73,8 +94,54 @@ function renderQueryResult(results) {
                     `).join('')}
                 </tbody>
             </table>
+            <small class="text-muted">Toplam ${results.length} kayıt gösteriliyor</small>
         </div>
     `;
 }
 
-// ... diğer fonksiyonlar eklenecek ...
+async function backupDatabase() {
+    try {
+        const response = await fetch(`${API_URL}/settings/database/backup`, {
+            method: 'POST'
+        });
+        
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        // Yedekleme başarılı, dosyayı indir
+        const backupUrl = data.backup_url;
+        const a = document.createElement('a');
+        a.href = backupUrl;
+        a.download = `backup_${formatDate(new Date())}.sqlite`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        await loadDatabaseStats(); // İstatistikleri güncelle
+        showSuccess('Veritabanı yedeği alındı');
+    } catch (error) {
+        console.error('Backup error:', error);
+        showError('Yedek alınamadı: ' + error.message);
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function refreshTableList() {
+    loadTables();
+    loadDatabaseStats();
+}
+
+// Restore modal için
+function showRestoreModal() {
+    // TODO: Implement restore functionality
+    showError('Bu özellik henüz aktif değil');
+}

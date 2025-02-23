@@ -76,3 +76,44 @@ async function saveTemplate() {
         form.reportValidity();
         return;
     }
+
+    const formData = new FormData(form);
+    const variables = extractVariables(formData.get('content'));
+    const data = {
+        ...Object.fromEntries(formData.entries()),
+        variables
+    };
+
+    try {
+        const url = editingMessageId ? 
+            `${API_URL}/settings/message-templates/${editingMessageId}` : 
+            `${API_URL}/settings/message-templates`;
+
+        const response = await fetch(url, {
+            method: editingMessageId ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
+        messageModal.hide();
+        await loadTemplates(data.type);
+        showSuccess(editingMessageId ? 'Şablon güncellendi' : 'Şablon oluşturuldu');
+
+    } catch (error) {
+        console.error('Template save error:', error);
+        showError('Şablon kaydedilemedi');
+    }
+}
+
+// Mesaj içindeki değişkenleri tespit et
+function extractVariables(content) {
+    const matches = content.match(/{[^}]+}/g);
+    return matches ? matches.map(v => v.replace(/[{}]/g, '')) : [];
+}
+
+// ... saveTemplate, editTemplate, deleteTemplate fonksiyonları eklenecek ...
