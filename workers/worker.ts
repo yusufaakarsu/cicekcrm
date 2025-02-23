@@ -13,9 +13,9 @@ import purchaseRoutes from './routes/purchase'
 
 const app = new Hono()
 
-// CORS - Development için tüm originlere izin ver
+// CORS middleware
 app.use('*', cors({
-    origin: '*', // Development için. Production'da kısıtlanmalı
+    origin: '*',
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
     exposeHeaders: ['Content-Length'],
@@ -23,65 +23,46 @@ app.use('*', cors({
     credentials: true
 }))
 
-// Worker middleware
+// Global middleware
 app.use('*', async (c, next) => {
-    // DB ve tenant tanımlama
     c.set('db', c.env.DB)
-    c.set('tenant_id', 1) // Test için sabit tenant
-    
-    // Request logging
-    console.log(`${c.req.method} ${c.req.url}`)
-    
-    try {
-        await next()
-    } catch (err) {
-        // Error logging
-        console.error('Request failed:', err)
-        throw err
-    }
+    c.set('tenant_id', 1)
+    await next()
 })
 
-// Ana API rotaları
-app.route('/api/finance', financeRoutes)      // Finans ikinci sırada
-app.route('/api/dashboard', dashboardRoutes)  // Dashboard en üstte
-app.route('/api/stock', stockRoutes)          // Stok
-app.route('/api/orders', orderRoutes)         // Siparişler
-app.route('/api/customers', customerRoutes)    // Müşteriler
-app.route('/api/products', productRoutes)      // Ürünler
-app.route('/api/addresses', addressRoutes)     // Adresler
-app.route('/api/suppliers', suppliersRoutes)   // Tedarikçiler
-app.route('/api/materials', materialsRouter)   // Hammaddeler
-app.route('/api/purchase', purchaseRoutes)     // Satın alma
+// API Routes
+const api = new Hono()
+api.route('/finance', financeRoutes)
+api.route('/dashboard', dashboardRoutes)
+api.route('/orders', orderRoutes)
+api.route('/customers', customerRoutes)
+api.route('/products', productRoutes)
+api.route('/stock', stockRoutes)
+api.route('/addresses', addressRoutes)
+api.route('/suppliers', suppliersRoutes)
+api.route('/materials', materialsRouter)
+api.route('/purchase', purchaseRoutes)
 
-app.route('/api/*', async (c) => {
-    // Debug için
-    console.log('API Request:', c.req.url);
+// Mount API routes under /api
+app.route('/api', api)
+
+// Catch-all for API 404s
+app.all('/api/*', (c) => {
+    console.log('404 API:', c.req.url)
     return c.json({
         success: false,
         error: 'API endpoint not found'
-    }, 404);
-});
-
-// Statik dosya serving için
-app.get('*', async (c) => {
-    console.log('Static Request:', c.req.url);
-    // Burada statik dosyaları serve et
-    return c.env.ASSETS.fetch(c.req);
-});
-
-// 404 handler
-app.notFound((c) => {
-    console.log('404 Not Found:', c.req.url)
-    return c.json({
-        success: false,
-        error: 'Not Found',
-        path: c.req.url
     }, 404)
+})
+
+// Static files
+app.get('*', (c) => {
+    return c.env.ASSETS.fetch(c.req)
 })
 
 // Error handler
 app.onError((err, c) => {
-    console.error('Application Error:', err)
+    console.error('App Error:', err)
     return c.json({
         success: false,
         error: 'Server Error',
