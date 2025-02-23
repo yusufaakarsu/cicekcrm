@@ -1,12 +1,15 @@
 let purchaseModal;
 let materials = []; // Ham maddelerin listesi
 let suppliers = []; // Tedarikçilerin listesi
+let categories = []; // Ham madde kategorileri
+let filteredMaterials = []; // Filtrelenmiş ham maddeler
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
     loadSuppliers();
     loadMaterials();
     loadPurchases();
+    loadCategories();
 });
 
 // Tedarikçileri yükle
@@ -50,6 +53,102 @@ async function loadMaterials() {
         console.error('Materials loading error:', error);
         showError('Ham maddeler yüklenemedi');
     }
+}
+
+// Kategorileri yükle
+async function loadCategories() {
+    try {
+        const response = await fetch(`${API_URL}/materials/categories`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        categories = data.categories || [];
+        
+        // Kategori filtresini doldur
+        const categoryFilter = document.getElementById('categoryFilter');
+        categoryFilter.innerHTML = `
+            <option value="">Tüm Kategoriler</option>
+            ${categories.map(c => `
+                <option value="${c.id}">${c.name}</option>
+            `).join('')}
+        `;
+    } catch (error) {
+        console.error('Categories loading error:', error);
+        showError('Kategoriler yüklenemedi');
+    }
+}
+
+// Ham maddeleri filtrele
+function filterMaterials() {
+    const categoryId = document.getElementById('categoryFilter').value;
+    const searchText = document.getElementById('materialSearch').value.toLowerCase();
+    
+    filteredMaterials = materials.filter(m => {
+        const categoryMatch = !categoryId || m.category_id == categoryId;
+        const searchMatch = !searchText || 
+            m.name.toLowerCase().includes(searchText) ||
+            m.description?.toLowerCase().includes(searchText);
+        
+        return categoryMatch && searchMatch;
+    });
+    
+    renderMaterialList();
+}
+
+// Ham madde listesini render et
+function renderMaterialList() {
+    const list = document.getElementById('materialList');
+    list.innerHTML = filteredMaterials.map(m => `
+        <div class="col-md-6 mb-2">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="card-title">${m.name}</h6>
+                    <p class="card-text small text-muted mb-2">
+                        ${m.category_name} - ${m.unit_name}
+                    </p>
+                    <button class="btn btn-sm btn-outline-primary" 
+                            onclick="addMaterialToOrder(${m.id})">
+                        <i class="bi bi-plus"></i> Ekle
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Ham maddeyi siparişe ekle
+function addMaterialToOrder(materialId) {
+    const material = materials.find(m => m.id === materialId);
+    if (!material) return;
+    
+    const tbody = document.getElementById('itemsTableBody');
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>
+            <input type="hidden" name="material_id" value="${material.id}">
+            ${material.name}
+        </td>
+        <td>${material.category_name}</td>
+        <td>
+            <input type="number" class="form-control form-control-sm quantity" 
+                   required min="0.01" step="0.01" onchange="calculateRowTotal(this)">
+        </td>
+        <td>${material.unit_name}</td>
+        <td>
+            <input type="number" class="form-control form-control-sm price" 
+                   required min="0.01" step="0.01" onchange="calculateRowTotal(this)">
+        </td>
+        <td class="text-end">
+            <span class="row-total">0,00 TL</span>
+        </td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    onclick="this.closest('tr').remove(); calculateTotalAmount();">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+    tbody.appendChild(row);
 }
 
 // Satın alma listesini yükle
