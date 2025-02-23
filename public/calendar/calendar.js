@@ -81,7 +81,7 @@ function renderMonthView() {
     // İki farklı takvim yapısı - Mobil/Desktop
     let html = `
         <!-- Desktop Takvim (md breakpoint üstünde görünür) -->
-        <div class="p-3 d-none d-md-block">
+        <div class="p-1 d-none d-md-block">
             <table class="w-100">
                 <thead>
                     <tr>
@@ -113,13 +113,13 @@ function renderMonthView() {
                         <div class="card h-100 ${isToday ? 'border-primary' : ''}" 
                              onclick="switchToDay('${formatDateISO(currentDate)}')"
                              data-date="${formatDateISO(currentDate)}">
-                            <div class="card-header p-2 ${isToday ? 'bg-primary text-white' : ''}">
+                            <div class="card-header p-1 ${isToday ? 'bg-primary text-white' : ''}">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <strong>${date}</strong>
                                     <span class="badge bg-warning text-dark total-orders">0</span>
                                 </div>
                             </div>
-                            <div class="card-body p-2">
+                            <div class="card-body p-1">
                                 <div class="d-flex flex-column gap-1">
                                     <div class="d-flex justify-content-between">
                                         <small><i class="bi bi-sunrise text-warning"></i></small>
@@ -160,7 +160,7 @@ function renderMonthView() {
                             <div class="card h-100 ${isToday ? 'border-primary' : ''}" 
                                  onclick="switchToDay('${formatDateISO(currentDate)}')"
                                  data-date="${formatDateISO(currentDate)}">
-                                <div class="card-header p-2 ${isToday ? 'bg-primary text-white' : ''}">
+                                <div class="card-header p-1 ${isToday ? 'bg-primary text-white' : ''}">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
                                             <strong>${i + 1}</strong>
@@ -169,7 +169,7 @@ function renderMonthView() {
                                         <span class="badge bg-warning text-dark total-orders">0</span>
                                     </div>
                                 </div>
-                                <div class="card-body p-2">
+                                <div class="card-body p-1">
                                     <div class="d-flex flex-column gap-1">
                                         <div class="d-flex justify-content-between">
                                             <small><i class="bi bi-sunrise text-warning"></i></small>
