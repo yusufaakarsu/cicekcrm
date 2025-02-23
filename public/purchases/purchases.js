@@ -286,7 +286,6 @@ async function savePurchase() {
     }
 
     try {
-        // Form verilerini kontrol et
         const supplier_id = form.querySelector('[name="supplier_id"]').value;
         const order_date = form.querySelector('[name="order_date"]').value;
         
@@ -296,6 +295,7 @@ async function savePurchase() {
 
         // Kalem verilerini topla
         const items = [];
+
         document.querySelectorAll('#itemsTableBody tr').forEach(row => {
             const material_id = row.querySelector('[name$="[material_id]"]').value;
             const quantity = parseFloat(row.querySelector('[name$="[quantity]"]').value);
@@ -315,7 +315,6 @@ async function savePurchase() {
             throw new Error('Lütfen en az bir kalem ekleyin');
         }
 
-        // API isteği gönder
         const response = await fetch(`${API_URL}/purchase/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -350,7 +349,167 @@ let materialSelectorModal;
 
 // Modal göster
 function showMaterialSelector() {
-    materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));
-    filterMaterials(); // İlk yükleme
-    materialSelectorModal.show();
+
+
+
+
+
+}    materialSelectorModal.show();    filterMaterials(); // İlk yükleme    materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));// Sipariş detaylarını göster
+async function showPurchaseDetails(orderId) {
+    try {
+        const response = await fetch(`${API_URL}/purchase/orders/${orderId}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        // Detay modalı oluştur
+        const modalHtml = `
+            <div class="modal fade" id="purchaseDetailModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Sipariş Detayı #${orderId}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <strong>Tedarikçi:</strong> ${data.order.supplier_name}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Tarih:</strong> ${formatDate(data.order.order_date)}
+                                </div>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Ham Madde</th>
+                                            <th>Miktar</th>
+                                            <th>Birim Fiyat</th>
+                                            <th>Toplam</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.items.map(item => `
+                                            <tr>
+                                                <td>${item.material_name}</td>
+                                                <td>${item.quantity} ${item.unit_name}</td>
+                                                <td>${formatCurrency(item.unit_price)}</td>
+                                                <td>${formatCurrency(item.quantity * item.unit_price)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            ${data.order.notes ? `
+                                <div class="mt-3">
+                                    <strong>Notlar:</strong>
+                                    <p>${data.order.notes}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Varsa eski modalı kaldır
+        const oldModal = document.getElementById('purchaseDetailModal');
+        if (oldModal) oldModal.remove();
+
+        // Yeni modalı ekle ve göster
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('purchaseDetailModal'));
+        modal.show();
+
+    } catch (error) {
+        console.error('Purchase detail error:', error);
+        showError('Sipariş detayları yüklenemedi');
+    }
+}
+
+// Mal kabul modalını göster
+async function showReceiveModal(orderId) {
+    try {
+        const response = await fetch(`${API_URL}/purchase/orders/${orderId}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        // Mal kabul modalı oluştur
+        const modalHtml = `
+            <div class="modal fade" id="receiveModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Mal Kabul - Sipariş #${orderId}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="receiveForm">
+                                <input type="hidden" name="order_id" value="${orderId}">
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Ham Madde</th>
+                                                <th>Sipariş Miktarı</th>
+                                                <th>Gelen Miktar</th>
+                                                <th>Birim</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.items.map(item => `
+                                                <tr>
+                                                    <td>${item.material_name}</td>
+                                                    <td>${item.quantity}</td>
+                                                    <td>
+                                                        <input type="number" 
+                                                               class="form-control form-control-sm"
+                                                               name="items[${item.id}]"
+                                                               value="${item.quantity}"
+                                                               min="0"
+                                                               step="0.01">
+                                                    </td>
+                                                    <td>${item.unit_name}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Notlar</label>
+                                    <textarea class="form-control" name="notes" rows="2"></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                            <button type="button" class="btn btn-primary" onclick="saveReceive()">Kaydet</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Varsa eski modalı kaldır
+        const oldModal = document.getElementById('receiveModal');
+        if (oldModal) oldModal.remove();
+
+        // Yeni modalı ekle ve göster
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('receiveModal'));
+        modal.show();
+
+    } catch (error) {
+        console.error('Receive modal error:', error);
+        showError('Mal kabul formu yüklenemedi');
+    }
 }

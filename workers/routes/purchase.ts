@@ -13,11 +13,9 @@ router.get('/orders', async (c) => {
                 po.*,
                 s.name as supplier_name,
                 u.name as created_by_name,
-                COALESCE((
-                    SELECT SUM(quantity * unit_price)
-                    FROM purchase_order_items
-                    WHERE order_id = po.id AND deleted_at IS NULL
-                ), 0) as total_amount
+                (SELECT COALESCE(SUM(quantity * unit_price), 0) 
+                 FROM purchase_order_items 
+                 WHERE order_id = po.id AND deleted_at IS NULL) as total_amount
             FROM purchase_orders po
             LEFT JOIN suppliers s ON po.supplier_id = s.id
             LEFT JOIN users u ON po.created_by = u.id
