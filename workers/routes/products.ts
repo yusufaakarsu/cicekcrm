@@ -293,6 +293,7 @@ router.post('/', async (c) => {
   const tenant_id = c.get('tenant_id')
   
   try {
+    // 1. Ürünü kaydet
     const result = await db.prepare(`
       INSERT INTO products (
         tenant_id, category_id, name, description,
@@ -307,10 +308,27 @@ router.post('/', async (c) => {
       body.status || 'active'
     ).run()
 
-    return c.json({
-      success: true,
-      id: result.meta?.last_row_id
-    })
+    const product_id = result.meta?.last_row_id
+    if (!product_id) throw new Error('Ürün ID alınamadı')
+
+    // 2. Malzemeleri kaydet
+    if (body.materials?.length) {
+      for (const material of body.materials) {
+        await db.prepare(`
+          INSERT INTO product_materials (
+            product_id, material_id, default_quantity, 
+            is_required, created_at
+          ) VALUES (?, ?, ?, ?, datetime('now'))
+        `).bind(
+          product_id,
+          material.material_id,
+          material.quantity,
+          material.is_required
+        ).run()
+      }
+    }
+
+    return c.json({ success: true, id: product_id })
   } catch (error) {
     return c.json({ 
       success: false, 
