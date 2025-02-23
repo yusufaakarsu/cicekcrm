@@ -80,8 +80,8 @@ async function loadCategories() {
 
 // Ham maddeleri filtrele
 function filterMaterials() {
-    const categoryId = document.getElementById('categoryFilter').value;
-    const searchText = document.getElementById('materialSearch').value.toLowerCase();
+    const categoryId = document.getElementById('modalCategoryFilter').value;
+    const searchText = document.getElementById('modalSearchInput').value.toLowerCase();
     
     filteredMaterials = materials.filter(m => {
         const categoryMatch = !categoryId || m.category_id == categoryId;
@@ -92,26 +92,23 @@ function filterMaterials() {
         return categoryMatch && searchMatch;
     });
     
-    renderMaterialList();
+    renderMaterialButtons();
 }
 
-// Ham madde listesini render et
-function renderMaterialList() {
-    const list = document.getElementById('materialList');
-    list.innerHTML = filteredMaterials.map(m => `
-        <div class="col-md-6 mb-2">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h6 class="card-title">${m.name}</h6>
-                    <p class="card-text small text-muted mb-2">
-                        ${m.category_name} - ${m.unit_name}
-                    </p>
-                    <button class="btn btn-sm btn-outline-primary" 
-                            onclick="addMaterialToOrder(${m.id})">
-                        <i class="bi bi-plus"></i> Ekle
-                    </button>
-                </div>
-            </div>
+// Ham madde butonlarını render et
+function renderMaterialButtons() {
+    const container = document.getElementById('materialButtonsContainer');
+    
+    container.innerHTML = filteredMaterials.map(m => `
+        <div class="col-md-3 mb-2">
+            <button type="button" 
+                    class="btn btn-outline-primary w-100 text-start" 
+                    onclick="addMaterialToOrder(${m.id})">
+                <div class="fw-bold">${m.name}</div>
+                <small class="text-muted d-block">
+                    ${m.category_name} - ${m.unit_name}
+                </small>
+            </button>
         </div>
     `).join('');
 }
@@ -122,21 +119,36 @@ function addMaterialToOrder(materialId) {
     if (!material) return;
     
     const tbody = document.getElementById('itemsTableBody');
+    
+    // Eğer bu malzeme zaten eklenmişse uyarı ver
+    const existingRow = tbody.querySelector(`input[value="${material.id}"]`);
+    if (existingRow) {
+        showError('Bu ham madde zaten listeye eklenmiş!');
+        return;
+    }
+    
     const row = document.createElement('tr');
     row.innerHTML = `
         <td>
             <input type="hidden" name="material_id" value="${material.id}">
-            ${material.name}
+            <div class="fw-bold">${material.name}</div>
+            <small class="text-muted">${material.category_name}</small>
         </td>
-        <td>${material.category_name}</td>
         <td>
-            <input type="number" class="form-control form-control-sm quantity" 
-                   required min="0.01" step="0.01" onchange="calculateRowTotal(this)">
+            <div class="input-group input-group-sm">
+                <input type="number" class="form-control quantity" 
+                       required min="0.01" step="0.01" 
+                       onchange="calculateRowTotal(this)">
+                <span class="input-group-text">${material.unit_name}</span>
+            </div>
         </td>
-        <td>${material.unit_name}</td>
         <td>
-            <input type="number" class="form-control form-control-sm price" 
-                   required min="0.01" step="0.01" onchange="calculateRowTotal(this)">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">₺</span>
+                <input type="number" class="form-control price" 
+                       required min="0.01" step="0.01" 
+                       onchange="calculateRowTotal(this)">
+            </div>
         </td>
         <td class="text-end">
             <span class="row-total">0,00 TL</span>
@@ -148,7 +160,9 @@ function addMaterialToOrder(materialId) {
             </button>
         </td>
     `;
+    
     tbody.appendChild(row);
+    materialSelectorModal.hide();
 }
 
 // Satın alma listesini yükle
@@ -337,4 +351,13 @@ async function savePurchase() {
 // Filtreleri uygula
 function applyFilters() {
     loadPurchases();
+}
+
+let materialSelectorModal;
+
+// Modal göster
+function showMaterialSelector() {
+    materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));
+    filterMaterials(); // İlk yükleme
+    materialSelectorModal.show();
 }

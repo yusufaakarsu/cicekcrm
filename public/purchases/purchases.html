@@ -173,7 +173,35 @@
 
             <!-- Ham Madde Seçim Modalı -->
             <div class="modal fade" id="materialSelectorModal" tabindex="-1">
-                <!-- ...material selector modal content... -->
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Ham Madde Seç</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Filtreler -->
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <select class="form-select" id="modalCategoryFilter" onchange="filterMaterials()">
+                                        <option value="">Tüm Kategoriler</option>
+                                        <!-- JavaScript ile doldurulacak -->
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" class="form-control" id="modalSearchInput" 
+                                           onkeyup="filterMaterials()" 
+                                           placeholder="Ham madde ara...">
+                                </div>
+                            </div>
+
+                            <!-- Malzeme Listesi -->
+                            <div class="row" id="materialButtonsContainer">
+                                <!-- JavaScript ile doldurulacak -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
