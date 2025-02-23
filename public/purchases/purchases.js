@@ -279,15 +279,16 @@ function calculateTotalAmount() {
 
 // Satın alma siparişini kaydet
 async function savePurchase() {
-    const form = document.getElementById('purchaseForm');
-    if (!form.checkValidity()) {
-        form.classList.add('was-validated');
-        return;
-    }
-
     try {
-        const supplier_id = form.querySelector('[name="supplier_id"]').value;
+        const form = document.getElementById('purchaseForm');
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+
+        const supplier_id = parseInt(form.querySelector('[name="supplier_id"]').value);
         const order_date = form.querySelector('[name="order_date"]').value;
+        const notes = form.querySelector('[name="notes"]').value || null;
         
         if (!supplier_id || !order_date) {
             throw new Error('Lütfen tedarikçi ve sipariş tarihini seçin');
@@ -295,44 +296,39 @@ async function savePurchase() {
 
         // Kalem verilerini topla
         const items = [];
-
         document.querySelectorAll('#itemsTableBody tr').forEach(row => {
-            const material_id = row.querySelector('[name$="[material_id]"]').value;
+            const material_id = parseInt(row.querySelector('[name$="[material_id]"]').value);
             const quantity = parseFloat(row.querySelector('[name$="[quantity]"]').value);
             const unit_price = parseFloat(row.querySelector('[name$="[unit_price]"]').value);
             
-            if (material_id && quantity && unit_price) {
-                items.push({
-                    material_id: parseInt(material_id),
-                    quantity,
-                    unit_price
-                });
-            }
+            if (!material_id || !quantity || !unit_price) return;
+
+            items.push({ material_id, quantity, unit_price });
         });
 
         if (items.length === 0) {
             throw new Error('Lütfen en az bir kalem ekleyin');
         }
 
+        console.log('Sending data:', { supplier_id, order_date, notes, items });
+
         const response = await fetch(`${API_URL}/purchase/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                supplier_id: parseInt(supplier_id),
-                order_date,
-                notes: form.querySelector('[name="notes"]').value || null,
-                items
-            })
+            body: JSON.stringify({ supplier_id, order_date, notes, items })
         });
 
+        if (!response.ok) throw new Error('API Hatası');
         const result = await response.json();
+        
         if (!result.success) {
             throw new Error(result.error || 'API Hatası');
         }
 
         showSuccess('Satın alma siparişi oluşturuldu');
-        purchaseModal.hide();
+        document.getElementById('purchaseModal').querySelector('.btn-close').click();
         await loadPurchases();
+
     } catch (error) {
         console.error('Purchase save error:', error);
         showError('Satın alma siparişi oluşturulamadı: ' + error.message);
@@ -350,12 +346,12 @@ let materialSelectorModal;
 function showMaterialSelector() {
 
 
+ - düzeltildi
 
-
-
-}    materialSelectorModal.show();    filterMaterials(); // İlk yükleme    materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));// Sipariş detaylarını göster
-async function showPurchaseDetails(orderId) {
-    try {
+    materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));
+}    materialSelectorModal.show();    filterMaterials(); // İlk yükleme    materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));// Sipariş detaylarını göster    filterMaterials(); // İlk yükleme
+async function showPurchaseDetails(orderId) {    materialSelectorModal.show();
+    try {}
         const response = await fetch(`${API_URL}/purchase/orders/${orderId}`);
         if (!response.ok) throw new Error('API Hatası');
         
