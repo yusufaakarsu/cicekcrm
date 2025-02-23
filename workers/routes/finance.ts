@@ -411,6 +411,145 @@ router.get('/reports/income-expense', async (c) => {
   }
 })
 
-// ... Diğer raporlar ve işlemler için benzer endpointler ...
+// Gelir özeti
+router.get('/income/summary', async (c) => {
+  // ... implementation ...
+})
+
+// Gider özeti
+router.get('/expense/summary', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+
+  try {
+    // Bugünkü giderler
+    const todayStats = await db.prepare(`
+      SELECT
+        COALESCE(SUM(amount), 0) as total,
+        COUNT(*) as count
+      FROM transactions
+      WHERE tenant_id = ?
+      AND type = 'out'
+      AND DATE(date) = DATE('now')
+      AND status = 'completed'
+      AND deleted_at IS NULL
+    `).bind(tenant_id).first()
+
+    // Bekleyen ödemeler
+    const upcomingStats = await db.prepare(`
+      SELECT
+        COALESCE(SUM(amount), 0) as total,
+        COUNT(*) as count
+      FROM transactions
+      WHERE tenant_id = ?
+      AND type = 'out'
+      AND status = 'pending'
+      AND deleted_at IS NULL
+    `).bind(tenant_id).first()
+
+    // Aylık toplam
+    const monthlyStats = await db.prepare(`
+      SELECT
+        COALESCE(SUM(amount), 0) as total,
+        COUNT(*) as count
+      FROM transactions
+      WHERE tenant_id = ?
+      AND type = 'out'
+      AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
+      AND status = 'completed'
+      AND deleted_at IS NULL
+    `).bind(tenant_id).first()
+
+    return c.json({
+      success: true,
+      today: {
+        total: todayStats?.total || 0,
+        count: todayStats?.count || 0
+      },
+      upcoming: {
+        total: upcomingStats?.total || 0,
+        count: upcomingStats?.count || 0
+      },
+      monthly: {
+        total: monthlyStats?.total || 0,
+        count: monthlyStats?.count || 0
+      }
+    })
+  } catch (error) {
+    console.error('Expense summary error:', error)
+    return c.json({ success: false, error: 'Database error' }, 500)
+  }
+})
+
+// Gider listesi
+router.get('/expenses', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        t.*,
+        a.name as account_name,
+        s.name as supplier_name,
+        c.name as category_name,
+        c.color as category_color
+      FROM transactions t
+      LEFT JOIN accounts a ON t.account_id = a.id
+      LEFT JOIN suppliers s ON t.supplier_id = s.id
+      LEFT JOIN transaction_categories c ON t.category_id = c.id
+      WHERE t.tenant_id = ?
+      AND t.type = 'out'
+      AND t.deleted_at IS NULL
+      ORDER BY t.date DESC
+      LIMIT 100
+    `).bind(tenant_id).all()
+
+    return c.json({
+      success: true,
+      expenses: results || []
+    })
+  } catch (error) {
+    console.error('Expenses error:', error)
+    return c.json({ success: false, error: 'Database error' }, 500)
+  }
+})
+
+// Ödeme onaylama
+router.post('/expenses/:id/approve', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  const id = c.req.param('id')
+
+  try {
+    const result = await db.prepare(`
+      UPDATE transactions
+      SET status = 'completed',
+          completed_at = datetime('now'),
+          updated_at = datetime('now')
+      WHERE id = ?
+      AND tenant_id = ?
+      AND type = 'out'
+      AND status = 'pending'
+      AND deleted_at IS NULL
+    `).bind(id, tenant_id).run()
+
+    if (!result.success) {
+      throw new Error('Expense approval failed')
+    }
+
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Expense approval error:', error)
+    return c.json({ success: false, error: 'Database error' }, 500)
+  }
+})
+
+// Kategori listesi
+router.get('/categories', async (c) => {
+  // ... implementation ...
+})
+
+// ... other necessary endpoints ...
 
 export default router

@@ -82,4 +82,55 @@ async function loadAccounts() {
     }
 }
 
+async function loadSummary() {
+    try {
+        const response = await fetch(`${API_URL}/finance/income/summary`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        // Özet kartları güncelle
+        document.getElementById('todayIncome').textContent = formatCurrency(data.today_total || 0);
+        document.getElementById('todayCount').textContent = `${data.today_count || 0} işlem`;
+        document.getElementById('pendingIncome').textContent = formatCurrency(data.pending_total || 0);
+        document.getElementById('pendingCount').textContent = `${data.pending_count || 0} bekleyen`;
+        document.getElementById('monthlyIncome').textContent = formatCurrency(data.monthly_total || 0);
+        document.getElementById('monthlyCount').textContent = `${data.monthly_count || 0} işlem`;
+
+    } catch (error) {
+        console.error('Summary loading error:', error);
+        showError('Özet bilgileri yüklenemedi');
+    }
+}
+
+async function loadIncomes(page = 1) {
+    try {
+        const filters = {
+            customer_id: document.getElementById('customerFilter').value,
+            account_id: document.getElementById('accountFilter').value,
+            start_date: document.getElementById('startDate').value,
+            end_date: document.getElementById('endDate').value,
+            status: document.getElementById('statusFilter').value,
+            page,
+            per_page: PER_PAGE
+        };
+
+        const queryString = new URLSearchParams(filters).toString();
+        const response = await fetch(`${API_URL}/finance/income/list?${queryString}`);
+        
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        renderIncomeTable(data.incomes);
+        updatePagination(data.pagination);
+        
+    } catch (error) {
+        console.error('Income loading error:', error);
+        showError('Tahsilatlar yüklenemedi');
+    }
+}
+
 // ... diğer fonksiyonlar (loadIncomes, renderIncomeTable, saveIncome vs.) ...
