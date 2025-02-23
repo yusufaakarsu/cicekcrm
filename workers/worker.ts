@@ -9,6 +9,7 @@ import productRoutes from './routes/products'
 import stockRoutes from './routes/stock'
 import suppliersRoutes from './routes/suppliers'
 import materialsRouter from './routes/materials'
+import purchaseRoutes from './routes/purchase'
 
 const app = new Hono()
 
@@ -41,6 +42,7 @@ app.route('/api/addresses', addressRoutes)
 app.route('/api/products', productRoutes) // Düzeltildi
 app.route('/api/suppliers', suppliersRoutes)  // Yeni route eklendi
 app.route('/api/materials', materialsRouter)
+app.route('/api/purchase', purchaseRoutes)  // Yeni eklendi
 
 // 404 handler - Not Found
 app.notFound((c) => c.json({

@@ -154,7 +154,8 @@ function addMaterialToOrder(materialId) {
 // Satın alma listesini yükle
 async function loadPurchases() {
     try {
-        const response = await fetch(`${API_URL}/stock/orders`);
+        // URL düzeltildi: /stock/orders -> /purchase/orders
+        const response = await fetch(`${API_URL}/purchase/orders`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
@@ -315,7 +316,8 @@ async function savePurchase() {
     })).filter(item => item.material_id && item.quantity && item.unit_price);
 
     try {
-        const response = await fetch(`${API_URL}/stock/purchases`, {
+        // URL düzeltildi: /stock/purchases -> /purchase/orders
+        const response = await fetch(`${API_URL}/purchase/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
