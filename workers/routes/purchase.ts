@@ -8,7 +8,10 @@ router.get('/orders', async (c) => {
     const tenant_id = c.get('tenant_id');
     
     try {
-        const { results } = await db.prepare(`
+        const supplier_id = c.req.query('supplier_id');
+        const date = c.req.query('date');
+        
+        let sql = `
             SELECT 
                 po.*,
                 s.name as supplier_name,
@@ -24,8 +27,23 @@ router.get('/orders', async (c) => {
             LEFT JOIN users u ON po.created_by = u.id
             WHERE po.tenant_id = ? 
             AND po.deleted_at IS NULL
-            ORDER BY po.created_at DESC
-        `).bind(tenant_id).all();
+        `;
+        
+        const params = [tenant_id];
+        
+        if (supplier_id) {
+            sql += ' AND po.supplier_id = ?';
+            params.push(supplier_id);
+        }
+        
+        if (date) {
+            sql += ' AND DATE(po.order_date) = DATE(?)';
+            params.push(date);
+        }
+        
+        sql += ' ORDER BY po.order_date DESC, po.id DESC';
+        
+        const { results } = await db.prepare(sql).bind(...params).all();
         
         return c.json({
             success: true,

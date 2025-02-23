@@ -204,21 +204,25 @@ function renderPurchaseTable(orders) {
         return;
     }
     
+    // Tarihe göre sırala (yeniden eskiye)
+    orders.sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
+    
     tbody.innerHTML = orders.map(order => `
         <tr class="order-row" data-order-id="${order.id}">
-            <td>#${order.id}</td>
+            <td class="text-center">#${order.id}</td>
             <td>${order.supplier_name}</td>
-            <td>${formatDate(order.order_date)}</td>
-            <td class="text-end">${formatCurrency(order.total_amount)}</td>
-            <td class="text-end">
-                <button class="btn btn-sm btn-outline-primary" onclick="toggleOrderDetails(${order.id}, this)">
+            <td class="text-center">${formatDate(order.order_date)}</td>
+            <td class="text-end fw-bold">${formatCurrency(order.total_amount)}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-primary" 
+                        onclick="toggleOrderDetails(${order.id}, this)">
                     <i class="bi bi-chevron-down"></i>
                 </button>
             </td>
         </tr>
         <tr id="details-${order.id}" class="d-none">
             <td colspan="5" class="p-0">
-                <div class="details-content p-3 bg-light"></div>
+                <div class="details-content p-3 bg-light border-top"></div>
             </td>
         </tr>
     `).join('');
@@ -412,8 +416,30 @@ async function savePurchase() {
 }
 
 // Filtreleri uygula
-function applyFilters() {
-    loadPurchases();
+async function applyFilters() {
+    try {
+        const supplier_id = document.getElementById('supplierFilter').value;
+        const date = document.getElementById('dateFilter').value;
+        
+        let url = `${API_URL}/purchase/orders`;
+        const params = new URLSearchParams();
+        
+        if (supplier_id) params.append('supplier_id', supplier_id);
+        if (date) params.append('date', date);
+        
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        renderPurchaseTable(data.orders);
+    } catch (error) {
+        console.error('Filter error:', error);
+        showError('Filtreleme yapılamadı: ' + error.message);
+    }
 }
 
 let materialSelectorModal;
@@ -423,4 +449,29 @@ function showMaterialSelector() {
     materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));
     filterMaterials(); // İlk yükleme
     materialSelectorModal.show();
+}
+
+// Yeni satın alma modalını göster
+function showNewPurchaseModal() {
+    // Mevcut modal varsa kaldır
+    const oldModal = document.querySelector('.modal.show');
+    if (oldModal) {
+        const bsModal = bootstrap.Modal.getInstance(oldModal);
+        if (bsModal) bsModal.hide();
+    }
+    
+    // Yeni modalı oluştur ve göster
+    purchaseModal = new bootstrap.Modal(document.getElementById('purchaseModal'), {
+        backdrop: 'static',
+        keyboard: false
+    });
+    
+    // Form ve tabloyu temizle
+    document.getElementById('purchaseForm').reset();
+    document.getElementById('itemsTableBody').innerHTML = '';
+    document.getElementById('totalAmount').textContent = '0,00 ₺';
+    
+    // Ham madde listesini hazırla
+    filterMaterials();
+    purchaseModal.show();
 }
