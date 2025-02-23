@@ -2,16 +2,36 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// Tüm siparişleri listele - SQL güncellendi
+// Sipariş listesi SQL'i güncellendi
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
   try {
     const { results } = await db.prepare(`
-      SELECT * FROM vw_orders 
-      WHERE tenant_id = ?
-      ORDER BY created_at DESC
+      SELECT 
+        o.*,
+        c.name as customer_name,
+        c.phone as customer_phone,
+        r.name as recipient_name,
+        r.phone as recipient_phone,
+        a.district,
+        a.label as delivery_address,
+        COALESCE(o.total_amount, 0) as total_amount,
+        COALESCE(o.payment_status, 'pending') as payment_status,
+        GROUP_CONCAT(
+          p.name || ' x' || oi.quantity
+        ) as items_summary
+      FROM orders o
+      LEFT JOIN customers c ON o.customer_id = c.id
+      LEFT JOIN recipients r ON o.recipient_id = r.id
+      LEFT JOIN addresses a ON o.address_id = a.id
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN products p ON oi.product_id = p.id
+      WHERE o.tenant_id = ? 
+      AND o.deleted_at IS NULL
+      GROUP BY o.id
+      ORDER BY o.created_at DESC
     `).bind(tenant_id).all()
     
     return c.json({
@@ -45,35 +65,38 @@ router.get('/today', async (c) => {
   }
 })
 
-// Sipariş detayları - SQL güncellendi 
+// Sipariş detay SQL'i güncellendi
 router.get('/:id/details', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   const { id } = c.req.param()
   
   try {
+    // Ana sipariş bilgileri
     const order = await db.prepare(`
       SELECT 
         o.*,
         c.name as customer_name,
         c.phone as customer_phone,
-        a.district as delivery_district,
-        a.city as delivery_city,
-        a.street as delivery_street,
+        r.name as recipient_name,
+        r.phone as recipient_phone,
+        a.district,
+        a.label as delivery_address,
+        a.directions as delivery_directions,
+        COALESCE(o.custom_card_message, cm.content) as card_message,
         GROUP_CONCAT(
           p.name || ' x' || oi.quantity || 
           CASE WHEN oi.notes IS NOT NULL THEN ' (' || oi.notes || ')' ELSE '' END
-        ) as items,
-        COALESCE(o.total_amount, 0) as total_amount,
-        COALESCE(o.payment_status, 'pending') as payment_status,
-        COALESCE(o.delivery_fee, 0) as delivery_fee,
-        COALESCE(o.discount_amount, 0) as discount_amount
+        ) as items
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
-      LEFT JOIN addresses a ON o.delivery_address_id = a.id
+      LEFT JOIN recipients r ON o.recipient_id = r.id
+      LEFT JOIN addresses a ON o.address_id = a.id
+      LEFT JOIN card_messages cm ON o.card_message_id = cm.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       LEFT JOIN products p ON oi.product_id = p.id
       WHERE o.id = ? AND o.tenant_id = ?
+      AND o.deleted_at IS NULL
       GROUP BY o.id
     `).bind(id, tenant_id).first()
 
@@ -81,7 +104,26 @@ router.get('/:id/details', async (c) => {
       return c.json({ error: 'Order not found' }, 404)
     }
 
-    return c.json(order)
+    // Sipariş kalemleri
+    const { results: items } = await db.prepare(`
+      SELECT 
+        oi.*,
+        p.name as product_name,
+        p.description as product_description
+      FROM order_items oi
+      LEFT JOIN products p ON oi.product_id = p.id
+      WHERE oi.order_id = ?
+      AND oi.deleted_at IS NULL
+    `).bind(id).all()
+
+    return c.json({
+      success: true,
+      order: {
+        ...order,
+        items: items || []
+      }
+    })
+
   } catch (error) {
     return c.json({ error: 'Database error' }, 500)
   }
@@ -316,91 +358,78 @@ router.post("/delivery", async (c) => {
   }
 });
 
-// Yeni sipariş oluşturma endpoint'i düzeltildi
+// Yeni sipariş oluşturma SQL'i güncellendi
 router.post('/', async (c) => {
-  const db = c.get('db');
-  const tenant_id = c.get('tenant_id');
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  const user_id = c.get('user_id') // Kullanıcı ID'sini al
   
   try {
-    const body = await c.req.json();
-    console.log('[DEBUG] Gelen sipariş verisi:', body);
-
-    // Veri doğrulama
-    if (!body.customer_id || !body.delivery_date || !body.items?.length) {
-      return c.json({ 
-        success: false, 
-        error: 'Eksik veya hatalı bilgi',
-        received: body
-      }, 400);
-    }
+    const body = await c.req.json()
 
     // 1. Siparişi oluştur
     const orderResult = await db.prepare(`
       INSERT INTO orders (
-        tenant_id, customer_id, delivery_address_id,
-        status, delivery_date, delivery_time_slot,
-        recipient_name, recipient_phone, recipient_alternative_phone,
-        recipient_note, card_message,
-        subtotal, total_amount, payment_method, payment_status,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME('now'), DATETIME('now'))
+        tenant_id, customer_id, recipient_id, address_id,
+        delivery_date, delivery_time,
+        status, payment_method, payment_status,
+        subtotal, delivery_fee, total_amount,
+        custom_card_message, customer_notes,
+        created_by, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `).bind(
       tenant_id,
       body.customer_id,
-      body.delivery_address_id,
-      body.status || 'new',
+      body.recipient_id,
+      body.address_id,
       body.delivery_date,
-      body.delivery_time_slot,
-      body.recipient_name,
-      body.recipient_phone,
-      body.recipient_alternative_phone,
-      body.recipient_note,
-      body.card_message,
-      body.subtotal,
-      body.total_amount,
+      body.delivery_time,
+      'new',
       body.payment_method || 'cash',
-      body.payment_status || 'pending'
-    ).run();
+      'pending',
+      body.subtotal,
+      body.delivery_fee || 0,
+      body.total_amount,
+      body.card_message,
+      body.customer_notes,
+      user_id
+    ).run()
 
-    const orderId = orderResult.meta?.last_row_id;
-    if (!orderId) throw new Error('Sipariş ID alınamadı');
+    const orderId = orderResult.meta?.last_row_id
+    if (!orderId) throw new Error('Sipariş ID alınamadı')
 
     // 2. Sipariş kalemlerini ekle
-    const insertPromises = body.items.map(item => 
-      db.prepare(`
+    for (const item of body.items) {
+      await db.prepare(`
         INSERT INTO order_items (
-          tenant_id, order_id, product_id, 
-          quantity, unit_price, cost_price
-        ) VALUES (?, ?, ?, ?, ?, ?)
+          order_id, product_id, 
+          quantity, unit_price, total_amount,
+          notes, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
-        tenant_id,
         orderId,
         item.product_id,
         item.quantity,
         item.unit_price,
-        item.cost_price || 0
+        item.quantity * item.unit_price,
+        item.notes
       ).run()
-    );
-
-    await Promise.all(insertPromises);
+    }
 
     return c.json({
       success: true,
-      message: 'Sipariş başarıyla oluşturuldu',
-      order: {
-        id: orderId
-      }
-    });
+      order_id: orderId
+    })
 
   } catch (error) {
-    console.error('[Sipariş Hatası]:', error);
+    console.error('[Sipariş Hatası]:', error)
     return c.json({
       success: false,
       error: 'Sipariş oluşturulamadı',
       message: error.message
-    }, 500);
+    }, 500)
   }
-});
+})
 
 // Helper function: Sipariş sayısını getir - SQL güncellendi
 async function getOrdersCount(db: D1Database, tenant_id: number, status?: string, date_filter?: string, start_date?: string, end_date?: string) {
