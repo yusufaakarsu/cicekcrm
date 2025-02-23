@@ -8,6 +8,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 <body data-page="finance">
+    <!-- Debug panel -->
+    <div id="debugPanel" class="position-fixed bottom-0 end-0 p-3 bg-light border" style="display:none;">
+        <small class="d-block mb-1">Last API URL: <span id="lastApiUrl">-</span></small>
+        <small class="d-block">Last Error: <span id="lastError" class="text-danger">-</span></small>
+    </div>
     <div class="d-flex">
         <!-- Sidebar -->
         <div id="mainSidebar"></div>
@@ -144,5 +149,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/common.js"></script>
     <script src="/finance/finance.js"></script>
+    <script>
+        // Debug mode
+        const DEBUG = true;
+        if (DEBUG) {
+            document.getElementById('debugPanel').style.display = 'block';
+        }
+    </script>
 </body>
 </html>

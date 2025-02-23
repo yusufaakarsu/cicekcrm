@@ -77,7 +77,7 @@ router.get('/transactions', async (c) => {
   const tenant_id = c.get('tenant_id')
 
   try {
-    const { results } = await db.prepare(`
+    const result = await db.prepare(`
       SELECT 
         t.*,
         a.name as account_name,
@@ -91,9 +91,18 @@ router.get('/transactions', async (c) => {
       LIMIT 100
     `).bind(tenant_id).all()
 
-    return c.json(results)
+    return c.json({
+      success: true,
+      transactions: result?.results || []
+    })
+
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Transactions error:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      details: error.message 
+    }, 500)
   }
 })
 
@@ -242,7 +251,7 @@ router.get('/stats', async (c) => {
 
   try {
     // Toplam bakiyeler
-    const balances = await db.prepare(`
+    const balancesResult = await db.prepare(`
       SELECT 
         SUM(balance_calculated) as total_balance,
         COUNT(*) as total_accounts
@@ -252,11 +261,16 @@ router.get('/stats', async (c) => {
       AND status = 'active'
     `).bind(tenant_id).first()
 
+    const balances = balancesResult || { 
+      total_balance: 0, 
+      total_accounts: 0 
+    }
+
     // Günlük işlemler
-    const dailyStats = await db.prepare(`
+    const dailyStatsResult = await db.prepare(`
       SELECT
-        SUM(CASE WHEN type = 'in' THEN amount ELSE 0 END) as income,
-        SUM(CASE WHEN type = 'out' THEN amount ELSE 0 END) as expense,
+        COALESCE(SUM(CASE WHEN type = 'in' THEN amount ELSE 0 END), 0) as income,
+        COALESCE(SUM(CASE WHEN type = 'out' THEN amount ELSE 0 END), 0) as expense,
         COUNT(*) as transaction_count
       FROM transactions
       WHERE tenant_id = ?
@@ -265,9 +279,15 @@ router.get('/stats', async (c) => {
       AND deleted_at IS NULL
     `).bind(tenant_id).first()
 
-    // Bekleyen tahsilatlar (orders tablosundan)
-    const pendingPayments = await db.prepare(`
-      SELECT SUM(total_amount - paid_amount) as total
+    const dailyStats = dailyStatsResult || {
+      income: 0,
+      expense: 0,
+      transaction_count: 0
+    }
+
+    // Bekleyen tahsilatlar
+    const pendingResult = await db.prepare(`
+      SELECT COALESCE(SUM(total_amount - paid_amount), 0) as total
       FROM orders
       WHERE tenant_id = ?
       AND status NOT IN ('cancelled', 'delivered')
@@ -276,57 +296,19 @@ router.get('/stats', async (c) => {
     `).bind(tenant_id).first()
 
     return c.json({
-      balances: balances || { total_balance: 0, total_accounts: 0 },
-      dailyStats: dailyStats || { income: 0, expense: 0, transaction_count: 0 },
-      pendingPayments: pendingPayments?.total || 0
+      success: true,
+      balances,
+      dailyStats,
+      pendingPayments: pendingResult?.total || 0
     })
+
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
-  }
-})
-
-// Finansal istatistikler (Ana sayfa için)
-router.get('/stats', async (c) => {
-  const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
-
-  try {
-    // Hesap bakiyeleri
-    const balances = await db.prepare(`
-      SELECT 
-        SUM(current_balance) as total_balance,
-        COUNT(*) as total_accounts
-      FROM accounts 
-      WHERE tenant_id = ? AND is_active = 1
-    `).bind(tenant_id).first()
-
-    // Günlük işlem istatistikleri
-    const dailyStats = await db.prepare(`
-      SELECT
-        SUM(CASE WHEN type = 'in' THEN amount ELSE 0 END) as income,
-        SUM(CASE WHEN type = 'out' THEN amount ELSE 0 END) as expense,
-        COUNT(*) as transaction_count
-      FROM transactions
-      WHERE tenant_id = ?
-      AND DATE(date) = DATE('now')
-    `).bind(tenant_id).first()
-
-    // Bekleyen tahsilatlar
-    const pendingPayments = await db.prepare(`
-      SELECT SUM(amount) as total
-      FROM invoices
-      WHERE tenant_id = ? 
-      AND type = 'receivable'
-      AND status = 'pending'
-    `).bind(tenant_id).first()
-
-    return c.json({
-      balances: balances || { total_balance: 0, total_accounts: 0 },
-      dailyStats: dailyStats || { income: 0, expense: 0, transaction_count: 0 },
-      pendingPayments: pendingPayments?.total || 0
-    })
-  } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Stats error:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      details: error.message
+    }, 500)
   }
 })
 

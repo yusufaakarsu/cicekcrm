@@ -42,16 +42,32 @@ app.use('*', async (c, next) => {
 })
 
 // Ana API rotaları
-app.route('/api/dashboard', dashboardRoutes)  // Dashboard en üstte
 app.route('/api/finance', financeRoutes)      // Finans ikinci sırada
+app.route('/api/dashboard', dashboardRoutes)  // Dashboard en üstte
+app.route('/api/stock', stockRoutes)          // Stok
 app.route('/api/orders', orderRoutes)         // Siparişler
 app.route('/api/customers', customerRoutes)    // Müşteriler
 app.route('/api/products', productRoutes)      // Ürünler
-app.route('/api/stock', stockRoutes)          // Stok
 app.route('/api/addresses', addressRoutes)     // Adresler
 app.route('/api/suppliers', suppliersRoutes)   // Tedarikçiler
 app.route('/api/materials', materialsRouter)   // Hammaddeler
 app.route('/api/purchase', purchaseRoutes)     // Satın alma
+
+app.route('/api/*', async (c) => {
+    // Debug için
+    console.log('API Request:', c.req.url);
+    return c.json({
+        success: false,
+        error: 'API endpoint not found'
+    }, 404);
+});
+
+// Statik dosya serving için
+app.get('*', async (c) => {
+    console.log('Static Request:', c.req.url);
+    // Burada statik dosyaları serve et
+    return c.env.ASSETS.fetch(c.req);
+});
 
 // 404 handler
 app.notFound((c) => {

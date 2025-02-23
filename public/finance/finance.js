@@ -1,5 +1,8 @@
 const API_URL = `${window.location.protocol}//${window.location.host}/api`;
 
+// DEBUG: API URL'ini yazdır
+console.log('API_URL:', API_URL);
+
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
     initFinancePage();
@@ -20,9 +23,17 @@ function initFinancePage() {
 
 async function loadFinanceData() {
     try {
+        console.log('Fetching finance data...');
         const response = await fetch(`${API_URL}/finance/stats`);
-        if (!response.ok) throw new Error('API Hatası');
+        console.log('Response:', response);
+        
+        if (!response.ok) {
+            console.error('API Error:', response.status, response.statusText);
+            throw new Error('API Hatası');
+        }
+        
         const data = await response.json();
+        console.log('Finance data:', data);
 
         // Finansal kartları güncelle
         document.getElementById('totalBalance').textContent = 
@@ -40,6 +51,9 @@ async function loadFinanceData() {
 
     } catch (error) {
         console.error('Finans verisi yüklenirken hata:', error);
+        // Hata durumunda UI'ı güncelle
+        document.getElementById('totalBalance').textContent = 'Hata!';
+        document.getElementById('accountCount').textContent = 'Veriler alınamadı';
     }
 }
 
@@ -53,9 +67,17 @@ function formatMoney(amount) {
 
 async function loadRecentTransactions() {
     try {
+        console.log('Fetching transactions...');
         const response = await fetch(`${API_URL}/finance/transactions`);
-        if (!response.ok) throw new Error('API Hatası');
+        console.log('Transactions response:', response);
+
+        if (!response.ok) {
+            console.error('API Error:', response.status, response.statusText);
+            throw new Error('API Hatası');
+        }
+
         const transactions = await response.json();
+        console.log('Transactions data:', transactions);
 
         const tbody = document.getElementById('recentTransactions').getElementsByTagName('tbody')[0];
         
@@ -74,6 +96,9 @@ async function loadRecentTransactions() {
         }
     } catch (error) {
         console.error('İşlemler yüklenirken hata:', error);
+        // Hata durumunda UI'ı güncelle
+        const tbody = document.getElementById('recentTransactions');
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Veriler alınamadı!</td></tr>';
     }
 }
 
