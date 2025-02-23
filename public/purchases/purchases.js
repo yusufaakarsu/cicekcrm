@@ -154,7 +154,7 @@ function addMaterialToOrder(materialId) {
 // Satın alma listesini yükle
 async function loadPurchases() {
     try {
-        const response = await fetch(`${API_URL}/stock/purchases`);
+        const response = await fetch(`${API_URL}/stock/orders`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
