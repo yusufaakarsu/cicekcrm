@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
     loadMaterials();
     loadUnits();
+    loadCategories(); // Yeni eklendi
     materialModal = new bootstrap.Modal(document.getElementById('materialModal'));
 });
 
@@ -63,6 +64,34 @@ async function loadUnits() {
     } catch (error) {
         console.error('Birimler yüklenemedi:', error);
         showError('Birimler yüklenemedi');
+    }
+}
+
+async function loadCategories() {
+    try {
+        const response = await fetch(`${API_URL}/materials/categories`);
+        if (!response.ok) throw new Error('API Hatası');
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'API Hatası');
+        }
+
+        // Filtre için kategorileri yükle
+        const categoryFilter = document.getElementById('categoryFilter');
+        // Modal form için kategorileri yükle
+        const categorySelect = document.querySelector('select[name="category_id"]');
+        
+        const options = data.categories.map(c => 
+            `<option value="${c.id}">${c.name}</option>`
+        ).join('');
+
+        categoryFilter.innerHTML = `<option value="">Tümü</option>${options}`;
+        categorySelect.innerHTML = `<option value="">Seçiniz</option>${options}`;
+
+    } catch (error) {
+        console.error('Kategoriler yüklenemedi:', error);
+        showError('Kategoriler yüklenemedi');
     }
 }
 

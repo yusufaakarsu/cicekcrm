@@ -20,6 +20,7 @@ DROP TABLE IF EXISTS stock_movements;
 
 DROP TABLE IF EXISTS purchase_order_items;
 DROP TABLE IF EXISTS purchase_orders;
+drop table if exists raw_material_categories;
 DROP TABLE IF EXISTS raw_materials;
 DROP TABLE IF EXISTS suppliers;
 DROP TABLE IF EXISTS units;
@@ -110,6 +111,19 @@ CREATE TABLE units (
     FOREIGN KEY (tenant_id) REFERENCES tenants(id)
 );
 
+-- Ham madde kategorileri tablosu
+CREATE TABLE raw_material_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id INTEGER NOT NULL,
+    name TEXT NOT NULL,                -- Kategori adı (Çiçek, Ambalaj, Aksesuar vs)
+    description TEXT,                  -- Kategori açıklaması
+    display_order INTEGER,             -- Sıralama için
+    status TEXT CHECK(status IN ('active','passive','archived')) DEFAULT 'active',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+);
+
 -- Ham maddeler tablosu
 CREATE TABLE raw_materials (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -122,6 +136,7 @@ CREATE TABLE raw_materials (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     deleted_at DATETIME,
+    category_id INTEGER REFERENCES raw_material_categories(id),
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
     FOREIGN KEY (unit_id) REFERENCES units(id)
 );

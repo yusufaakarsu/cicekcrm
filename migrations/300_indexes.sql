@@ -50,3 +50,6 @@ CREATE INDEX idx_purchase_orders_date ON purchase_orders(tenant_id, order_date, 
 -- Denetim ve loglar
 CREATE INDEX idx_audit_log_tenant ON audit_log(tenant_id, created_at);
 CREATE INDEX idx_audit_log_action ON audit_log(tenant_id, action, table_name, created_at);
+
+CREATE INDEX idx_materials_category ON raw_materials(tenant_id, category_id, status) 
+WHERE deleted_at IS NULL;

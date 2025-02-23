@@ -43,6 +43,12 @@
                             </select>
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label">Kategori</label>
+                            <select class="form-select" id="categoryFilter">
+                                <option value="">Tümü</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label">Birim</label>
                             <select class="form-select" id="unitFilter">
                                 <option value="">Tümü</option>
@@ -116,6 +122,20 @@
                                     <label for="materialUnit">Birim</label>
                                     <div class="invalid-feedback">
                                         Birim seçimi gereklidir
+                                    </div>
+                                </div>
+
+                                <!-- Kategori Seçimi -->
+                                <div class="form-floating mb-3">
+                                    <select class="form-select" 
+                                            id="materialCategory" 
+                                            name="category_id"
+                                            required>
+                                        <option value="">Seçiniz</option>
+                                    </select>
+                                    <label for="materialCategory">Kategori</label>
+                                    <div class="invalid-feedback">
+                                        Kategori seçimi gereklidir
                                     </div>
                                 </div>
 
