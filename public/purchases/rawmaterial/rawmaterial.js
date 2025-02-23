@@ -245,4 +245,36 @@ async function showEditModal(id) {
     }
 }
 
+// Durum güncelleme fonksiyonu
+async function updateMaterialStatus(id, newStatus) {
+    try {
+        const response = await fetch(`${API_URL}/materials/${id}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
+        showSuccess('Durum güncellendi');
+        loadMaterials(); // Listeyi yenile
+        materialModal.hide();
+
+    } catch (error) {
+        console.error('Durum güncelleme hatası:', error);
+        showError('Durum güncellenemedi: ' + error.message);
+    }
+}
+
+// Modal kapatıldığında form sıfırlama
+document.getElementById('materialModal').addEventListener('hidden.bs.modal', () => {
+    document.getElementById('materialForm').reset();
+    document.getElementById('statusGroup').classList.add('d-none');
+});
+
 // ... diğer fonksiyonlar (editMaterial, showStockModal vb) eklenecek
