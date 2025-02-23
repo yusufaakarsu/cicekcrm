@@ -173,7 +173,7 @@ router.get('/:id', async (c) => {
   }
 })
 
-// Ürün listesi 
+// Ürün listesi endpoint'ini düzelt
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -184,34 +184,53 @@ router.get('/', async (c) => {
   const search = searchParams.get('search')
   
   try {
-    let sql = `SELECT * FROM vw_products WHERE tenant_id = ?`
+    let sql = `
+      SELECT 
+        p.*,
+        pc.name as category_name,
+        (
+          SELECT COUNT(*) 
+          FROM product_materials 
+          WHERE product_id = p.id 
+          AND deleted_at IS NULL
+        ) as recipe_count
+      FROM products p
+      LEFT JOIN product_categories pc ON p.category_id = pc.id
+      WHERE p.tenant_id = ?
+      AND p.deleted_at IS NULL
+    `
     const params: any[] = [tenant_id]
 
     if (category_id) {
-      sql += ' AND category_id = ?'
+      sql += ' AND p.category_id = ?'
       params.push(category_id)
     }
 
     if (status) {
-      sql += ' AND status = ?'
+      sql += ' AND p.status = ?'
       params.push(status)
     }
 
     if (search) {
-      sql += ' AND (name LIKE ? OR description LIKE ?)'
+      sql += ' AND (p.name LIKE ? OR p.description LIKE ?)'
       params.push(`%${search}%`, `%${search}%`)
     }
 
-    sql += ' ORDER BY name'
+    sql += ' ORDER BY p.name'
 
     const { results } = await db.prepare(sql).bind(...params).all()
     
     return c.json({
       success: true,
-      products: results
+      products: results || []
     })
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Products list error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      message: error.message 
+    }, 500)
   }
 })
 

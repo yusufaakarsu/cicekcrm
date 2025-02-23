@@ -73,10 +73,16 @@ async function loadProducts() {
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
-        renderProducts(data.products); // data.products'ı gönder
+        if (!data.success) throw new Error(data.error);
+
+        renderProducts(data.products || []); 
+        
     } catch (error) {
         console.error('Products loading error:', error);
         showError('Ürünler yüklenemedi');
+        
+        const tbody = document.getElementById('productsTable');
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Veriler yüklenirken hata oluştu!</td></tr>';
     }
 }
 
