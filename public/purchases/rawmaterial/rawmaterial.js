@@ -44,36 +44,72 @@ async function loadMaterials() {
 
 async function loadUnits() {
     try {
-        const response = await fetch(`${API_URL}/units`);
+        const response = await fetch(`${API_URL}/materials/units`);
         if (!response.ok) throw new Error('API Hatası');
         const data = await response.json();
 
-        // Filtre için
-        const unitFilter = document.getElementById('unitFilter');
-        // Form için
+        if (!data.success) {
+            throw new Error(data.error || 'API Hatası');
+        }
+
         const unitSelect = document.querySelector('select[name="unit_id"]');
-
-        const options = data.units.map(u => 
-            `<option value="${u.id}">${u.name} (${u.code})</option>`
-        ).join('');
-
-        unitFilter.innerHTML += options;
-        unitSelect.innerHTML = options;
+        unitSelect.innerHTML = `
+            <option value="">Birim Seçiniz</option>
+            ${data.units.map(u => `
+                <option value="${u.id}">${u.name} (${u.code})</option>
+            `).join('')}
+        `;
 
     } catch (error) {
-        console.error('Birimler yüklenirken hata:', error);
+        console.error('Birimler yüklenemedi:', error);
         showError('Birimler yüklenemedi');
     }
 }
 
 function showNewMaterialModal() {
     document.getElementById('materialForm').reset();
-    document.querySelector('.modal-title').textContent = 'Yeni Ham Madde';
+    document.querySelector('.modal-title').innerHTML = `
+        <i class="bi bi-box2"></i> Yeni Ham Madde
+    `;
+    loadUnitsForSelect(); // Birimleri yükle
     materialModal.show();
+}
+
+async function loadUnitsForSelect() {
+    try {
+        const response = await fetch(`${API_URL}/units`);
+        if (!response.ok) throw new Error('API Hatası');
+        const data = await response.json();
+
+        const unitSelect = document.querySelector('select[name="unit_id"]');
+        
+        unitSelect.innerHTML = `
+            <option value="">Birim Seçiniz</option>
+            ${data.units.map(u => `
+                <option value="${u.id}" data-code="${u.code}">
+                    ${u.name} (${u.code})
+                </option>
+            `).join('')}
+        `;
+
+        // Select2 veya benzeri bir kütüphane kullanıyorsak
+        // $(unitSelect).select2();
+
+    } catch (error) {
+        console.error('Birimler yüklenemedi:', error);
+        showError('Birimler yüklenemedi');
+    }
 }
 
 async function saveMaterial() {
     const form = document.getElementById('materialForm');
+    
+    // Form validasyonu
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
 
@@ -84,15 +120,19 @@ async function saveMaterial() {
             body: JSON.stringify(data)
         });
 
-        if (!response.ok) throw new Error('API Hatası');
+        const result = await response.json();
 
-        showSuccess('Ham madde kaydedildi');
+        if (!result.success) {
+            throw new Error(result.error || 'API Hatası');
+        }
+
+        showSuccess('Ham madde başarıyla eklendi');
         materialModal.hide();
-        loadMaterials();
+        loadMaterials(); // Listeyi yenile
 
     } catch (error) {
         console.error('Kayıt hatası:', error);
-        showError('Ham madde kaydedilemedi');
+        showError('Ham madde eklenemedi: ' + error.message);
     }
 }
 

@@ -79,47 +79,72 @@
                 </div>
             </div>
 
-            <!-- Ham Madde Modal -->
+            <!-- Modern Ham Madde Modal -->
             <div class="modal fade" id="materialModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Yeni Ham Madde</h5>
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-header border-0 bg-light">
+                            <h5 class="modal-title"></h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <form id="materialForm">
-                                <div class="mb-3">
-                                    <label class="form-label">Ham Madde Adı *</label>
-                                    <input type="text" class="form-control" name="name" required>
+                            <form id="materialForm" class="needs-validation" novalidate>
+                                <!-- Ham Madde Adı -->
+                                <div class="form-floating mb-3">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="materialName" 
+                                           name="name" 
+                                           placeholder="Ham Madde Adı"
+                                           required>
+                                    <label for="materialName">Ham Madde Adı</label>
+                                    <div class="invalid-feedback">
+                                        Ham madde adı gereklidir
+                                    </div>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Birim *</label>
-                                    <select class="form-select" name="unit_id" required>
-                                        <!-- JavaScript ile doldurulacak -->
+
+                                <!-- Birim Seçimi -->
+                                <div class="form-floating mb-3">
+                                    <select class="form-select" 
+                                            id="materialUnit" 
+                                            name="unit_id"
+                                            required>
+                                        <option value="">Seçiniz</option>
                                     </select>
+                                    <label for="materialUnit">Birim</label>
+                                    <div class="invalid-feedback">
+                                        Birim seçimi gereklidir
+                                    </div>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Minimum Stok</label>
-                                    <input type="number" class="form-control" name="min_stock">
+
+                                <!-- Açıklama -->
+                                <div class="form-floating mb-3">
+                                    <textarea class="form-control" 
+                                              id="materialDescription" 
+                                              name="description"
+                                              placeholder="Açıklama"
+                                              style="height: 100px"></textarea>
+                                    <label for="materialDescription">Açıklama</label>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Açıklama</label>
-                                    <textarea class="form-control" name="description" rows="2"></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Durum</label>
-                                    <select class="form-select" name="status">
-                                        <option value="active">Aktif</option>
-                                        <option value="passive">Pasif</option>
-                                        <option value="archived">Arşiv</option>
-                                    </select>
+
+                                <!-- Notlar -->
+                                <div class="form-floating mb-3">
+                                    <textarea class="form-control" 
+                                              id="materialNotes" 
+                                              name="notes"
+                                              placeholder="Notlar"
+                                              style="height: 100px"></textarea>
+                                    <label for="materialNotes">Notlar</label>
                                 </div>
                             </form>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                            <button type="button" class="btn btn-primary" onclick="saveMaterial()">Kaydet</button>
+                        <div class="modal-footer border-0 bg-light">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="bi bi-x-lg me-1"></i> İptal
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="saveMaterial()">
+                                <i class="bi bi-check-lg me-1"></i> Kaydet
+                            </button>
                         </div>
                     </div>
                 </div>
