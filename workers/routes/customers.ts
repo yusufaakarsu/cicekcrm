@@ -234,16 +234,30 @@ router.get('/:id/addresses', async (c) => {
   
   try {
     const { results } = await db.prepare(`
-      SELECT * FROM addresses 
-      WHERE customer_id = ?
-      AND tenant_id = ?
-      AND deleted = 0
-      ORDER BY is_default DESC, created_at DESC
+      SELECT 
+        a.*,
+        COALESCE(r.name, '') as recipient_name,
+        COALESCE(r.phone, '') as recipient_phone,
+        COALESCE(a.label, 'Teslimat Adresi') as label
+      FROM addresses a
+      LEFT JOIN recipients r ON a.recipient_id = r.id
+      WHERE a.customer_id = ?
+      AND a.tenant_id = ?
+      AND a.deleted_at IS NULL
+      ORDER BY a.created_at DESC
     `).bind(id, tenant_id).all()
     
-    return c.json(results || [])
+    return c.json({
+      success: true,
+      addresses: results || []
+    })
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Customer addresses error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      details: error.message
+    }, 500)
   }
 })
 

@@ -756,3 +756,42 @@ async function confirmProducts() {
         showError('Sipariş kaydedilemedi: ' + error.message);
     }
 }
+
+// Ürünleri listele
+function renderProducts(products) {
+    const container = document.getElementById('productList');
+    
+    if (!products || products.length === 0) {
+        container.innerHTML = '<div class="col-12"><div class="alert alert-info">Ürün bulunamadı</div></div>';
+        return;
+    }
+
+    container.innerHTML = products.map(product => `
+        <div class="col-md-3 col-sm-6">
+            <div class="card h-100">
+                ${product.image_url ? `
+                    <img src="${product.image_url}" class="card-img-top" alt="${product.name}">
+                ` : `
+                    <div class="card-img-top bg-light text-center py-4">
+                        <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
+                    </div>
+                `}
+                <div class="card-body">
+                    <h6 class="card-title">${product.name}</h6>
+                    <p class="card-text text-success fw-bold mb-2">
+                        ${formatCurrency(product.base_price)}
+                    </p>
+                    ${product.description ? `
+                        <p class="card-text small text-muted">${product.description}</p>
+                    ` : ''}
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <button type="button" class="btn btn-primary btn-sm w-100" 
+                            onclick='addProduct(${JSON.stringify(product)})'>
+                        <i class="bi bi-plus-lg"></i> Sepete Ekle
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
