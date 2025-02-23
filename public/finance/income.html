@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tahsilat İşlemleri - Çiçek CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body data-page="finance">
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div id="mainSidebar"></div>
+        
+        <!-- Ana içerik -->
+        <div class="flex-grow-1 p-4">
+            <!-- Üst Başlık -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-cash-stack"></i> Tahsilat İşlemleri</h2>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="showNewIncomeModal()">
+                        <i class="bi bi-plus-lg"></i> Yeni Tahsilat
+                    </button>
+                    <button class="btn btn-outline-success" onclick="showBulkIncomeModal()">
+                        <i class="bi bi-list-check"></i> Toplu Tahsilat
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filtreler -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Tarih Aralığı</label>
+                            <div class="input-group">
+                                <input type="date" class="form-control" id="startDate">
+                                <span class="input-group-text">-</span>
+                                <input type="date" class="form-control" id="endDate">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Hesap</label>
+                            <select class="form-select" id="accountFilter">
+                                <option value="">Tümü</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Durum</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">Tümü</option>
+                                <option value="completed">Tamamlandı</option>
+                                <option value="pending">Bekliyor</option>
+                                <option value="cancelled">İptal</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Arama</label>
+                            <input type="text" class="form-control" id="searchInput" 
+                                   placeholder="Müşteri, açıklama...">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-primary w-100" onclick="applyFilters()">
+                                <i class="bi bi-search"></i> Filtrele
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Menü -->
+            <ul class="nav nav-tabs mb-4">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#tahsilatlar">Tahsilatlar</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#cekler">Çek/Senet</a>
+                </li>
+            </ul>
+
+            <!-- Tahsilat Listesi -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Müşteri</th>
+                                    <th>Tutar</th>
+                                    <th>Hesap</th>
+                                    <th>Ödeme Türü</th>
+                                    <th>Durum</th>
+                                    <th>Açıklama</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody id="incomeTable">
+                                <!-- JavaScript ile doldurulacak -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Yeni Tahsilat Modal -->
+    <div class="modal fade" id="incomeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Yeni Tahsilat</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="incomeForm">
+                        <div class="mb-3">
+                            <label class="form-label">Müşteri</label>
+                            <select class="form-select" name="customer_id" required>
+                                <!-- JavaScript ile doldurulacak -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tutar</label>
+                            <input type="number" class="form-control" name="amount" 
+                                   min="0.01" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Hesap</label>
+                            <select class="form-select" name="account_id" required>
+                                <!-- JavaScript ile doldurulacak -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Ödeme Türü</label>
+                            <select class="form-select" name="payment_method" required>
+                                <option value="cash">Nakit</option>
+                                <option value="credit_card">Kredi Kartı</option>
+                                <option value="bank_transfer">Havale/EFT</option>
+                                <option value="check">Çek</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Açıklama</label>
+                            <textarea class="form-control" name="description" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveIncome()">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/finance/js/income.js"></script>
+</body>
+</html>
