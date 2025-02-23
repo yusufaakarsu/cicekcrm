@@ -130,39 +130,55 @@ function addMaterialToOrder(materialId) {
     const row = document.createElement('tr');
     row.innerHTML = `
         <td>
-            <input type="hidden" name="material_id" value="${material.id}">
-            ${material.name}
+            <input type="hidden" name="items[][material_id]" value="${material.id}">
+            <div class="fw-bold">${material.name}</div>
         </td>
-        <td>${material.category_name}</td>
-        <td>
+        <td>${material.category_name || '-'}</td>
+        <td style="width: 150px;">
             <div class="input-group input-group-sm">
-                <input type="number" class="form-control quantity" 
-                       required min="0.01" step="0.01" 
+                <input type="number" 
+                       class="form-control" 
+                       name="items[][quantity]"
+                       value="1"
+                       min="0.01" 
+                       step="0.01" 
+                       required
                        onchange="calculateRowTotal(this)">
                 <span class="input-group-text">${material.unit_name}</span>
             </div>
         </td>
-        <td>
+        <td style="width: 150px;">
             <div class="input-group input-group-sm">
                 <span class="input-group-text">₺</span>
-                <input type="number" class="form-control price" 
-                       required min="0.01" step="0.01" 
+                <input type="number" 
+                       class="form-control" 
+                       name="items[][unit_price]"
+                       value="0"
+                       min="0.01" 
+                       step="0.01" 
+                       required
                        onchange="calculateRowTotal(this)">
             </div>
         </td>
-        <td class="text-end">
-            <span class="row-total">0,00 TL</span>
+        <td class="text-end" style="width: 120px;">
+            <span class="row-total">0,00 ₺</span>
         </td>
-        <td>
+        <td style="width: 50px;">
             <button type="button" class="btn btn-sm btn-outline-danger"
-                    onclick="this.closest('tr').remove(); calculateTotalAmount();">
+                    onclick="removeRow(this)">
                 <i class="bi bi-trash"></i>
             </button>
         </td>
     `;
     
     tbody.appendChild(row);
-    materialSelectorModal.hide();
+    calculateRowTotal(row.querySelector('input[name$="[quantity]"]')); // İlk hesaplama
+}
+
+// Satır sil
+function removeRow(button) {
+    button.closest('tr').remove();
+    calculateTotalAmount();
 }
 
 // Satın alma listesini yükle
@@ -293,8 +309,8 @@ function updateUnitAndPrice(select) {
 // Satır toplamını hesapla
 function calculateRowTotal(input) {
     const row = input.closest('tr');
-    const quantity = parseFloat(row.querySelector('input[type="number"]:first-of-type').value) || 0;
-    const price = parseFloat(row.querySelector('input[type="number"]:last-of-type').value) || 0;
+    const quantity = parseFloat(row.querySelector('input[name$="[quantity]"]').value) || 0;
+    const price = parseFloat(row.querySelector('input[name$="[unit_price]"]').value) || 0;
     const total = quantity * price;
     
     row.querySelector('.row-total').textContent = formatCurrency(total);
@@ -314,23 +330,28 @@ function calculateTotalAmount() {
 async function savePurchase() {
     const form = document.getElementById('purchaseForm');
     if (!form.checkValidity()) {
-        form.reportValidity();
+        form.classList.add('was-validated');
         return;
     }
 
     // Form verilerini topla
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData);
+    const data = {
+        supplier_id: form.querySelector('[name="supplier_id"]').value,
+        order_date: form.querySelector('[name="order_date"]').value,
+        notes: form.querySelector('[name="notes"]').value,
+        items: []
+    };
     
     // Kalem verilerini ekle
-    data.items = Array.from(document.querySelectorAll('#itemsTableBody tr')).map(row => ({
-        material_id: row.querySelector('select').value,
-        quantity: parseFloat(row.querySelector('input[type="number"]:first-of-type').value),
-        unit_price: parseFloat(row.querySelector('input[type="number"]:last-of-type').value)
-    })).filter(item => item.material_id && item.quantity && item.unit_price);
+    document.querySelectorAll('#itemsTableBody tr').forEach(row => {
+        data.items.push({
+            material_id: row.querySelector('[name$="[material_id]"]').value,
+            quantity: parseFloat(row.querySelector('[name$="[quantity]"]').value),
+            unit_price: parseFloat(row.querySelector('[name$="[unit_price]"]').value)
+        });
+    });
 
     try {
-        // URL düzeltildi: /stock/purchases -> /purchase/orders
         const response = await fetch(`${API_URL}/purchase/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -338,13 +359,16 @@ async function savePurchase() {
         });
 
         if (!response.ok) throw new Error('API Hatası');
+        
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
 
+        showSuccess('Satın alma siparişi oluşturuldu');
         purchaseModal.hide();
-        await loadPurchases();
-        showSuccess('Satın alma siparişi başarıyla oluşturuldu');
+        loadPurchases();
     } catch (error) {
         console.error('Purchase save error:', error);
-        showError('Satın alma siparişi oluşturulamadı');
+        showError('Satın alma siparişi oluşturulamadı: ' + error.message);
     }
 }
 
