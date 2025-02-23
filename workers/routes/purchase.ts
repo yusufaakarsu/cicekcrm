@@ -123,18 +123,22 @@ router.post('/orders', async (c) => {
             user_id
         ).run();
 
-        const order_id = orderResult.lastRowId;
+        if (!orderResult.success) {
+            throw new Error('Order creation failed');
+        }
+
+        const order_id = orderResult.meta.last_row_id;
 
         // Kalemleri ekle
+        let itemCount = 0;
         for (const item of items) {
             if (!item.material_id || !item.quantity || !item.unit_price) {
                 continue; // Hatalı kalemleri atla
             }
 
-            await db.prepare(`
+            const itemResult = await db.prepare(`
                 INSERT INTO purchase_order_items (
-                    order_id, material_id, quantity,
-                    unit_price
+                    order_id, material_id, quantity, unit_price
                 ) VALUES (?, ?, ?, ?)
             `).bind(
                 order_id,
@@ -142,11 +146,25 @@ router.post('/orders', async (c) => {
                 item.quantity,
                 item.unit_price
             ).run();
+
+            if (itemResult.success) {
+                itemCount++;
+            }
+        }
+
+        if (itemCount === 0) {
+            // Eğer hiç kalem eklenmediyse siparişi sil
+            await db.prepare(`
+                DELETE FROM purchase_orders WHERE id = ?
+            `).bind(order_id).run();
+
+            throw new Error('No items could be inserted');
         }
 
         return c.json({
             success: true,
             order_id,
+            items_count: itemCount,
             message: 'Purchase order created successfully'
         });
 

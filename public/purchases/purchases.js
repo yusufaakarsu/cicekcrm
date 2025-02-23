@@ -215,19 +215,120 @@ function renderPurchaseTable(orders) {
             <td>${formatCurrency(order.total_amount)}</td>
             <td>${getPurchaseStatusBadge(order.status)}</td>
             <td>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-primary me-1" 
-                            onclick="showPurchaseDetails(${order.id})">
-                        <i class="bi bi-eye"></i>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-outline-secondary" 
+                            onclick="showPurchaseDetails(${order.id})"
+                            data-bs-toggle="tooltip"
+                            title="Sipariş Detayı">
+                        <i class="bi bi-info-circle"></i>
+                        <span class="d-none d-md-inline ms-1">Detay</span>
                     </button>
-                    <button class="btn btn-sm btn-outline-success" 
-                            onclick="showReceiveModal(${order.id})">
-                        <i class="bi bi-box-arrow-in-down"></i>
-                    </button>
+                    ${order.status !== 'received' ? `
+                        <button class="btn btn-sm btn-outline-success" 
+                                onclick="showReceiveModal(${order.id})"
+                                data-bs-toggle="tooltip"
+                                title="Mal Kabul">
+                            <i class="bi bi-box-arrow-in-down"></i>
+                            <span class="d-none d-md-inline ms-1">Mal Kabul</span>
+                        </button>
+                    ` : ''}
+                    ${order.status === 'draft' ? `
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="confirmOrder(${order.id})"
+                                data-bs-toggle="tooltip"
+                                title="Siparişi Onayla">
+                            <i class="bi bi-check2-circle"></i>
+                            <span class="d-none d-md-inline ms-1">Onayla</span>
+                        </button>
+                    ` : ''}
                 </div>
             </td>
         </tr>
     `).join('');
+
+    // Tooltipleri aktifleştir
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+}
+
+// Siparişi onayla
+async function confirmOrder(orderId) {
+    try {
+        const confirmed = await showConfirm(
+            'Sipariş Onayı',
+            'Bu siparişi onaylamak istediğinize emin misiniz?'
+        );
+
+        if (!confirmed) return;
+
+        const response = await fetch(`${API_URL}/purchase/orders/${orderId}/confirm`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+        const result = await response.json();
+        
+        if (result.success) {
+            showSuccess('Sipariş onaylandı');
+            await loadPurchases();
+        } else {
+            throw new Error(result.error);
+        }
+
+    } catch (error) {
+        console.error('Order confirm error:', error);
+        showError('Sipariş onaylanamadı: ' + error.message);
+    }
+}
+
+// Onay modalı göster
+function showConfirm(title, message) {
+    return new Promise((resolve) => {
+        const modalHtml = `
+            <div class="modal fade" id="confirmModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">${title}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">${message}</div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('confirmModal').querySelector('[data-confirm]').click()">Onayla</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Eski modalı temizle
+        const oldModal = document.getElementById('confirmModal');
+        if (oldModal) oldModal.remove();
+
+        // Yeni modalı ekle
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+        
+        // Onay butonunu gizle ve click event'i ekle
+        const confirmButton = document.createElement('button');
+        confirmButton.style.display = 'none';
+        confirmButton.dataset.confirm = true;
+        confirmButton.onclick = () => {
+            modal.hide();
+            resolve(true);
+        };
+        
+        document.getElementById('confirmModal').appendChild(confirmButton);
+        
+        // Modal kapandığında resolve(false)
+        modal._element.addEventListener('hidden.bs.modal', () => {
+            resolve(false);
+        });
+
+        modal.show();
+    });
 }
 
 // Satın alma durumu badge'i
