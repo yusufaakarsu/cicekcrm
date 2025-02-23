@@ -10,6 +10,7 @@ import stockRoutes from './routes/stock'
 import suppliersRoutes from './routes/suppliers'
 import materialsRouter from './routes/materials'
 import purchaseRoutes from './routes/purchase'
+import settingsRoutes from './routes/settings'  // Yeni eklenen
 
 const app = new Hono()
 
@@ -33,6 +34,7 @@ app.use('*', async (c, next) => {
 // API Routes
 const api = new Hono()
 api.route('/finance', financeRoutes)
+api.route('/settings', settingsRoutes)  // Yeni eklenen
 api.route('/dashboard', dashboardRoutes)
 api.route('/orders', orderRoutes)
 api.route('/customers', customerRoutes)

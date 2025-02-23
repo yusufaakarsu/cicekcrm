@@ -51,4 +51,63 @@ function renderUsersTable(users) {
     `).join('');
 }
 
-// ... diğer fonksiyonlar eklenecek ...
+async function saveUser() {
+    const form = document.getElementById('userForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const formData = new FormData(form);
+    const permissions = Array.from(formData.getAll('permissions'));
+    const data = {
+        ...Object.fromEntries(formData.entries()),
+        permissions
+    };
+
+    try {
+        const url = editingUserId ? 
+            `${API_URL}/settings/users/${editingUserId}` : 
+            `${API_URL}/settings/users`;
+
+        const response = await fetch(url, {
+            method: editingUserId ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
+        userModal.hide();
+        await loadUsers();
+        showSuccess(editingUserId ? 'Kullanıcı güncellendi' : 'Kullanıcı oluşturuldu');
+
+    } catch (error) {
+        console.error('User save error:', error);
+        showError('Kullanıcı kaydedilemedi');
+    }
+}
+
+async function deleteUser(id) {
+    if (!confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
+
+    try {
+        const response = await fetch(`${API_URL}/settings/users/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
+        await loadUsers();
+        showSuccess('Kullanıcı silindi');
+    } catch (error) {
+        console.error('User delete error:', error);
+        showError('Kullanıcı silinemedi');
+    }
+}

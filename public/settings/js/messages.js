@@ -1,10 +1,13 @@
 let templateModal;
 let editingTemplateId = null;
+let messageModal;
+let editingMessageId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
     
     templateModal = new bootstrap.Modal(document.getElementById('templateModal'));
+    messageModal = new bootstrap.Modal(document.getElementById('templateModal'));
     
     // Tab değişiminde şablonları yükle
     document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
@@ -67,4 +70,9 @@ function renderTemplates(type, templates) {
     `).join('');
 }
 
-// ... saveTemplate, editTemplate, deleteTemplate fonksiyonları eklenecek ...
+async function saveTemplate() {
+    const form = document.getElementById('templateForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
