@@ -16,33 +16,40 @@ const app = new Hono()
 // CORS middleware ve hata işleyicisi
 app.use('*', cors())
 
+// Worker middleware - DB ve tenant tanımlama
+app.use('*', async (c, next) => {
+    // Debug için tüm istekleri logla
+    console.log('Request:', c.req.method, c.req.url);
+    
+    c.set('db', c.env.DB);
+    c.set('tenant_id', 1); // Test için sabit tenant
+    await next();
+
+    // Response logu
+    console.log('Response:', c.res.status);
+});
+
+// Hata yakalama
 app.onError((err, c) => {
-  console.error(`[Error] ${err.message}`)
-  return c.json({
-    success: false,
-    error: 'Internal Server Error',
-    message: err.message
-  }, 500)
-})
+    console.error('Application Error:', err);
+    return c.json({
+        success: false,
+        error: 'Server Error',
+        message: err.message
+    }, 500);
+});
 
-// Middleware - DB ve tenant tanımlama
-app.use('/api/*', async (c, next) => {
-  c.set('db', c.env.DB)
-  c.set('tenant_id', 1)
-  await next()
-})
-
-// API Routes 
-app.route('/api/stock', stockRoutes)      // Yeni route eklendi
+// API Routes - Sıralama önemli
+app.route('/api/stock', stockRoutes)
 app.route('/api/dashboard', dashboardRoutes)
 app.route('/api/customers', customerRoutes)
 app.route('/api/orders', orderRoutes)
 app.route('/api/finance', financeRoutes)
 app.route('/api/addresses', addressRoutes)
-app.route('/api/products', productRoutes) // Düzeltildi
-app.route('/api/suppliers', suppliersRoutes)  // Yeni route eklendi
+app.route('/api/products', productRoutes)
+app.route('/api/suppliers', suppliersRoutes)
 app.route('/api/materials', materialsRouter)
-app.route('/api/purchase', purchaseRoutes)  // Yeni eklendi
+app.route('/api/purchase', purchaseRoutes) // Purchase route'u en sona eklendi
 
 // 404 handler - Not Found
 app.notFound((c) => c.json({

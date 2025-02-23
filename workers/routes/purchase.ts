@@ -13,13 +13,13 @@ router.get('/orders', async (c) => {
                 po.*,
                 s.name as supplier_name,
                 u.name as created_by_name,
-                (
+                COALESCE((
                     SELECT SUM(quantity * unit_price)
                     FROM purchase_order_items
                     WHERE order_id = po.id AND deleted_at IS NULL
-                ) as total_amount
+                ), 0) as total_amount
             FROM purchase_orders po
-            JOIN suppliers s ON po.supplier_id = s.id
+            LEFT JOIN suppliers s ON po.supplier_id = s.id
             LEFT JOIN users u ON po.created_by = u.id
             WHERE po.tenant_id = ? 
             AND po.deleted_at IS NULL
@@ -28,12 +28,14 @@ router.get('/orders', async (c) => {
         
         return c.json({
             success: true,
-            orders: results
+            orders: results || []
         });
     } catch (error) {
+        console.error('Database error:', error);
         return c.json({ 
             success: false, 
-            error: 'Database error' 
+            error: 'Database error',
+            message: error.message 
         }, 500);
     }
 });
@@ -90,11 +92,11 @@ router.get('/orders/:id', async (c) => {
 router.post('/orders', async (c) => {
     const db = c.get('db');
     const tenant_id = c.get('tenant_id');
-    const user_id = c.get('user_id');
+    const user_id = c.get('user_id') || 1; // Geçici çözüm
     
     try {
-        const body = await c.req.json();
-        const { supplier_id, order_date, notes, items } = body;
+        const data = await c.req.json();
+        const { supplier_id, order_date, notes, items } = data;
 
         // Validasyon
         if (!supplier_id || !order_date || !items?.length) {
@@ -104,8 +106,8 @@ router.post('/orders', async (c) => {
             }, 400);
         }
 
-        // Sipariş oluştur
-        const orderResult = await db.prepare(`
+        // Transaction başlat
+        const result = await db.prepare(`
             INSERT INTO purchase_orders (
                 tenant_id, supplier_id, order_date, 
                 notes, created_by
@@ -114,13 +116,13 @@ router.post('/orders', async (c) => {
             tenant_id,
             supplier_id,
             order_date,
-            notes,
+            notes || null,
             user_id
         ).run();
 
-        const order_id = orderResult.meta?.last_row_id;
+        const order_id = result.lastRowId;
 
-        // Kalemler ekle
+        // Kalemleri ekle
         for (const item of items) {
             await db.prepare(`
                 INSERT INTO purchase_order_items (
@@ -132,20 +134,22 @@ router.post('/orders', async (c) => {
                 item.material_id,
                 item.quantity,
                 item.unit_price,
-                item.notes
+                item.notes || null
             ).run();
         }
 
         return c.json({
             success: true,
-            message: 'Purchase order created successfully',
-            order_id
+            order_id,
+            message: 'Purchase order created successfully'
         });
 
     } catch (error) {
+        console.error('Database error:', error);
         return c.json({ 
             success: false, 
-            error: 'Database error' 
+            error: 'Database error',
+            message: error.message
         }, 500);
     }
 });
