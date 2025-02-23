@@ -2,15 +2,21 @@ import { Hono } from 'hono';
 
 const router = new Hono();
 
-// Tüm ham maddeleri getir
+// Ham maddeleri getir (filtreleme destekli)
 router.get('/', async (c) => {
     const db = c.get('db');
     const tenant_id = c.get('tenant_id');
 
     try {
-        const { results } = await db.prepare(`
+        const url = new URL(c.req.url);
+        const search = url.searchParams.get('search') || '';
+        const category = url.searchParams.get('category') || '';
+        const status = url.searchParams.get('status') || '';
+
+        let sql = `
             SELECT 
                 m.*,
+                c.name as category_name,
                 u.name as unit_name,
                 u.code as unit_code,
                 COALESCE(
@@ -22,11 +28,32 @@ router.get('/', async (c) => {
                     ), 0
                 ) as current_stock
             FROM raw_materials m
+            LEFT JOIN raw_material_categories c ON m.category_id = c.id
             LEFT JOIN units u ON m.unit_id = u.id
             WHERE m.tenant_id = ?
             AND m.deleted_at IS NULL
-            ORDER BY m.name ASC
-        `).bind(tenant_id).all();
+        `;
+
+        const params = [tenant_id];
+
+        if (search) {
+            sql += ` AND m.name LIKE ?`;
+            params.push(`%${search}%`);
+        }
+
+        if (category) {
+            sql += ` AND m.category_id = ?`;
+            params.push(category);
+        }
+
+        if (status) {
+            sql += ` AND m.status = ?`;
+            params.push(status);
+        }
+
+        sql += ` ORDER BY m.name ASC`;
+
+        const { results } = await db.prepare(sql).bind(...params).all();
 
         return c.json({
             success: true,

@@ -1,4 +1,9 @@
 let materialModal;
+let currentFilters = {
+    search: '',
+    category: '',
+    status: ''
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
@@ -10,7 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadMaterials() {
     try {
-        const response = await fetch(`${API_URL}/materials`);
+        const queryParams = new URLSearchParams(currentFilters).toString();
+        const response = await fetch(`${API_URL}/materials?${queryParams}`);
         if (!response.ok) throw new Error('API Hatası');
         const data = await response.json();
 
@@ -19,17 +25,27 @@ async function loadMaterials() {
         if (data.materials?.length > 0) {
             tbody.innerHTML = data.materials.map(m => `
                 <tr>
-                    <td>${m.name}</td>
-                    <td>${m.unit_name}</td>
-                    <td>${m.current_stock || 0} ${m.unit_code}</td>
-                    <td>${m.min_stock || '-'} ${m.unit_code}</td>
-                    <td>${getStatusBadge(m.status)}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary me-2" onclick="editMaterial(${m.id})">
+                        <div class="fw-bold">${m.name}</div>
+                        <div class="small text-muted">${m.description || ''}</div>
+                    </td>
+                    <td>${m.category_name || '-'}</td>
+                    <td>${m.unit_name}</td>
+                    <td>
+                        <span class="badge bg-${m.current_stock <= m.min_stock ? 'danger' : 'success'}">
+                            ${m.current_stock || 0} ${m.unit_code}
+                        </span>
+                    </td>
+                    <td>${getStatusBadge(m.status)}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editMaterial(${m.id})">
                             <i class="bi bi-pencil"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-success" onclick="showStockModal(${m.id})">
+                        <button class="btn btn-sm btn-outline-success me-1" onclick="showStockModal(${m.id})">
                             <i class="bi bi-plus-minus"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteMaterial(${m.id})">
+                            <i class="bi bi-trash"></i>
                         </button>
                     </td>
                 </tr>
@@ -175,6 +191,27 @@ function getStatusBadge(status) {
     };
     const [color, text] = badges[status] || ['secondary', 'Bilinmiyor'];
     return `<span class="badge bg-${color}">${text}</span>`;
+}
+
+function applyFilters() {
+    currentFilters = {
+        search: document.getElementById('searchInput').value,
+        category: document.getElementById('categoryFilter').value,
+        status: document.getElementById('statusFilter').value
+    };
+    loadMaterials();
+}
+
+function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('categoryFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    currentFilters = {
+        search: '',
+        category: '',
+        status: ''
+    };
+    loadMaterials();
 }
 
 // ... diğer fonksiyonlar (editMaterial, showStockModal vb) eklenecek

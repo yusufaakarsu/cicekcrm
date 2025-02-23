@@ -87,53 +87,86 @@ router.get('/:id/details', async (c) => {
   }
 })
 
-// Filtrelenmiş siparişler endpoint'i
+// Filtrelenmiş siparişleri getir
 router.get('/filtered', async (c) => {
     const db = c.get('db');
     const tenant_id = c.get('tenant_id');
 
-    // Query parametrelerini al
-    const { start_date, end_date, date_filter = 'delivery_date' } = c.req.query();
-
-    console.log('Debug - Query params:', { start_date, end_date, date_filter, tenant_id }); // Debug log
-
     try {
-        const query = `
+        // URL parametrelerini al
+        const url = new URL(c.req.url);
+        const page = parseInt(url.searchParams.get('page') || '1');
+        const per_page = parseInt(url.searchParams.get('per_page') || '10');
+        const sort = url.searchParams.get('sort') || 'id_desc';
+        const date_filter = url.searchParams.get('date_filter') || 'all';
+        
+        // Offset hesapla
+        const offset = (page - 1) * per_page;
+
+        // Temel SQL sorgusu
+        let sql = `
             SELECT 
-                o.id,
-                o.delivery_date,
-                o.delivery_time as delivery_time_slot,
-                o.status,
+                o.*,
+                c.name as customer_name,
+                c.phone as customer_phone,
                 r.name as recipient_name,
                 r.phone as recipient_phone,
-                a.district as delivery_district,
+                a.district,
                 a.label as delivery_address,
-                o.card_message_id,
-                o.custom_card_message as card_message,
-                GROUP_CONCAT(p.name || ' x' || oi.quantity) as items
+                GROUP_CONCAT(p.name || ' x' || oi.quantity) as items_summary
             FROM orders o
+            LEFT JOIN customers c ON o.customer_id = c.id
             LEFT JOIN recipients r ON o.recipient_id = r.id
             LEFT JOIN addresses a ON o.address_id = a.id
             LEFT JOIN order_items oi ON o.id = oi.order_id
             LEFT JOIN products p ON oi.product_id = p.id
-            WHERE o.tenant_id = ?
-            AND DATE(o.${date_filter}) BETWEEN ? AND ?
-            AND o.deleted_at IS NULL
-            GROUP BY o.id
-            ORDER BY o.delivery_date ASC, o.delivery_time ASC
+            WHERE o.tenant_id = ? AND o.deleted_at IS NULL
         `;
 
-        console.log('Debug - SQL Query:', query); // Debug log
+        // Tarih filtresi ekle
+        const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        switch(date_filter) {
+            case 'today':
+                sql += ` AND DATE(o.delivery_date) = '${now}'`;
+                break;
+            case 'tomorrow':
+                sql += ` AND DATE(o.delivery_date) = DATE('${now}', '+1 day')`;
+                break;
+            case 'week':
+                sql += ` AND DATE(o.delivery_date) BETWEEN '${now}' AND DATE('${now}', '+7 days')`;
+                break;
+            // Diğer filtreler eklenebilir...
+        }
 
-        const { results } = await db.prepare(query)
-            .bind(tenant_id, start_date, end_date)
+        // Grup ve sıralama
+        sql += ` GROUP BY o.id `;
+        
+        // Sıralama
+        sql += ` ORDER BY o.${sort.includes('desc') ? 'id DESC' : 'id ASC'}`;
+
+        // Sayfalama
+        sql += ` LIMIT ? OFFSET ?`;
+
+        // Sorguyu çalıştır
+        const { results } = await db.prepare(sql)
+            .bind(tenant_id, per_page, offset)
             .all();
 
-        console.log('Debug - Results:', results); // Debug log
+        // Toplam kayıt sayısını al
+        const { total } = await db.prepare(`
+            SELECT COUNT(*) as total FROM orders 
+            WHERE tenant_id = ? AND deleted_at IS NULL
+        `).bind(tenant_id).first();
 
         return c.json({
             success: true,
-            orders: results || []
+            orders: results || [],
+            pagination: {
+                total,
+                page,
+                per_page,
+                total_pages: Math.ceil(total / per_page)
+            }
         });
 
     } catch (error) {
