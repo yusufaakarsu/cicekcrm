@@ -9,86 +9,92 @@
     <link href="/css/style.css" rel="stylesheet">
 </head>
 <body data-page="finance">
-    <div id="mainSidebar"></div>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div id="mainSidebar"></div>
 
-    <div class="container mt-5 pt-4">
-        <!-- Finansal Özet -->
-        <div class="row g-3">
-            <div class="col-md-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title"><i class="bi bi-graph-up"></i> Günlük Ciro</h5>
-                        <p class="card-text h3" id="dailyRevenue">Yükleniyor...</p>
+        <!-- Ana içerik -->
+        <div class="flex-grow-1 p-4">
+            <div class="container p-4">
+                <!-- Finansal Özet -->
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-graph-up"></i> Günlük Ciro</h5>
+                                <p class="card-text h3" id="dailyRevenue">Yükleniyor...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-cash"></i> Bekleyen Ödemeler</h5>
+                                <p class="card-text h3" id="pendingPayments">Yükleniyor...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-currency-dollar"></i> Aylık Gelir</h5>
+                                <p class="card-text h3" id="monthlyIncome">Yükleniyor...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-reception-4"></i> Kar Marjı</h5>
+                                <p class="card-text h3" id="profitMargin">Yükleniyor...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title"><i class="bi bi-cash"></i> Bekleyen Ödemeler</h5>
-                        <p class="card-text h3" id="pendingPayments">Yükleniyor...</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title"><i class="bi bi-currency-dollar"></i> Aylık Gelir</h5>
-                        <p class="card-text h3" id="monthlyIncome">Yükleniyor...</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title"><i class="bi bi-reception-4"></i> Kar Marjı</h5>
-                        <p class="card-text h3" id="profitMargin">Yükleniyor...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Ödeme Durumu ve İşlemler -->
-        <div class="row g-3 mt-4">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Son İşlemler</h5>
+                <!-- Ödeme Durumu ve İşlemler -->
+                <div class="row g-3 mt-4">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Son İşlemler</h5>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table" id="recentTransactions">
+                                    <thead>
+                                        <tr>
+                                            <th>Tarih</th>
+                                            <th>Sipariş No</th>
+                                            <th>Müşteri</th>
+                                            <th>Tutar</th>
+                                            <th>Durum</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="5" class="text-center">Yükleniyor...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table" id="recentTransactions">
-                            <thead>
-                                <tr>
-                                    <th>Tarih</th>
-                                    <th>Sipariş No</th>
-                                    <th>Müşteri</th>
-                                    <th>Tutar</th>
-                                    <th>Durum</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td colspan="5" class="text-center">Yükleniyor...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Ödeme Durumu</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="paymentStatusChart"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Ödeme Durumu</h5>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="paymentStatusChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div class="alert alert-info mt-4" id="status">
-            <i class="bi bi-info-circle"></i> Durum: Yükleniyor...
+                <div class="alert alert-info mt-4" id="status">
+                    <i class="bi bi-info-circle"></i> Durum: Yükleniyor...
+                </div>
+            </div>
         </div>
     </div>
 
