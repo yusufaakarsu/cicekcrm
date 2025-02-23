@@ -129,4 +129,38 @@ router.delete('/:id', async (c) => {
   }
 })
 
+// Tedarikçi detayı getir
+router.get('/:id', async (c) => {
+    const db = c.get('db');
+    const tenant_id = c.get('tenant_id');
+    const id = c.req.param('id');
+
+    try {
+        const { results } = await db.prepare(`
+            SELECT * FROM suppliers
+            WHERE id = ?
+            AND tenant_id = ?
+            AND deleted_at IS NULL
+        `).bind(id, tenant_id).all();
+
+        if (!results?.length) {
+            return c.json({
+                success: false,
+                error: 'Supplier not found'
+            }, 404);
+        }
+
+        return c.json({
+            success: true,
+            supplier: results[0]
+        });
+
+    } catch (error) {
+        return c.json({
+            success: false,
+            error: 'Database error'
+        }, 500);
+    }
+});
+
 export default router

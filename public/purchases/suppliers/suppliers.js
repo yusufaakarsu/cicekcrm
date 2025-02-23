@@ -81,28 +81,39 @@ async function editSupplier(id) {
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Veri alınamadı');
+        }
+
         editingId = id;
         
+        // Form elemanlarını doldur
         const form = document.getElementById('supplierForm');
-        for (const [key, value] of Object.entries(data.supplier)) {
+        Object.keys(data.supplier).forEach(key => {
             const input = form.elements[key];
-            if (input) input.value = value;
-        }
+            if (input && !['id', 'tenant_id', 'created_at', 'updated_at', 'deleted_at'].includes(key)) {
+                input.value = data.supplier[key] || '';
+            }
+        });
         
+        // Modal başlığını güncelle
         document.querySelector('#supplierModal .modal-title').textContent = 'Tedarikçi Düzenle';
+        
+        // Modalı göster
         supplierModal = new bootstrap.Modal(document.getElementById('supplierModal'));
         supplierModal.show();
+
     } catch (error) {
         console.error('Supplier edit error:', error);
-        showError('Tedarikçi bilgileri yüklenemedi');
+        showError('Tedarikçi bilgileri yüklenemedi: ' + error.message);
     }
 }
 
-// Tedarikçi kaydet
 async function saveSupplier() {
     const form = document.getElementById('supplierForm');
     if (!form.checkValidity()) {
-        form.reportValidity();
+        form.classList.add('was-validated');
         return;
     }
 
@@ -119,15 +130,29 @@ async function saveSupplier() {
         });
 
         if (!response.ok) throw new Error('API Hatası');
+        
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(result.error || 'Kayıt başarısız');
+        }
 
+        showSuccess(`Tedarikçi başarıyla ${editingId ? 'güncellendi' : 'eklendi'}`);
         supplierModal.hide();
         await loadSuppliers();
-        showSuccess(`Tedarikçi başarıyla ${editingId ? 'güncellendi' : 'eklendi'}`);
+        editingId = null;
+
     } catch (error) {
         console.error('Supplier save error:', error);
-        showError('Tedarikçi kaydedilemedi');
+        showError('Tedarikçi kaydedilemedi: ' + error.message);
     }
 }
+
+// Modal kapandığında formu sıfırla
+document.getElementById('supplierModal').addEventListener('hidden.bs.modal', () => {
+    document.getElementById('supplierForm').reset();
+    document.getElementById('supplierForm').classList.remove('was-validated');
+    editingId = null;
+});
 
 // Tedarikçi sil
 async function deleteSupplier(id) {
