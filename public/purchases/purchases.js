@@ -371,7 +371,6 @@ async function savePurchase() {
 
         const supplier_id = parseInt(form.querySelector('[name="supplier_id"]').value);
         const order_date = form.querySelector('[name="order_date"]').value;
-        const notes = form.querySelector('[name="notes"]').value || null;
         
         if (!supplier_id || !order_date) {
             throw new Error('Lütfen tedarikçi ve sipariş tarihini seçin');
@@ -393,12 +392,12 @@ async function savePurchase() {
             throw new Error('Lütfen en az bir kalem ekleyin');
         }
 
-        console.log('Sending data:', { supplier_id, order_date, notes, items });
+        console.log('Sending data:', { supplier_id, order_date, items });
 
         const response = await fetch(`${API_URL}/purchase/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ supplier_id, order_date, notes, items })
+            body: JSON.stringify({ supplier_id, order_date, items })
         });
 
         if (!response.ok) throw new Error('API Hatası');
