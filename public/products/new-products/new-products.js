@@ -6,7 +6,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadSideBar();
     await Promise.all([
         loadCategories(),
-        loadRawMaterials()
+        loadRawMaterials(),
+        loadMaterialCategories() // Yeni eklenen
     ]);
 });
 
@@ -48,13 +49,34 @@ async function loadRawMaterials() {
     }
 }
 
+// Malzeme kategorilerini yükle
+async function loadMaterialCategories() {
+    try {
+        const response = await fetch(`${API_URL}/materials/categories`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        const select = document.getElementById('categoryFilter');
+        select.innerHTML = `
+            <option value="">Tüm Kategoriler</option>
+            ${data.categories.map(cat => `
+                <option value="${cat.id}">${cat.name}</option>
+            `).join('')}
+        `;
+    } catch (error) {
+        console.error('Material categories loading error:', error);
+        showError('Kategoriler yüklenemedi');
+    }
+}
+
 function showMaterialSelector() {
     if (!materialSelectorModal) {
         materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));
     }
-    
-    renderMaterialsList();
     materialSelectorModal.show();
+    renderMaterialsList();
 }
 
 function addMaterial(materialId) {
@@ -62,9 +84,10 @@ function addMaterial(materialId) {
     if (!material) return;
     
     // Zaten ekli mi kontrol et
-    const existingRow = document.querySelector(`input[value="${material.id}"]`);
-    if (existingRow) {
+    const existingRows = document.querySelectorAll(`input[name="materials[][material_id]"][value="${material.id}"]`);
+    if (existingRows.length > 0) {
         showError('Bu ham madde zaten eklenmiş!');
+        materialSelectorModal.hide();
         return;
     }
     
@@ -89,7 +112,7 @@ function addMaterial(materialId) {
             </div>
         </td>
         <td>
-            <div class="form-check">
+            <div class="form-check text-center">
                 <input class="form-check-input" 
                        type="checkbox"
                        name="materials[][is_required]"
@@ -106,7 +129,9 @@ function addMaterial(materialId) {
     `;
     
     tbody.appendChild(row);
-    materialSelectorModal.hide();
+    if (materialSelectorModal) {
+        materialSelectorModal.hide();
+    }
 }
 
 async function saveProduct() {
@@ -119,9 +144,9 @@ async function saveProduct() {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
     
-    // Malzemeleri ekle
+    // Malzemeleri doğru formatta topla
     data.materials = Array.from(document.querySelectorAll('#materialsTableBody tr')).map(row => ({
-        material_id: row.querySelector('input[name="materials[][material_id]"]').value,
+        material_id: parseInt(row.querySelector('input[name="materials[][material_id]"]').value),
         quantity: parseFloat(row.querySelector('input[name="materials[][quantity]"]').value),
         is_required: row.querySelector('input[name="materials[][is_required]"]').checked
     }));
@@ -135,10 +160,14 @@ async function saveProduct() {
 
         if (!response.ok) throw new Error('API Hatası');
         
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
         showSuccess('Ürün başarıyla kaydedildi');
         setTimeout(() => {
             window.location.href = '/products/products.html';
         }, 1000);
+
     } catch (error) {
         console.error('Product save error:', error);
         showError('Ürün kaydedilemedi');
@@ -241,16 +270,15 @@ async function saveProduct() {
         return;
     }
 
-    // Form verilerini al
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
     
     // Malzemeleri ekle
-    data.materials = Array.from(document.querySelectorAll('.material-row')).map(row => ({
-        material_id: row.querySelector('.material-select').value,
-        quantity: parseFloat(row.querySelector('.quantity-input').value),
-        notes: row.querySelector('input[type="text"]').value
-    })).filter(m => m.material_id && m.quantity);
+    data.materials = Array.from(document.querySelectorAll('#materialsTableBody tr')).map(row => ({
+        material_id: row.querySelector('input[name="materials[][material_id]"]').value,
+        quantity: parseFloat(row.querySelector('input[name="materials[][quantity]"]').value),
+        is_required: row.querySelector('input[name="materials[][is_required]"]').checked
+    }));
 
     try {
         const response = await fetch(`${API_URL}/products`, {
@@ -261,14 +289,10 @@ async function saveProduct() {
 
         if (!response.ok) throw new Error('API Hatası');
         
-        const result = await response.json();
-        if (!result.success) throw new Error(result.error);
-
         showSuccess('Ürün başarıyla kaydedildi');
         setTimeout(() => {
             window.location.href = '/products/products.html';
         }, 1000);
-
     } catch (error) {
         console.error('Product save error:', error);
         showError('Ürün kaydedilemedi');
@@ -304,8 +328,7 @@ function addMaterial() {
 }
 
 function removeMaterial(button) {
-    button.closest('.material-row').remove();
-    calculateTotalCost();
+    button.closest('tr').remove();
 }
 
 function updateUnitAndCalculate(event) {
