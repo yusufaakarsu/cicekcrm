@@ -344,14 +344,14 @@ let materialSelectorModal;
 
 // Modal göster
 function showMaterialSelector() {
-
-
- - düzeltildi
-
     materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));
-}    materialSelectorModal.show();    filterMaterials(); // İlk yükleme    materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));// Sipariş detaylarını göster    filterMaterials(); // İlk yükleme
-async function showPurchaseDetails(orderId) {    materialSelectorModal.show();
-    try {}
+    filterMaterials(); // İlk yükleme
+    materialSelectorModal.show();
+}
+
+// Sipariş detaylarını göster
+async function showPurchaseDetails(orderId) {
+    try {
         const response = await fetch(`${API_URL}/purchase/orders/${orderId}`);
         if (!response.ok) throw new Error('API Hatası');
         
