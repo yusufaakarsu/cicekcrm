@@ -16,7 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initMap() {
-    mapboxgl.accessToken = 'YOUR_MAPBOX_TOKEN';
+    // Mapbox token güncellendi
+    mapboxgl.accessToken = 'pk.eyJ1IjoieXVzdWZhYWthcnN1IiwiYSI6ImNscmR2Z2FpbTJheWYya3BlZ2N2em41OWIifQ.7s9Zb-4TSent-RFom_9QcQ';
     
     map = new mapboxgl.Map({
         container: 'map',
@@ -54,6 +55,7 @@ function updateCoordinates(e) {
 
 async function loadRegions() {
     try {
+        // API endpoint değişti - /settings/delivery-regions
         const response = await fetch(`${API_URL}/settings/delivery-regions`);
         if (!response.ok) throw new Error('API Hatası');
         

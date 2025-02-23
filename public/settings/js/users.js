@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadUsers() {
     try {
+        // API endpoint değişti - /settings/users
         const response = await fetch(`${API_URL}/settings/users`);
         if (!response.ok) throw new Error('API Hatası');
         

@@ -224,4 +224,147 @@ router.get('/regions', async (c) => {
   }
 })
 
+// Tablo listesi endpoint'i
+router.get('/database/tables', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    // SQLite master tablosundan tablo listesini al
+    const { results } = await db.prepare(`
+      SELECT 
+        m.name as table_name,
+        (SELECT COUNT(*) FROM ${"`"}${m.name}${"`"} WHERE tenant_id = ?) as record_count,
+        MAX(t.updated_at) as last_updated
+      FROM sqlite_master m
+      LEFT JOIN ${"`"}${m.name}${"`"} t ON t.tenant_id = ?
+      WHERE m.type = 'table'
+      AND m.name NOT LIKE 'sqlite_%'
+      GROUP BY m.name
+      ORDER BY m.name
+    `).bind(tenant_id, tenant_id).all()
+
+    return c.json({ 
+      success: true, 
+      tables: results || []
+    })
+  } catch (error) {
+    console.error('Tables error:', error)
+    return c.json({ success: false, error: 'Database error' }, 500)
+  }
+})
+
+// SQL sorgu çalıştırma endpoint'i
+router.post('/database/query', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  const { query } = await c.req.json()
+
+  // Güvenlik kontrolü
+  if (query.toLowerCase().includes('drop') || 
+      query.toLowerCase().includes('delete')) {
+    return c.json({ 
+      success: false, 
+      error: 'Bu işlem yasaklanmıştır' 
+    }, 403)
+  }
+
+  try {
+    // Sorguyu çalıştır
+    const { results } = await db.prepare(query)
+      .bind(tenant_id)
+      .all()
+
+    return c.json({
+      success: true,
+      results: results || []
+    })
+  } catch (error) {
+    console.error('Query error:', error)
+    return c.json({ 
+      success: false, 
+      error: error.message 
+    }, 500)
+  }
+})
+
+// Veritabanı yedekleme endpoint'i 
+router.post('/database/backup', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+
+  try {
+    // Yedekleme işlemi için audit log kaydı
+    await db.prepare(`
+      INSERT INTO audit_log (
+        tenant_id, action, table_name, new_data
+      ) VALUES (?, 'BACKUP', 'system', ?)
+    `).bind(
+      tenant_id,
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        type: 'full'
+      })
+    ).run()
+
+    // TODO: Asıl yedekleme işlemi burada yapılacak
+
+    return c.json({
+      success: true,
+      backup_url: '/api/backups/latest.sqlite'  // Örnek URL
+    })
+  } catch (error) {
+    console.error('Backup error:', error)
+    return c.json({ success: false, error: 'Backup failed' }, 500)
+  }
+})
+
+// Teslimat bölgesi detayı
+router.get('/regions/:id', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  const id = c.req.param('id')
+
+  try {
+    const region = await db.prepare(`
+      SELECT * FROM delivery_regions
+      WHERE id = ? AND tenant_id = ?
+      AND deleted_at IS NULL
+    `).bind(id, tenant_id).first()
+
+    if (!region) {
+      return c.json({ success: false, error: 'Region not found' }, 404)
+    }
+
+    return c.json({ success: true, region })
+  } catch (error) {
+    console.error('Region detail error:', error)
+    return c.json({ success: false, error: 'Database error' }, 500)
+  }
+})
+
+// Bölge silme endpoint'i
+router.delete('/regions/:id', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  const id = c.req.param('id')
+
+  try {
+    const result = await db.prepare(`
+      UPDATE delivery_regions
+      SET deleted_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND tenant_id = ?
+    `).bind(id, tenant_id).run()
+
+    if (!result.success) {
+      throw new Error('Region delete failed')
+    }
+
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Region delete error:', error)
+    return c.json({ success: false, error: 'Database error' }, 500)
+  }
+})
+
 export default router

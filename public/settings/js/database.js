@@ -41,6 +41,30 @@ async function loadTables() {
     }
 }
 
+function renderTablesTable(tables) {
+    const tbody = document.getElementById('tablesTable');
+    
+    if (!tables?.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Tablo bulunamadı</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = tables.map(table => `
+        <tr>
+            <td>${table.table_name}</td>
+            <td class="text-end">${table.record_count?.toLocaleString() || 0}</td>
+            <td class="text-end">${formatFileSize(table.size || 0)}</td>
+            <td>${table.last_updated ? formatDateTime(table.last_updated) : '-'}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" 
+                        onclick="showTableDetails('${table.table_name}')">
+                    <i class="bi bi-search"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
 async function executeQuery() {
     const query = document.getElementById('sqlQuery').value.trim();
     if (!query) return;

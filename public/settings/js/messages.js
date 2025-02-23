@@ -6,7 +6,6 @@ let editingMessageId = null;
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
     
-    templateModal = new bootstrap.Modal(document.getElementById('templateModal'));
     messageModal = new bootstrap.Modal(document.getElementById('templateModal'));
     
     // Tab değişiminde şablonları yükle
@@ -29,7 +28,7 @@ async function loadTemplates(type) {
         const data = await response.json();
         if (!data.success) throw new Error(data.error);
 
-        renderTemplates(type, data.templates);
+        renderTemplates(type, data.messages);
     } catch (error) {
         console.error('Templates loading error:', error);
         showError('Şablonlar yüklenemedi');
