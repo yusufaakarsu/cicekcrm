@@ -34,19 +34,20 @@ async function loadCategories() {
             `).join('')}
         `;
 
-        // Kategori listesini doldur
+        // Kategori listesini düzenle - silme butonu kaldırıldı
         const list = document.getElementById('categoryList');
         list.innerHTML = categories.map(cat => `
-            <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="mb-0">${cat.name}</h6>
-                    <small class="text-muted">${cat.description || ''}</small>
-                </div>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory(${cat.id})">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        `).join('') || '<div class="list-group-item text-center">Kategori bulunamadı</div>';
+            <tr>
+                <td>${cat.name}</td>
+                <td><span class="badge bg-info">${cat.product_count || 0}</span></td>
+                <td>${getCategoryStatusBadge(cat.status)}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editCategory(${cat.id})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('') || '<tr><td colspan="4" class="text-center">Kategori bulunamadı</td></tr>';
 
     } catch (error) {
         console.error('Categories loading error:', error);
@@ -164,24 +165,6 @@ async function saveCategory(formData) {
     } catch (error) {
         console.error('Category save error:', error);
         showError('Kategori kaydedilemedi');
-    }
-}
-
-async function deleteCategory(id) {
-    if (!confirm('Bu kategoriyi silmek istediğinize emin misiniz?')) return;
-
-    try {
-        const response = await fetch(`${API_URL}/products/categories/${id}`, {
-            method: 'DELETE'
-        });
-
-        if (!response.ok) throw new Error('API Hatası');
-
-        await loadCategories();
-        showSuccess('Kategori başarıyla silindi');
-    } catch (error) {
-        console.error('Category delete error:', error);
-        showError('Kategori silinemedi');
     }
 }
 
