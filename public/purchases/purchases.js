@@ -223,24 +223,6 @@ function renderPurchaseTable(orders) {
                         <i class="bi bi-info-circle"></i>
                         <span class="d-none d-md-inline ms-1">Detay</span>
                     </button>
-                    ${order.status !== 'received' ? `
-                        <button class="btn btn-sm btn-outline-success" 
-                                onclick="showReceiveModal(${order.id})"
-                                data-bs-toggle="tooltip"
-                                title="Mal Kabul">
-                            <i class="bi bi-box-arrow-in-down"></i>
-                            <span class="d-none d-md-inline ms-1">Mal Kabul</span>
-                        </button>
-                    ` : ''}
-                    ${order.status === 'draft' ? `
-                        <button class="btn btn-sm btn-outline-primary" 
-                                onclick="confirmOrder(${order.id})"
-                                data-bs-toggle="tooltip"
-                                title="Siparişi Onayla">
-                            <i class="bi bi-check2-circle"></i>
-                            <span class="d-none d-md-inline ms-1">Onayla</span>
-                        </button>
-                    ` : ''}
                 </div>
             </td>
         </tr>
@@ -525,87 +507,5 @@ async function showPurchaseDetails(orderId) {
     } catch (error) {
         console.error('Purchase detail error:', error);
         showError('Sipariş detayları yüklenemedi');
-    }
-}
-
-// Mal kabul modalını göster
-async function showReceiveModal(orderId) {
-    try {
-        const response = await fetch(`${API_URL}/purchase/orders/${orderId}`);
-        if (!response.ok) throw new Error('API Hatası');
-        
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error);
-
-        // Mal kabul modalı oluştur
-        const modalHtml = `
-            <div class="modal fade" id="receiveModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Mal Kabul - Sipariş #${orderId}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="receiveForm">
-                                <input type="hidden" name="order_id" value="${orderId}">
-                                
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Ham Madde</th>
-                                                <th>Sipariş Miktarı</th>
-                                                <th>Gelen Miktar</th>
-                                                <th>Birim</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${data.items.map(item => `
-                                                <tr>
-                                                    <td>${item.material_name}</td>
-                                                    <td>${item.quantity}</td>
-                                                    <td>
-                                                        <input type="number" 
-                                                               class="form-control form-control-sm"
-                                                               name="items[${item.id}]"
-                                                               value="${item.quantity}"
-                                                               min="0"
-                                                               step="0.01">
-                                                    </td>
-                                                    <td>${item.unit_name}</td>
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label">Notlar</label>
-                                    <textarea class="form-control" name="notes" rows="2"></textarea>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                            <button type="button" class="btn btn-primary" onclick="saveReceive()">Kaydet</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Varsa eski modalı kaldır
-        const oldModal = document.getElementById('receiveModal');
-        if (oldModal) oldModal.remove();
-
-        // Yeni modalı ekle ve göster
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        const modal = new bootstrap.Modal(document.getElementById('receiveModal'));
-        modal.show();
-
-    } catch (error) {
-        console.error('Receive modal error:', error);
-        showError('Mal kabul formu yüklenemedi');
     }
 }

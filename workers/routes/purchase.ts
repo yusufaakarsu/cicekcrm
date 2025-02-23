@@ -97,9 +97,9 @@ router.post('/orders', async (c) => {
     
     try {
         const data = await c.req.json();
-        const { supplier_id, order_date, notes, items } = data;
+        const { supplier_id, order_date, items } = data; // notes kaldırıldı
 
-        console.log('Request data:', { supplier_id, order_date, notes, items });
+        console.log('Request data:', { supplier_id, order_date, items });
 
         // Validasyon
         if (!supplier_id || !order_date || !Array.isArray(items) || items.length === 0) {
@@ -113,13 +113,12 @@ router.post('/orders', async (c) => {
         const orderResult = await db.prepare(`
             INSERT INTO purchase_orders (
                 tenant_id, supplier_id, order_date, 
-                notes, created_by
-            ) VALUES (?, ?, ?, ?, ?)
+                created_by
+            ) VALUES (?, ?, ?, ?)
         `).bind(
             tenant_id,
             supplier_id,
             order_date,
-            notes || null,
             user_id
         ).run();
 
