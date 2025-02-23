@@ -85,30 +85,63 @@
 
     <!-- Kategori Yönetimi Modal -->
     <div class="modal fade" id="categoryModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Kategori Yönetimi</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Yeni Kategori Formu -->
-                    <form id="categoryForm" class="mb-4">
-                        <div class="mb-3">
-                            <label class="form-label">Kategori Adı</label>
-                            <input type="text" class="form-control" name="name" required>
+                    <div class="row">
+                        <!-- Sol taraf: Kategori listesi -->
+                        <div class="col-md-7 border-end">
+                            <h6>Mevcut Kategoriler</h6>
+                            <div class="table-responsive" style="max-height: 400px;">
+                                <table class="table table-hover">
+                                    <thead class="sticky-top bg-light">
+                                        <tr>
+                                            <th>Kategori Adı</th>
+                                            <th>Ürün Sayısı</th>
+                                            <th>Durum</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="categoryList">
+                                        <!-- JavaScript ile doldurulacak -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Açıklama</label>
-                            <textarea class="form-control" name="description" rows="2"></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Kaydet</button>
-                    </form>
 
-                    <!-- Kategori Listesi -->
-                    <h6>Mevcut Kategoriler</h6>
-                    <div class="list-group" id="categoryList">
-                        <!-- JavaScript ile doldurulacak -->
+                        <!-- Sağ taraf: Kategori form -->
+                        <div class="col-md-5">
+                            <form id="categoryForm">
+                                <input type="hidden" name="id">
+                                <div class="mb-3">
+                                    <label class="form-label">Kategori Adı *</label>
+                                    <input type="text" class="form-control" name="name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Açıklama</label>
+                                    <textarea class="form-control" name="description" rows="3"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Durum</label>
+                                    <select class="form-select" name="status">
+                                        <option value="active">Aktif</option>
+                                        <option value="passive">Pasif</option>
+                                    </select>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary flex-grow-1">
+                                        <i class="bi bi-save"></i> Kaydet
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="resetCategoryForm()">
+                                        <i class="bi bi-plus-lg"></i> Yeni
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

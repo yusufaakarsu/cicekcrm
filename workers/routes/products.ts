@@ -2,37 +2,6 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// Kategori listesi - İKİNCİ SIRAYA
-router.get('/categories', async (c) => {
-  const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
-  
-  try {
-    const { results } = await db.prepare(`
-      SELECT 
-        pc.*,
-        COUNT(p.id) as product_count
-      FROM product_categories pc
-      LEFT JOIN products p ON pc.id = p.category_id 
-      AND p.deleted_at IS NULL
-      WHERE pc.tenant_id = ? 
-      AND pc.deleted_at IS NULL
-      GROUP BY pc.id
-      ORDER BY pc.name
-    `).bind(tenant_id).all()
-    
-    return c.json({
-      success: true,
-      categories: results
-    })
-  } catch (error) {
-    return c.json({ 
-      success: false, 
-      error: 'Database error' 
-    }, 500)
-  }
-})
-
 // Ham madde listesi - EN BAŞA ALINMALI
 router.get('/raw-materials', async (c) => {
   const db = c.get('db')
@@ -65,6 +34,89 @@ router.get('/raw-materials', async (c) => {
       success: false, 
       error: 'Database error' 
     }, 500)
+  }
+})
+
+// Kategori listesi - İKİNCİ SIRAYA
+router.get('/categories', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        pc.*,
+        COUNT(p.id) as product_count
+      FROM product_categories pc
+      LEFT JOIN products p ON pc.id = p.category_id 
+      AND p.deleted_at IS NULL
+      WHERE pc.tenant_id = ? 
+      AND pc.deleted_at IS NULL
+      GROUP BY pc.id
+      ORDER BY pc.name
+    `).bind(tenant_id).all()
+    
+    return c.json({
+      success: true,
+      categories: results
+    })
+  } catch (error) {
+    return c.json({ 
+      success: false, 
+      error: 'Database error' 
+    }, 500)
+  }
+})
+
+// Kategori detayı
+router.get('/categories/:id', async (c) => {
+  const { id } = c.req.param()
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    const category = await db.prepare(`
+      SELECT * FROM product_categories 
+      WHERE id = ? AND tenant_id = ? 
+      AND deleted_at IS NULL
+    `).bind(id, tenant_id).first()
+    
+    if (!category) {
+      return c.json({ success: false, error: 'Category not found' }, 404)  
+    }
+
+    return c.json({ success: true, category })
+  } catch (error) {
+    return c.json({ success: false, error: 'Database error' }, 500)
+  }
+})
+
+// Kategori güncelle 
+router.put('/categories/:id', async (c) => {
+  const { id } = c.req.param()
+  const body = await c.req.json()
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  
+  try {
+    await db.prepare(`
+      UPDATE product_categories SET
+        name = ?,
+        description = ?,
+        status = ?,
+        updated_at = datetime('now')
+      WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL
+    `).bind(
+      body.name,
+      body.description,
+      body.status || 'active',
+      id,
+      tenant_id
+    ).run()
+
+    return c.json({ success: true })
+  } catch (error) {
+    return c.json({ success: false, error: 'Database error' }, 500)
   }
 })
 

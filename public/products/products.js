@@ -145,21 +145,28 @@ function showCategoryModal() {
 }
 
 async function saveCategory(formData) {
+    const data = Object.fromEntries(formData);
+    const isEdit = !!data.id;
+
     try {
-        const response = await fetch(`${API_URL}/products/categories`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(Object.fromEntries(formData))
-        });
+        const response = await fetch(
+            `${API_URL}/products/categories${isEdit ? `/${data.id}` : ''}`, 
+            {
+                method: isEdit ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }
+        );
 
         if (!response.ok) throw new Error('API Hatası');
-
+        
         await loadCategories();
-        document.getElementById('categoryForm').reset();
-        showSuccess('Kategori başarıyla eklendi');
+        resetCategoryForm();
+        showSuccess(`Kategori başarıyla ${isEdit ? 'güncellendi' : 'eklendi'}`);
+        
     } catch (error) {
         console.error('Category save error:', error);
-        showError('Kategori eklenemedi');
+        showError('Kategori kaydedilemedi');
     }
 }
 
@@ -401,6 +408,55 @@ function calculateTotalCost() {
 
     // Maliyeti göster
     document.getElementById('cost').value = totalCost.toFixed(2);
+}
+
+function renderCategories(categories) {
+    const tbody = document.getElementById('categoryList');
+    
+    tbody.innerHTML = categories.map(cat => `
+        <tr>
+            <td>${cat.name}</td>
+            <td><span class="badge bg-info">${cat.product_count || 0}</span></td>
+            <td>${getCategoryStatusBadge(cat.status)}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="editCategory(${cat.id})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function getCategoryStatusBadge(status) {
+    return status === 'active' 
+        ? '<span class="badge bg-success">Aktif</span>'
+        : '<span class="badge bg-secondary">Pasif</span>';
+}
+
+async function editCategory(id) {
+    try {
+        const response = await fetch(`${API_URL}/products/categories/${id}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        const form = document.getElementById('categoryForm');
+        form.elements['id'].value = data.category.id;
+        form.elements['name'].value = data.category.name;
+        form.elements['description'].value = data.category.description || '';
+        form.elements['status'].value = data.category.status || 'active';
+        
+    } catch (error) {
+        console.error('Category load error:', error);
+        showError('Kategori yüklenemedi');
+    }
+}
+
+function resetCategoryForm() {
+    const form = document.getElementById('categoryForm');
+    form.reset();
+    form.elements['id'].value = '';
 }
 
 // Initialize
