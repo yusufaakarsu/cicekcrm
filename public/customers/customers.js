@@ -7,15 +7,17 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadCustomers() {
-    const response = await fetch(`${API_URL}/customers`);
     try {
+        const response = await fetch(`${API_URL}/customers`);
         if (!response.ok) throw new Error('API Hatası');
-        const customers = await response.json();
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
 
         const tbody = document.querySelector('#customersTable tbody');
         
-        if (customers.length > 0) {
-            tbody.innerHTML = customers.map(customer => `
+        if (data.customers?.length > 0) {
+            tbody.innerHTML = data.customers.map(customer => `
                 <tr>
                     <td>${customer.name}</td>
                     <td>${formatPhoneNumber(customer.phone)}</td>
@@ -47,6 +49,9 @@ async function loadCustomers() {
     } catch (error) {
         console.error('Müşteriler yüklenirken hata:', error);
         showError('Müşteriler yüklenemedi!');
+        
+        const tbody = document.querySelector('#customersTable tbody');
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Veriler yüklenirken hata oluştu!</td></tr>';
     }
 }
 

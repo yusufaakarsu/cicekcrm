@@ -2,18 +2,34 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// Tüm müşterileri listele - View kullanımı
+// Tüm müşterileri listele
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
+  
   try {
     const { results } = await db.prepare(`
-      SELECT * FROM vw_customers 
-      WHERE tenant_id = ? 
-      ORDER BY name
+      SELECT 
+        c.*,
+        COUNT(DISTINCT a.id) as address_count,
+        COUNT(DISTINCT o.id) as total_orders,
+        MAX(o.created_at) as last_order,
+        COALESCE(SUM(o.total_amount), 0) as total_spent
+      FROM customers c
+      LEFT JOIN addresses a ON a.customer_id = c.id 
+        AND a.deleted_at IS NULL
+      LEFT JOIN orders o ON o.customer_id = c.id 
+        AND o.deleted_at IS NULL
+      WHERE c.tenant_id = ?
+      AND c.deleted_at IS NULL
+      GROUP BY c.id
+      ORDER BY c.name
     `).bind(tenant_id).all()
-    
-    return c.json(results)
+
+    return c.json({
+      success: true,
+      customers: results || []
+    })
   } catch (error) {
     console.error('Customers list error:', error)
     return c.json({ 
