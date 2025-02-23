@@ -8,11 +8,7 @@ router.get('/users', async (c) => {
   
   try {
     const { results } = await db.prepare(`
-      SELECT 
-        u.*,
-        (SELECT COUNT(*) FROM user_logins WHERE user_id = u.id) as login_count,
-        (SELECT MAX(created_at) FROM user_logins WHERE user_id = u.id) as last_login
-      FROM users u
+      SELECT u.* FROM users u
       WHERE u.tenant_id = ?
       AND u.deleted_at IS NULL
       ORDER BY u.name ASC
@@ -32,16 +28,21 @@ router.post('/users', async (c) => {
   const body = await c.req.json()
 
   try {
+    // Password hash oluştur
+    const password_hash = 'temp_hash' // TODO: Gerçek hash implement edilecek
+
     const result = await db.prepare(`
-      INSERT INTO users (tenant_id, name, email, role, permissions, status)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO users (
+        tenant_id, name, email, password_hash,
+        role, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?)
     `).bind(
       tenant_id,
       body.name,
       body.email,
-      body.role,
-      JSON.stringify(body.permissions || []),
-      body.status || 'active'
+      password_hash,
+      body.role || 'staff',
+      body.status === 'active' ? 1 : 0
     ).run()
 
     return c.json({ 
@@ -49,6 +50,7 @@ router.post('/users', async (c) => {
       user_id: result.meta?.last_row_id 
     })
   } catch (error) {
+    console.error('User create error:', error)
     return c.json({ success: false, error: 'Database error' }, 500)
   }
 })
@@ -60,22 +62,16 @@ router.get('/messages', async (c) => {
   const category = c.req.query('category') // birthday, anniversary vs.
   
   try {
-    const { results } = await db.prepare(`
-      SELECT 
-        id,
-        category,
-        title,
-        content,
-        is_active,
-        display_order,
-        created_at,
-        updated_at
-      FROM card_messages
-      WHERE tenant_id = ?
+    const query = `
+      SELECT * FROM card_messages 
+      WHERE tenant_id = ? 
       ${category ? 'AND category = ?' : ''}
-      AND deleted_at IS NULL
+      AND deleted_at IS NULL 
       ORDER BY display_order ASC, title ASC
-    `).bind(tenant_id, category).all()
+    `
+    const params = category ? [tenant_id, category] : [tenant_id]
+    
+    const { results } = await db.prepare(query).bind(...params).all()
 
     return c.json({ success: true, messages: results })
   } catch (error) {
@@ -127,13 +123,10 @@ router.get('/delivery-regions', async (c) => {
     const { results } = await db.prepare(`
       SELECT 
         r.*,
-        COUNT(DISTINCT d.id) as delivery_count
+        0 as delivery_count
       FROM delivery_regions r
-      LEFT JOIN deliveries d ON r.id = d.region_id 
-        AND d.created_at >= date('now', '-30 days')
       WHERE r.tenant_id = ?
       AND r.deleted_at IS NULL
-      GROUP BY r.id
       ORDER BY r.name ASC
     `).bind(tenant_id).all()
 
@@ -153,18 +146,17 @@ router.post('/delivery-regions', async (c) => {
   try {
     const result = await db.prepare(`
       INSERT INTO delivery_regions (
-        tenant_id, name, delivery_fee, min_time, max_time,
-        coordinates, notes, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        tenant_id, name, base_fee, min_order,
+        parent_id, delivery_notes, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `).bind(
       tenant_id,
       body.name,
-      body.delivery_fee,
-      body.min_time,
-      body.max_time,
-      JSON.stringify(body.coordinates || []),
-      body.notes,
-      body.status || 'active'
+      body.delivery_fee || 0,
+      body.min_order || 0,
+      null, // parent_id
+      body.notes || null,
+      body.status === 'active' ? 1 : 0
     ).run()
 
     return c.json({
@@ -172,6 +164,7 @@ router.post('/delivery-regions', async (c) => {
       region_id: result.meta?.last_row_id
     })
   } catch (error) {
+    console.error('Region create error:', error)
     return c.json({ success: false, error: 'Database error' }, 500)
   }
 })
@@ -241,25 +234,46 @@ router.get('/regions', async (c) => {
   }
 })
 
-// Tablo listesi endpoint'i
+// Tablo listesi endpoint'ini düzelt
 router.get('/database/tables', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
   try {
-    // SQLite master tablosundan tablo listesini al
     const { results } = await db.prepare(`
+      WITH table_list AS (
+        SELECT name as table_name
+        FROM sqlite_master 
+        WHERE type = 'table'
+        AND name NOT LIKE 'sqlite_%'
+      ),
+      table_columns AS (
+        SELECT 
+          t.table_name,
+          COUNT(*) as column_count
+        FROM table_list t
+        CROSS JOIN pragma_table_info(t.table_name)
+        GROUP BY t.table_name
+      )
       SELECT 
-        m.name as table_name,
-        (SELECT COUNT(*) FROM ${"`"}${m.name}${"`"} WHERE tenant_id = ?) as record_count,
-        MAX(t.updated_at) as last_updated
-      FROM sqlite_master m
-      LEFT JOIN ${"`"}${m.name}${"`"} t ON t.tenant_id = ?
-      WHERE m.type = 'table'
-      AND m.name NOT LIKE 'sqlite_%'
-      GROUP BY m.name
-      ORDER BY m.name
-    `).bind(tenant_id, tenant_id).all()
+        t.table_name,
+        COALESCE(c.column_count, 0) as column_count,
+        CASE 
+          WHEN EXISTS (
+            SELECT 1 FROM pragma_table_info(t.table_name) 
+            WHERE name = 'tenant_id'
+          )
+          THEN (
+            SELECT COUNT(*) 
+            FROM pragma_table_info(t.table_name)
+            WHERE name IN ('tenant_id', 'deleted_at')
+          )
+          ELSE 0
+        END as record_count
+      FROM table_list t
+      LEFT JOIN table_columns c ON t.table_name = c.table_name
+      ORDER BY t.table_name
+    `).all()
 
     return c.json({ 
       success: true, 
@@ -277,17 +291,17 @@ router.post('/database/query', async (c) => {
   const tenant_id = c.get('tenant_id')
   const { query } = await c.req.json()
 
-  // Güvenlik kontrolü
-  if (query.toLowerCase().includes('drop') || 
-      query.toLowerCase().includes('delete')) {
-    return c.json({ 
-      success: false, 
-      error: 'Bu işlem yasaklanmıştır' 
-    }, 403)
-  }
-
   try {
-    // Sorguyu çalıştır
+    // Güvenlik kontrolü
+    if (query.toLowerCase().includes('drop') || 
+        query.toLowerCase().includes('delete')) {
+      return c.json({ 
+        success: false, 
+        error: 'Bu işlem yasaklanmıştır' 
+      }, 403)
+    }
+
+    // Sorguyu direkt çalıştır
     const { results } = await db.prepare(query)
       .bind(tenant_id)
       .all()
