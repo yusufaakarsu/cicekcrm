@@ -454,49 +454,31 @@ async function saveDeliveryInfo() {
 // Kategorileri yükle - güncellendi
 async function loadCategories() {
     try {
-        // Önce container'ı temizle ve yükleniyor mesajı göster
-        const container = document.getElementById('categoryFilters');        
-        container.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+        const response = await fetch(`${API_URL}/products/categories`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
 
-        // Endpoint'i düzelttik - /product-categories yerine /products/product-categories kullanıyoruz
-        const response = await fetchAPI('/products/product-categories');
-        console.log('Kategori yanıtı:', response);
-
-        // API yanıt yapısını kontrol et ve kategorileri al
-        const categories = response?.categories || [];
-
-        if (!Array.isArray(categories)) {
-            throw new Error('Geçersiz kategori verisi');
-        }
-
-        // HTML oluştur - düzeltildi
-        let html = `
-            <input type="radio" class="btn-check" name="category" id="category_all" 
-                   value="all" checked>
-            <label class="btn btn-outline-primary" for="category_all">Tümü</label>
+        // Kategori butonlarını oluştur
+        const container = document.getElementById('categoryFilters');
+        container.innerHTML = `
+            <input type="radio" class="btn-check" name="category" id="allCategories" value="" checked>
+            <label class="btn btn-outline-primary" for="allCategories">Tümü</label>
+            ${data.categories.map(cat => `
+                <input type="radio" class="btn-check" name="category" id="cat_${cat.id}" value="${cat.id}">
+                <label class="btn btn-outline-primary" for="cat_${cat.id}">${cat.name}</label>
+            `).join('')}
         `;
 
-        categories.forEach(category => {
-            html += `
-                <input type="radio" class="btn-check" name="category" 
-                       id="category_${category.id}" value="${category.id}">
-                <label class="btn btn-outline-primary" for="category_${category.id}">
-                    ${category.name}
-                </label>
-            `;
-        });
-
-        // HTML'i güncelle
-        container.innerHTML = html;
-
-        // Event listener'ları ekle
-        document.querySelectorAll('input[name="category"]').forEach(radio => {
+        // Kategori değişiminde ürünleri filtrele
+        container.querySelectorAll('input[name="category"]').forEach(radio => {
             radio.addEventListener('change', loadProducts);
         });
+
     } catch (error) {
-        console.error('Kategoriler yüklenemedi:', error);
-        document.getElementById('categoryFilters').innerHTML = 
-            '<div class="alert alert-warning">Kategoriler yüklenemedi: ' + error.message + '</div>';
+        console.error('Categories loading error:', error);
+        showError('Kategoriler yüklenemedi: ' + error.message);
     }
 }
 
@@ -506,69 +488,24 @@ let selectedProducts = new Map();
 // Ürünleri yükle - düzeltildi
 async function loadProducts() {
     try {
-        const categoryId = document.querySelector('input[name="category"]:checked').value;
-        const searchQuery = document.getElementById('productSearch').value;
-        
-        // Yükleniyor göster
-        const container = document.getElementById('productList');
-        container.innerHTML = '<div class="col-12 text-center"><div class="spinner-border text-primary"></div></div>';
-        
-        // URL oluştur
-        let url = `/products`;
+        const categoryId = document.querySelector('input[name="category"]:checked')?.value;
+        const search = document.getElementById('productSearch').value;
+
         const params = new URLSearchParams();
-        
-        if (categoryId && categoryId !== 'all') {
-            params.append('category', categoryId);
-        }
-        
-        if (searchQuery.trim()) {
-            params.append('search', searchQuery.trim());
-        }
+        if (categoryId) params.append('category_id', categoryId);
+        if (search) params.append('search', search);
 
-        if (params.toString()) {
-            url += `?${params.toString()}`;
-        }
+        const response = await fetch(`${API_URL}/products?${params}`);
+        if (!response.ok) throw new Error('API Hatası');
         
-        // API'den ürünleri al
-        const products = await fetchAPI(url);
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
 
-        // Sonuçları listele
-        if (products && products.length > 0) {
-            container.innerHTML = products.map(product => `
-                <div class="col-md-4 col-lg-3">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h6 class="card-title">${product.name}</h6>
-                            <p class="card-text small text-muted mb-2">
-                                ${product.description || ''}
-                            </p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold">${formatCurrency(product.retail_price)}</span>
-                                <button type="button" class="btn btn-sm btn-outline-primary" 
-                                        onclick='addProduct(${JSON.stringify(product)})'>
-                                    <i class="bi bi-plus-lg"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            container.innerHTML = `
-                <div class="col-12">
-                    <div class="alert alert-info">
-                        ${searchQuery ? 'Arama kriterlerine uygun ürün bulunamadı.' : 'Bu kategoride ürün bulunamadı.'}
-                    </div>
-                </div>
-            `;
-        }
+        renderProducts(data.products || []);
+
     } catch (error) {
-        console.error('Ürünler yüklenemedi:', error);
-        document.getElementById('productList').innerHTML = `
-            <div class="col-12">
-                <div class="alert alert-danger">Ürünler yüklenirken hata oluştu</div>
-            </div>
-        `;
+        console.error('Products loading error:', error);
+        showError('Ürünler yüklenemedi');
     }
 }
 

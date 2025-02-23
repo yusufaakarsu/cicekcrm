@@ -37,7 +37,7 @@ router.get('/raw-materials', async (c) => {
   }
 })
 
-// Kategori listesi - İKİNCİ SIRAYA
+// Kategori listesi endpoint'ini güncelle - URL'i düzelt
 router.get('/categories', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -225,14 +225,13 @@ router.get('/:id', async (c) => {
   }
 })
 
-// Ürün listesi endpoint'ini düzelt
+// Ürün listesi endpoint'ini güncelle - SQL'i düzelt
 router.get('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
   const { searchParams } = new URL(c.req.url)
   const category_id = searchParams.get('category_id')
-  const status = searchParams.get('status')
   const search = searchParams.get('search')
   
   try {
@@ -256,11 +255,6 @@ router.get('/', async (c) => {
     if (category_id) {
       sql += ' AND p.category_id = ?'
       params.push(category_id)
-    }
-
-    if (status) {
-      sql += ' AND p.status = ?'
-      params.push(status)
     }
 
     if (search) {
