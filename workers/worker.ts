@@ -13,49 +13,64 @@ import purchaseRoutes from './routes/purchase'
 
 const app = new Hono()
 
-// CORS middleware ve hata işleyicisi
-app.use('*', cors())
+// CORS - Development için tüm originlere izin ver
+app.use('*', cors({
+    origin: '*', // Development için. Production'da kısıtlanmalı
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    exposeHeaders: ['Content-Length'],
+    maxAge: 600,
+    credentials: true
+}))
 
-// Worker middleware - DB ve tenant tanımlama
+// Worker middleware
 app.use('*', async (c, next) => {
-    // Debug için tüm istekleri logla
-    console.log('Request:', c.req.method, c.req.url);
+    // DB ve tenant tanımlama
+    c.set('db', c.env.DB)
+    c.set('tenant_id', 1) // Test için sabit tenant
     
-    c.set('db', c.env.DB);
-    c.set('tenant_id', 1); // Test için sabit tenant
-    await next();
+    // Request logging
+    console.log(`${c.req.method} ${c.req.url}`)
+    
+    try {
+        await next()
+    } catch (err) {
+        // Error logging
+        console.error('Request failed:', err)
+        throw err
+    }
+})
 
-    // Response logu
-    console.log('Response:', c.res.status);
-});
+// Ana API rotaları
+app.route('/api/dashboard', dashboardRoutes)  // Dashboard en üstte
+app.route('/api/finance', financeRoutes)      // Finans ikinci sırada
+app.route('/api/orders', orderRoutes)         // Siparişler
+app.route('/api/customers', customerRoutes)    // Müşteriler
+app.route('/api/products', productRoutes)      // Ürünler
+app.route('/api/stock', stockRoutes)          // Stok
+app.route('/api/addresses', addressRoutes)     // Adresler
+app.route('/api/suppliers', suppliersRoutes)   // Tedarikçiler
+app.route('/api/materials', materialsRouter)   // Hammaddeler
+app.route('/api/purchase', purchaseRoutes)     // Satın alma
 
-// Hata yakalama
+// 404 handler
+app.notFound((c) => {
+    console.log('404 Not Found:', c.req.url)
+    return c.json({
+        success: false,
+        error: 'Not Found',
+        path: c.req.url
+    }, 404)
+})
+
+// Error handler
 app.onError((err, c) => {
-    console.error('Application Error:', err);
+    console.error('Application Error:', err)
     return c.json({
         success: false,
         error: 'Server Error',
         message: err.message
-    }, 500);
-});
-
-// API Routes - Sıralama önemli
-app.route('/api/stock', stockRoutes)
-app.route('/api/dashboard', dashboardRoutes)
-app.route('/api/customers', customerRoutes)
-app.route('/api/orders', orderRoutes)
-app.route('/api/finance', financeRoutes)
-app.route('/api/addresses', addressRoutes)
-app.route('/api/products', productRoutes)
-app.route('/api/suppliers', suppliersRoutes)
-app.route('/api/materials', materialsRouter)
-app.route('/api/purchase', purchaseRoutes) // Purchase route'u en sona eklendi
-
-// 404 handler - Not Found
-app.notFound((c) => c.json({
-  success: false,
-  error: 'Not Found',
-  message: 'The requested resource was not found'
-}, 404))
+    }, 500)
+})
 
 export default app

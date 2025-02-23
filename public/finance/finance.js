@@ -1,4 +1,4 @@
-let paymentChart;
+const API_URL = `${window.location.protocol}//${window.location.host}/api`;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
@@ -25,23 +25,30 @@ async function loadFinanceData() {
         const data = await response.json();
 
         // Finansal kartları güncelle
-        document.getElementById('dailyRevenue').textContent = formatCurrency(data.dailyRevenue);
-        document.getElementById('pendingPayments').textContent = formatCurrency(data.pendingPayments);
-        document.getElementById('monthlyIncome').textContent = formatCurrency(data.monthlyIncome);
-        document.getElementById('profitMargin').textContent = `%${data.profitMargin}`;
+        document.getElementById('totalBalance').textContent = 
+            formatMoney(data.balances?.total_balance || 0);
+        document.getElementById('accountCount').textContent = 
+            `${data.balances?.total_accounts || 0} aktif hesap`;
+        
+        document.getElementById('dailyIncome').textContent = 
+            formatMoney(data.dailyStats?.income || 0);
+        document.getElementById('dailyExpense').textContent = 
+            formatMoney(data.dailyStats?.expense || 0);
+            
+        document.getElementById('pendingPayments').textContent = 
+            formatMoney(data.pendingPayments || 0);
 
-        // Ödeme durumu grafiğini güncelle
-        updatePaymentChart(data.paymentStatus);
-
-        document.getElementById('status').innerHTML = `
-            <i class="bi bi-check-circle"></i> Son güncelleme: ${new Date().toLocaleTimeString()}
-        `;
     } catch (error) {
         console.error('Finans verisi yüklenirken hata:', error);
-        document.getElementById('status').innerHTML = `
-            <i class="bi bi-exclamation-triangle"></i> Bağlantı hatası!
-        `;
     }
+}
+
+// Para formatı için yardımcı fonksiyon
+function formatMoney(amount) {
+    return new Intl.NumberFormat('tr-TR', {
+        style: 'currency',
+        currency: 'TRY'
+    }).format(amount);
 }
 
 async function loadRecentTransactions() {
@@ -55,11 +62,11 @@ async function loadRecentTransactions() {
         if (transactions.length > 0) {
             tbody.innerHTML = transactions.map(t => `
                 <tr>
-                    <td>${formatDate(t.created_at)}</td>
-                    <td>${t.order_id}</td>
-                    <td>${t.customer_name}</td>
-                    <td>${formatCurrency(t.amount)}</td>
-                    <td>${getPaymentStatusBadge(t.status)}</td>
+                    <td>${formatDate(t.date)}</td>
+                    <td>${t.account_name}</td>
+                    <td>${t.description}</td>
+                    <td>${t.type === 'in' ? 'Gelir' : 'Gider'}</td>
+                    <td class="text-end">${formatMoney(t.amount)}</td>
                 </tr>
             `).join('');
         } else {
@@ -70,40 +77,12 @@ async function loadRecentTransactions() {
     }
 }
 
-function updatePaymentChart(data) {
-    const ctx = document.getElementById('paymentStatusChart').getContext('2d');
-    
-    if (paymentChart) {
-        paymentChart.destroy();
-    }
-
-    paymentChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Ödendi', 'Bekliyor', 'İptal'],
-            datasets: [{
-                data: [data.paid, data.pending, data.cancelled],
-                backgroundColor: ['#198754', '#ffc107', '#dc3545']
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
+function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
     });
-}
-
-function getPaymentStatusBadge(status) {
-    const statusMap = {
-        paid: ['Ödendi', 'success'],
-        pending: ['Bekliyor', 'warning'],
-        cancelled: ['İptal', 'danger']
-    };
-
-    const [text, color] = statusMap[status] || ['Bilinmiyor', 'secondary'];
-    return `<span class="badge bg-${color}">${text}</span>`;
 }
