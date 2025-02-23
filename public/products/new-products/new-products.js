@@ -174,12 +174,11 @@ async function saveProduct() {
     }
 }
 
-// Modal göster
+// Modal göster ve malzeme listesini yenile
 function showMaterialSelector() {
     if (!materialSelectorModal) {
         materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));
     }
-    
     renderMaterialsList();
     materialSelectorModal.show();
 }
@@ -209,57 +208,9 @@ function renderMaterialsList() {
         '<div class="col-12"><div class="alert alert-info">Ham madde bulunamadı</div></div>';
 }
 
-// Ham madde ekle
-function addMaterial(materialId) {
-    const material = rawMaterials.find(m => m.id === materialId);
-    if (!material) return;
-    
-    // Zaten ekli mi kontrol et
-    const existingRow = document.querySelector(`input[value="${material.id}"]`);
-    if (existingRow) {
-        showError('Bu ham madde zaten eklenmiş!');
-        return;
-    }
-    
-    const tbody = document.getElementById('materialsTableBody');
-    const row = document.createElement('tr');
-    row.innerHTML = `
-        <td>
-            <input type="hidden" name="materials[][material_id]" value="${material.id}">
-            ${material.name}
-            <div class="small text-muted">${material.unit_name}</div>
-        </td>
-        <td>
-            <div class="input-group input-group-sm">
-                <input type="number" 
-                       class="form-control" 
-                       name="materials[][quantity]"
-                       value="1"
-                       min="0.01" 
-                       step="0.01" 
-                       required>
-                <span class="input-group-text">${material.unit_name}</span>
-            </div>
-        </td>
-        <td>
-            <div class="form-check">
-                <input class="form-check-input" 
-                       type="checkbox"
-                       name="materials[][is_required]"
-                       checked>
-            </div>
-        </td>
-        <td>
-            <button type="button" 
-                    class="btn btn-sm btn-outline-danger"
-                    onclick="this.closest('tr').remove()">
-                <i class="bi bi-trash"></i>
-            </button>
-        </td>
-    `;
-    
-    tbody.appendChild(row);
-    materialSelectorModal.hide();
+// Malzeme satırını sil
+function removeMaterial(button) {
+    button.closest('tr').remove();
 }
 
 // Ürünü kaydet
@@ -302,61 +253,3 @@ async function saveProduct() {
 // Arama ve filtreleme
 document.getElementById('categoryFilter')?.addEventListener('change', renderMaterialsList);
 document.getElementById('searchInput')?.addEventListener('keyup', renderMaterialsList);
-
-function addMaterial() {
-    const template = document.getElementById('materialRowTemplate');
-    const container = document.getElementById('materialsList');
-    
-    const clone = template.content.cloneNode(true);
-    const select = clone.querySelector('.material-select');
-    
-    // Ham maddeleri select'e doldur
-    select.innerHTML = `
-        <option value="">Malzeme Seçin</option>
-        ${rawMaterials.map(m => `
-            <option value="${m.id}" data-unit="${m.unit_name}" data-price="${m.unit_price}">
-                ${m.name}
-            </option>
-        `).join('')}
-    `;
-    
-    // Event listeners
-    select.addEventListener('change', updateUnitAndCalculate);
-    clone.querySelector('.quantity-input').addEventListener('input', calculateTotalCost);
-    
-    container.appendChild(clone);
-}
-
-function removeMaterial(button) {
-    button.closest('tr').remove();
-}
-
-function updateUnitAndCalculate(event) {
-    const row = event.target.closest('.material-row');
-    const option = event.target.selectedOptions[0];
-    const unitText = row.querySelector('.unit-text');
-    
-    unitText.textContent = option.dataset.unit || '-';
-    calculateTotalCost();
-}
-
-function calculateTotalCost() {
-    let materialCost = 0;
-    
-    // Malzeme maliyetlerini topla
-    document.querySelectorAll('.material-row').forEach(row => {
-        const select = row.querySelector('.material-select');
-        const quantity = parseFloat(row.querySelector('.quantity-input').value) || 0;
-        const price = parseFloat(select.selectedOptions[0]?.dataset.price) || 0;
-        
-        materialCost += quantity * price;
-    });
-
-    // İşçilik maliyetini ekle
-    const laborCost = parseFloat(document.querySelector('[name="labor_cost"]').value) || 0;
-    const totalCost = materialCost + laborCost;
-
-    // Maliyetleri göster
-    document.getElementById('materialCost').value = materialCost.toFixed(2);
-    document.getElementById('totalCost').value = totalCost.toFixed(2);
-}
