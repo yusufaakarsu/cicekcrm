@@ -27,7 +27,7 @@ function renderUsersTable(users) {
     const tbody = document.getElementById('usersTable');
     
     if (!users?.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Kullanıcı bulunamadı</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Kullanıcı bulunamadı</td></tr>';
         return;
     }
 
@@ -45,6 +45,7 @@ function renderUsersTable(users) {
                     ${user.is_active ? 'Aktif' : 'Pasif'}
                 </span>
             </td>
+            <td>${formatDateTime(user.last_login) || '-'}</td>
             <td>
                 <div class="btn-group btn-group-sm">
                     <button class="btn btn-outline-primary" onclick="editUser(${user.id})">

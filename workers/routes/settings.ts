@@ -235,13 +235,20 @@ router.get('/regions', async (c) => {
 })
 
 // Tablo listesi endpoint'ini basitleştir
+
+interface TableInfo {
+  table_name: string;
+  column_count: number;
+  record_count: number;
+}
+
 router.get('/database/tables', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
   try {
-    // Önce tablo listesini al
-    const tables = await db.prepare(`
+    // 1. Tüm tabloları listele
+    const { results: tables } = await db.prepare(`
       SELECT name as table_name
       FROM sqlite_master 
       WHERE type = 'table'
@@ -249,44 +256,50 @@ router.get('/database/tables', async (c) => {
       ORDER BY name
     `).all()
 
-    // Kolon ve kayıt sayılarını ayrı sorgularla al
-    const enrichedTables = []
-    
-    for (const table of tables.results) {
+    // 2. Her tablo için bilgileri topla
+    const enrichedTables: TableInfo[] = []
+
+    for (const table of tables) {
+      // Her tablo için yeni bir try-catch bloğu
       try {
-        // Kolon sayısı
-        const columns = await db.prepare(`
-          SELECT COUNT(*) as count 
-          FROM pragma_table_info(?)
-        `).bind(table.table_name).first()
+        // Kolon sayısını al
+        const { results: columnInfo } = await db.prepare(`
+          SELECT COUNT(*) as count
+          FROM pragma_table_info('${table.table_name}')
+        `).all()
 
-        // Kayıt sayısı (tenant_id varsa)
         let recordCount = 0
-        try {
-          const hasTenantId = await db.prepare(`
-            SELECT 1 FROM pragma_table_info(?) 
-            WHERE name = 'tenant_id'
-          `).bind(table.table_name).first()
 
-          if (hasTenantId) {
-            const count = await db.prepare(`
-              SELECT COUNT(*) as count 
-              FROM "${table.table_name}" 
+        // Tenant ID kontrolü ve kayıt sayısı
+        try {
+          const { results: tenantCheck } = await db.prepare(`
+            SELECT COUNT(*) as has_tenant
+            FROM pragma_table_info('${table.table_name}')
+            WHERE name = 'tenant_id'
+          `).all()
+
+          // Eğer tenant_id kolonu varsa kayıt sayısını al
+          if (tenantCheck[0]?.has_tenant > 0) {
+            const { results: countInfo } = await db.prepare(`
+              SELECT COUNT(*) as count
+              FROM "${table.table_name}"
               WHERE tenant_id = ?
-            `).bind(tenant_id).first()
-            recordCount = count?.count || 0
+            `).bind(tenant_id).all()
+            
+            recordCount = countInfo[0]?.count || 0
           }
-        } catch (e) {
-          console.warn(`Record count error for ${table.table_name}:`, e)
+        } catch (err) {
+          console.warn(`Record count error for ${table.table_name}:`, err)
         }
 
         enrichedTables.push({
           table_name: table.table_name,
-          column_count: columns?.count || 0,
+          column_count: columnInfo[0]?.count || 0,
           record_count: recordCount
         })
-      } catch (e) {
-        console.warn(`Table info error for ${table.table_name}:`, e)
+
+      } catch (err) {
+        console.warn(`Table info error for ${table.table_name}:`, err)
         enrichedTables.push({
           table_name: table.table_name,
           column_count: 0,
@@ -294,11 +307,12 @@ router.get('/database/tables', async (c) => {
         })
       }
     }
-  
+
     return c.json({ 
       success: true, 
-      tables: enrichedTables
+      tables: enrichedTables 
     })
+
   } catch (error) {
     console.error('Tables error:', error)
     return c.json({ success: false, error: 'Database error' }, 500)

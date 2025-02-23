@@ -45,7 +45,7 @@ function renderTablesTable(tables) {
     const tbody = document.getElementById('tablesTable');
     
     if (!tables?.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Tablo bulunamadı</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center">Tablo bulunamadı</td></tr>';
         return;
     }
 
@@ -53,16 +53,43 @@ function renderTablesTable(tables) {
         <tr>
             <td>${table.table_name}</td>
             <td class="text-end">${table.record_count?.toLocaleString() || 0}</td>
-            <td class="text-end">${formatFileSize(table.size || 0)}</td>
-            <td>${table.last_updated ? formatDateTime(table.last_updated) : '-'}</td>
+            <td class="text-end">${table.column_count || 0} kolon</td>
             <td>
                 <button class="btn btn-sm btn-outline-primary" 
-                        onclick="showTableDetails('${table.table_name}')">
-                    <i class="bi bi-search"></i>
+                        onclick="queryTable('${table.table_name}')">
+                    <i class="bi bi-search"></i> Görüntüle
                 </button>
             </td>
         </tr>
     `).join('');
+}
+
+// Tablo detay görüntüleme
+async function queryTable(tableName) {
+    const query = `SELECT * FROM "${tableName}" WHERE tenant_id = ? LIMIT 100`;
+    document.getElementById('sqlQuery').value = query;
+    
+    try {
+        const response = await fetch(`${API_URL}/settings/database/query`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query })
+        });
+        
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        renderQueryResult(data.results);
+        
+        // Sorgu alanına scroll
+        document.getElementById('querySection').scrollIntoView({ behavior: 'smooth' });
+
+    } catch (error) {
+        console.error('Query error:', error);
+        showError('Tablo görüntülenemedi: ' + error.message);
+    }
 }
 
 async function executeQuery() {
