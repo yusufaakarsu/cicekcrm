@@ -200,164 +200,158 @@ function renderPurchaseTable(orders) {
     const tbody = document.getElementById('purchaseTable');
     
     if (!orders || orders.length === 0) {
-        tbody.innerHTML = `
-            <tr><td colspan="7" class="text-center">Kayıt bulunamadı</td></tr>
-        `;
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Kayıt bulunamadı</td></tr>';
         return;
     }
     
     tbody.innerHTML = orders.map(order => `
-        <tr>
+        <tr class="order-row" data-order-id="${order.id}">
             <td>#${order.id}</td>
             <td>${order.supplier_name}</td>
             <td>${formatDate(order.order_date)}</td>
-            <td>${order.expected_date ? formatDate(order.expected_date) : '-'}</td>
-            <td>${formatCurrency(order.total_amount)}</td>
-            <td>${getPurchaseStatusBadge(order.status)}</td>
-            <td>
-                <div class="btn-group" role="group">
-                    <button class="btn btn-sm btn-outline-secondary" 
-                            onclick="showPurchaseDetails(${order.id})"
-                            data-bs-toggle="tooltip"
-                            title="Sipariş Detayı">
-                        <i class="bi bi-info-circle"></i>
-                        <span class="d-none d-md-inline ms-1">Detay</span>
-                    </button>
-                </div>
+            <td class="text-end">${formatCurrency(order.total_amount)}</td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-primary" onclick="toggleOrderDetails(${order.id}, this)">
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+            </td>
+        </tr>
+        <tr id="details-${order.id}" class="d-none">
+            <td colspan="5" class="p-0">
+                <div class="details-content p-3 bg-light"></div>
             </td>
         </tr>
     `).join('');
-
-    // Tooltipleri aktifleştir
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 }
 
-// Siparişi onayla
-async function confirmOrder(orderId) {
-    try {
-        const confirmed = await showConfirm(
-            'Sipariş Onayı',
-            'Bu siparişi onaylamak istediğinize emin misiniz?'
-        );
+// Sipariş detaylarını göster/gizle
+async function toggleOrderDetails(orderId, button) {
+    const detailsRow = document.getElementById(`details-${orderId}`);
+    const detailsContent = detailsRow.querySelector('.details-content');
+    const icon = button.querySelector('i');
 
-        if (!confirmed) return;
+    if (detailsRow.classList.contains('d-none')) {
+        try {
+            // Detayları yükle
+            const response = await fetch(`${API_URL}/purchase/orders/${orderId}`);
+            if (!response.ok) throw new Error('API Hatası');
+            
+            const data = await response.json();
+            
+            // Detay içeriğini oluştur
+            detailsContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Ham Madde</th>
+                                <th class="text-end">Miktar</th>
+                                <th class="text-end">Birim Fiyat</th>
+                                <th class="text-end">Toplam</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.items.map(item => `
+                                <tr>
+                                    <td>${item.material_name}</td>
+                                    <td class="text-end">${item.quantity} ${item.unit_name}</td>
+                                    <td class="text-end">${formatCurrency(item.unit_price)}</td>
+                                    <td class="text-end">${formatCurrency(item.quantity * item.unit_price)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
 
-        const response = await fetch(`${API_URL}/purchase/orders/${orderId}/confirm`, {
-            method: 'POST'
-        });
-
-        if (!response.ok) throw new Error('API Hatası');
-        const result = await response.json();
-        
-        if (result.success) {
-            showSuccess('Sipariş onaylandı');
-            await loadPurchases();
-        } else {
-            throw new Error(result.error);
+            // Görünürlüğü değiştir
+            detailsRow.classList.remove('d-none');
+            icon.classList.replace('bi-chevron-down', 'bi-chevron-up');
+        } catch (error) {
+            showError('Sipariş detayları yüklenemedi');
         }
-
-    } catch (error) {
-        console.error('Order confirm error:', error);
-        showError('Sipariş onaylanamadı: ' + error.message);
+    } else {
+        // Detayları gizle
+        detailsRow.classList.add('d-none');
+        icon.classList.replace('bi-chevron-up', 'bi-chevron-down');
     }
 }
 
-// Onay modalı göster
-function showConfirm(title, message) {
-    return new Promise((resolve) => {
-        const modalHtml = `
-            <div class="modal fade" id="confirmModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">${title}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">${message}</div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                            <button type="button" class="btn btn-primary" onclick="document.getElementById('confirmModal').querySelector('[data-confirm]').click()">Onayla</button>
-                        </div>
-                    </div>
-                </div>
+// Ham maddeyi siparişe ekle
+function addMaterialToOrder(materialId) {
+    const material = materials.find(m => m.id === materialId);
+    if (!material) return;
+    
+    const tbody = document.getElementById('itemsTableBody');
+    
+    // Eğer bu malzeme zaten eklenmişse uyarı ver
+    const existingRow = tbody.querySelector(`input[value="${material.id}"]`);
+    if (existingRow) {
+        showError('Bu ham madde zaten listeye eklenmiş!');
+        return;
+    }
+    
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>
+            <input type="hidden" name="items[][material_id]" value="${material.id}">
+            ${material.name}
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <input type="number" 
+                       class="form-control" 
+                       name="items[][quantity]"
+                       value="1"
+                       min="0.01" 
+                       step="0.01" 
+                       required
+                       onchange="calculateTotal(this.closest('tr'))">
+                <span class="input-group-text">${material.unit_name}</span>
             </div>
-        `;
-
-        // Eski modalı temizle
-        const oldModal = document.getElementById('confirmModal');
-        if (oldModal) oldModal.remove();
-
-        // Yeni modalı ekle
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
-        
-        // Onay butonunu gizle ve click event'i ekle
-        const confirmButton = document.createElement('button');
-        confirmButton.style.display = 'none';
-        confirmButton.dataset.confirm = true;
-        confirmButton.onclick = () => {
-            modal.hide();
-            resolve(true);
-        };
-        
-        document.getElementById('confirmModal').appendChild(confirmButton);
-        
-        // Modal kapandığında resolve(false)
-        modal._element.addEventListener('hidden.bs.modal', () => {
-            resolve(false);
-        });
-
-        modal.show();
-    });
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">₺</span>
+                <input type="number" 
+                       class="form-control" 
+                       name="items[][unit_price]"
+                       value="0"
+                       min="0.01" 
+                       step="0.01" 
+                       required
+                       onchange="calculateTotal(this.closest('tr'))">
+            </div>
+        </td>
+        <td class="text-end">
+            <span class="row-total">0,00 ₺</span>
+        </td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    onclick="removeRow(this)">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+    
+    tbody.appendChild(row);
+    calculateTotal(row); // İlk hesaplama
 }
-
-// Satın alma durumu badge'i
-function getPurchaseStatusBadge(status) {
-    const badges = {
-        'draft': '<span class="badge bg-secondary">Taslak</span>',
-        'ordered': '<span class="badge bg-primary">Sipariş Verildi</span>',
-        'partial': '<span class="badge bg-warning">Kısmi Teslimat</span>',
-        'received': '<span class="badge bg-success">Tamamlandı</span>',
-        'cancelled': '<span class="badge bg-danger">İptal</span>'
-    };
-    return badges[status] || `<span class="badge bg-secondary">${status}</span>`;
-}
-
-// Yeni satın alma modalını göster
-function showNewPurchaseModal() {
-    purchaseModal = new bootstrap.Modal(document.getElementById('purchaseModal'));
-    document.getElementById('purchaseForm').reset();
-    document.getElementById('itemsTableBody').innerHTML = '';
-    purchaseModal.show();
-    filterMaterials(); // Ham madde listesini hazırla
-}
-
-// Kaldırılan fonksiyonlar:
-// - addNewRow
-// - updateUnitAndPrice
-// Artık sadece addMaterialToOrder kullanılacak
 
 // Satır toplamını hesapla
-function calculateRowTotal(input) {
-    const row = input.closest('tr');
+function calculateTotal(row) {
     const quantity = parseFloat(row.querySelector('input[name$="[quantity]"]').value) || 0;
     const price = parseFloat(row.querySelector('input[name$="[unit_price]"]').value) || 0;
     const total = quantity * price;
     
     row.querySelector('.row-total').textContent = formatCurrency(total);
-    calculateTotalAmount();
-}
-
-// Genel toplamı hesapla
-function calculateTotalAmount() {
-    let total = 0;
+    
+    // Genel toplam hesapla
+    let grandTotal = 0;
     document.querySelectorAll('.row-total').forEach(span => {
-        const text = span.textContent;
-        total += parseCurrency(text);
+        grandTotal += parseCurrency(span.textContent);
     });
-    document.getElementById('totalAmount').textContent = formatCurrency(total);
+    document.getElementById('totalAmount').textContent = formatCurrency(grandTotal);
 }
 
 // Satın alma siparişini kaydet
@@ -429,82 +423,4 @@ function showMaterialSelector() {
     materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));
     filterMaterials(); // İlk yükleme
     materialSelectorModal.show();
-}
-
-// Sipariş detaylarını göster
-async function showPurchaseDetails(orderId) {
-    try {
-        const response = await fetch(`${API_URL}/purchase/orders/${orderId}`);
-        if (!response.ok) throw new Error('API Hatası');
-        
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error);
-
-        // Detay modalı oluştur
-        const modalHtml = `
-            <div class="modal fade" id="purchaseDetailModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Sipariş Detayı #${orderId}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <strong>Tedarikçi:</strong> ${data.order.supplier_name}
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>Tarih:</strong> ${formatDate(data.order.order_date)}
-                                </div>
-                            </div>
-                            
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Ham Madde</th>
-                                            <th>Miktar</th>
-                                            <th>Birim Fiyat</th>
-                                            <th>Toplam</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${data.items.map(item => `
-                                            <tr>
-                                                <td>${item.material_name}</td>
-                                                <td>${item.quantity} ${item.unit_name}</td>
-                                                <td>${formatCurrency(item.unit_price)}</td>
-                                                <td>${formatCurrency(item.quantity * item.unit_price)}</td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            ${data.order.notes ? `
-                                <div class="mt-3">
-                                    <strong>Notlar:</strong>
-                                    <p>${data.order.notes}</p>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Varsa eski modalı kaldır
-        const oldModal = document.getElementById('purchaseDetailModal');
-        if (oldModal) oldModal.remove();
-
-        // Yeni modalı ekle ve göster
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        const modal = new bootstrap.Modal(document.getElementById('purchaseDetailModal'));
-        modal.show();
-
-    } catch (error) {
-        console.error('Purchase detail error:', error);
-        showError('Sipariş detayları yüklenemedi');
-    }
 }
