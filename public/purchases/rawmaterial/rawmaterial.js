@@ -38,14 +38,8 @@ async function loadMaterials() {
                     </td>
                     <td>${getStatusBadge(m.status)}</td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editMaterial(${m.id})">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-success me-1" onclick="showStockModal(${m.id})">
-                            <i class="bi bi-plus-minus"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteMaterial(${m.id})">
-                            <i class="bi bi-trash"></i>
+                        <button class="btn btn-sm btn-outline-primary" onclick="showEditModal(${m.id})">
+                            <i class="bi bi-pencil"></i> Düzenle
                         </button>
                     </td>
                 </tr>
@@ -212,6 +206,43 @@ function resetFilters() {
         status: ''
     };
     loadMaterials();
+}
+
+// Düzenleme modalını göster
+async function showEditModal(id) {
+    try {
+        const response = await fetch(`${API_URL}/materials/${id}`);
+        if (!response.ok) throw new Error('API Hatası');
+        const data = await response.json();
+
+        document.querySelector('.modal-title').innerHTML = `
+            <i class="bi bi-pencil"></i> Ham Madde Düzenle
+        `;
+
+        // Status select'i göster
+        document.getElementById('statusGroup').classList.remove('d-none');
+        
+        // Form alanlarını doldur
+        const form = document.getElementById('materialForm');
+        form.elements['name'].value = data.material.name;
+        form.elements['category_id'].value = data.material.category_id || '';
+        form.elements['unit_id'].value = data.material.unit_id || '';
+        form.elements['description'].value = data.material.description || '';
+        form.elements['notes'].value = data.material.notes || '';
+        form.elements['status'].value = data.material.status;
+
+        // Form elemanlarını readonly yap
+        form.elements['name'].readOnly = true;
+        form.elements['unit_id'].disabled = true;
+        form.elements['category_id'].disabled = true;
+
+        // Modal'ı göster
+        materialModal.show();
+
+    } catch (error) {
+        console.error('Ham madde detayı alınamadı:', error);
+        showError('Ham madde detayı alınamadı');
+    }
 }
 
 // ... diğer fonksiyonlar (editMaterial, showStockModal vb) eklenecek

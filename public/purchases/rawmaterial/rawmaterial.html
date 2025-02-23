@@ -146,6 +146,19 @@
                                     </div>
                                 </div>
 
+                                <!-- Durum Seçimi - Başlangıçta gizli -->
+                                <div id="statusGroup" class="form-floating mb-3 d-none">
+                                    <select class="form-select" 
+                                            id="materialStatus" 
+                                            name="status"
+                                            required>
+                                        <option value="active">Aktif</option>
+                                        <option value="passive">Pasif</option>
+                                        <option value="archived">Arşiv</option>
+                                    </select>
+                                    <label for="materialStatus">Durum</label>
+                                </div>
+
                                 <!-- Açıklama -->
                                 <div class="form-floating mb-3">
                                     <textarea class="form-control" 
