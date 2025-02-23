@@ -20,47 +20,43 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTemplates('sms');
 });
 
-async function loadTemplates(type) {
+async function loadTemplates(category) {
     try {
-        const response = await fetch(`${API_URL}/settings/message-templates?type=${type}`);
+        const response = await fetch(`${API_URL}/settings/messages?category=${category}`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
         if (!data.success) throw new Error(data.error);
 
-        renderTemplates(type, data.messages);
+        renderTemplates(category, data.messages);
     } catch (error) {
         console.error('Templates loading error:', error);
-        showError('Şablonlar yüklenemedi');
+        showError('Mesajlar yüklenemedi');
     }
 }
 
-function renderTemplates(type, templates) {
-    const tbody = document.getElementById(`${type}Templates`);
+function renderTemplates(category, messages) {
+    const tbody = document.getElementById(`${category}Templates`);
     
-    if (!templates?.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Şablon bulunamadı</td></tr>';
+    if (!messages?.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Mesaj bulunamadı</td></tr>';
         return;
     }
 
-    tbody.innerHTML = templates.map(template => `
+    tbody.innerHTML = messages.map(msg => `
         <tr>
-            <td>${template.name}</td>
+            <td>${msg.title}</td>
             <td>
-                <small class="text-muted">${template.content}</small>
+                <small class="text-muted">${msg.content}</small>
             </td>
-            <td>
-                ${template.variables.map(v => `
-                    <span class="badge bg-secondary">${v}</span>
-                `).join(' ')}
-            </td>
-            <td>${formatDateTime(template.updated_at)}</td>
+            <td>${msg.category}</td>
+            <td>${formatDateTime(msg.created_at)}</td>
             <td>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-primary" onclick="editTemplate(${template.id})">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editMessage(${msg.id})">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteTemplate(${template.id})">
+                    <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteMessage(${msg.id})">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>

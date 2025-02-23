@@ -16,8 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initMap() {
-    // Mapbox token güncellendi
-    mapboxgl.accessToken = 'pk.eyJ1IjoieXVzdWZhYWthcnN1IiwiYSI6ImNscmR2Z2FpbTJheWYya3BlZ2N2em41OWIifQ.7s9Zb-4TSent-RFom_9QcQ';
+    // Yeni API key
+    mapboxgl.accessToken = 'pk.eyJ1IjoieXVzdWZhYWthcnN1IiwiYSI6ImNscno4ZHE3czBhOXEya29jeW5yYnR6MXkifQ.lHoglnUG9dO6wS9E4UkEig';
     
     map = new mapboxgl.Map({
         container: 'map',

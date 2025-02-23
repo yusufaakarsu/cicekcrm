@@ -54,47 +54,64 @@ router.post('/users', async (c) => {
 })
 
 // Hazır mesaj şablonları
-router.get('/message-templates', async (c) => {
+router.get('/messages', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
+  const category = c.req.query('category') // birthday, anniversary vs.
   
   try {
     const { results } = await db.prepare(`
-      SELECT * FROM message_templates
+      SELECT 
+        id,
+        category,
+        title,
+        content,
+        is_active,
+        display_order,
+        created_at,
+        updated_at
+      FROM card_messages
       WHERE tenant_id = ?
+      ${category ? 'AND category = ?' : ''}
       AND deleted_at IS NULL
-      ORDER BY type, name ASC
-    `).bind(tenant_id).all()
+      ORDER BY display_order ASC, title ASC
+    `).bind(tenant_id, category).all()
 
-    return c.json({ success: true, templates: results })
+    return c.json({ success: true, messages: results })
   } catch (error) {
-    console.error('Templates error:', error)
+    console.error('Messages error:', error)
     return c.json({ success: false, error: 'Database error' }, 500)
   }
 })
 
-// Mesaj şablonu ekle/güncelle
-router.post('/message-templates', async (c) => {
+// Mesaj ekle/güncelle 
+router.post('/messages', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   const body = await c.req.json()
 
   try {
     const result = await db.prepare(`
-      INSERT INTO message_templates (
-        tenant_id, name, type, content, variables
-      ) VALUES (?, ?, ?, ?, ?)
+      INSERT INTO card_messages (
+        tenant_id, 
+        category,
+        title,
+        content,
+        is_active,
+        display_order
+      ) VALUES (?, ?, ?, ?, ?, ?)
     `).bind(
       tenant_id,
-      body.name,
-      body.type,
+      body.category,
+      body.title,
       body.content,
-      JSON.stringify(body.variables || [])
+      body.is_active ?? true,
+      body.display_order ?? 0
     ).run()
 
     return c.json({
       success: true,
-      template_id: result.meta?.last_row_id
+      message_id: result.meta?.last_row_id
     })
   } catch (error) {
     return c.json({ success: false, error: 'Database error' }, 500)
