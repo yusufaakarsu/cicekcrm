@@ -77,9 +77,14 @@ function showNewMaterialModal() {
 
 async function loadUnitsForSelect() {
     try {
-        const response = await fetch(`${API_URL}/units`);
+        // Endpoint düzeltildi: /units -> /materials/units
+        const response = await fetch(`${API_URL}/materials/units`);
         if (!response.ok) throw new Error('API Hatası');
         const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'API Hatası');
+        }
 
         const unitSelect = document.querySelector('select[name="unit_id"]');
         
@@ -91,9 +96,6 @@ async function loadUnitsForSelect() {
                 </option>
             `).join('')}
         `;
-
-        // Select2 veya benzeri bir kütüphane kullanıyorsak
-        // $(unitSelect).select2();
 
     } catch (error) {
         console.error('Birimler yüklenemedi:', error);
