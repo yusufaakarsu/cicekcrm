@@ -391,4 +391,41 @@ router.delete('/:id', async (c) => {
   }
 })
 
+// Ürün reçetelerini getir
+router.get('/recipes/:orderId', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  const { orderId } = c.req.param()
+
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        rm.id as material_id,
+        rm.name as material_name,
+        u.code as unit_code,
+        pm.default_quantity as suggested_quantity
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.id
+      JOIN product_materials pm ON p.id = pm.product_id
+      JOIN raw_materials rm ON pm.material_id = rm.id
+      JOIN units u ON rm.unit_id = u.id
+      WHERE oi.order_id = ?
+      AND oi.tenant_id = ?
+      ORDER BY rm.name
+    `).bind(orderId, tenant_id).all()
+
+    return c.json({
+      success: true,
+      recipes: results || []
+    })
+
+  } catch (error) {
+    return c.json({
+      success: false,
+      error: 'Database error',
+      details: error.message
+    }, 500)
+  }
+})
+
 export default router

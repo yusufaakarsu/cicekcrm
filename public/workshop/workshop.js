@@ -189,69 +189,130 @@ async function completePreparation(orderId) {
 
 async function showOrderDetail(orderId) {
     try {
+        // Loading state
         const detailContainer = document.getElementById('orderDetail');
         document.getElementById('noOrderSelected').classList.add('d-none');
         detailContainer.classList.remove('d-none');
+        detailContainer.innerHTML = '<div class="text-center p-4"><div class="spinner-border"></div></div>';
 
-        // Loading göster
-        detailContainer.innerHTML = `
-            <div class="text-center p-4">
-                <div class="spinner-border"></div>
-            </div>
-        `;
+        // Sipariş ve reçete bilgilerini paralel al
+        const [orderResponse, recipesResponse] = await Promise.all([
+            fetchAPI(`/orders/${orderId}/details`),
+            fetchAPI(`/products/recipes/${orderId}`)
+        ]);
 
-        // Sadece sipariş detayını al
-        const response = await fetchAPI(`/orders/${orderId}/details`);
-        console.log('Order detail response:', response);
+        if (!orderResponse.success) throw new Error('Sipariş detayları alınamadı');
+        
+        const order = orderResponse.order;
+        const recipes = recipesResponse.success ? recipesResponse.recipes : [];
 
-        if (!response.success) {
-            throw new Error('Sipariş detayları alınamadı');
-        }
-
-        const order = response.order;
-
-        // Basit detay gösterimi
+        // Detay HTML'i
         detailContainer.innerHTML = `
             <div class="card">
                 <div class="card-body">
-                    <h5>Sipariş #${order.id}</h5>
-                    <p>Durum: ${getStatusText(order.status)}</p>
-                    <hr>
-                    <h6>Ürünler:</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Ürün</th>
-                                    <th>Adet</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${order.items.map(item => `
-                                    <tr>
-                                        <td>${item.product_name}</td>
-                                        <td>${item.quantity}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
+                    <!-- Üst bilgi -->
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="mb-1">Sipariş #${order.id}</h5>
+                            <p class="mb-0 text-muted">
+                                ${formatDate(order.delivery_date)} ${formatTimeSlot(order.delivery_time)}
+                            </p>
+                        </div>
+                        <span class="badge bg-${getStatusBadgeColor(order.status)}">
+                            ${getStatusText(order.status)}
+                        </span>
                     </div>
 
-                    ${order.status === 'new' ? `
-                        <button class="btn btn-warning mt-3" onclick="startPreparation(${order.id})">
-                            Hazırlamaya Başla
-                        </button>
-                    ` : order.status === 'preparing' ? `
-                        <button class="btn btn-success mt-3" onclick="completePreparation(${order.id})">
-                            Hazırlamayı Tamamla
-                        </button>
-                    ` : ''}
+                    <!-- Ürünler -->
+                    <div class="mb-4">
+                        <h6 class="border-bottom pb-2">Sipariş Ürünleri</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Ürün</th>
+                                        <th width="80">Adet</th>
+                                        <th width="120">Durum</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${order.items.map(item => `
+                                        <tr>
+                                            <td>${item.product_name}</td>
+                                            <td class="text-center">${item.quantity}</td>
+                                            <td>
+                                                <span class="badge bg-${getStatusBadgeColor(order.status)}">
+                                                    ${getStatusText(order.status)}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Malzeme Kullanımı -->
+                    <div class="mb-4">
+                        <h6 class="border-bottom pb-2">Malzeme Kullanımı</h6>
+                        ${recipes.length > 0 ? `
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Malzeme</th>
+                                            <th width="100">Önerilen</th>
+                                            <th width="120">Kullanılan</th>
+                                            <th width="80">Birim</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${recipes.map(recipe => `
+                                            <tr>
+                                                <td>${recipe.material_name}</td>
+                                                <td class="text-center">${recipe.suggested_quantity}</td>
+                                                <td>
+                                                    <input type="number" 
+                                                        class="form-control form-control-sm used-quantity"
+                                                        data-material-id="${recipe.material_id}"
+                                                        value="${recipe.suggested_quantity}"
+                                                        ${order.status !== 'preparing' ? 'disabled' : ''}>
+                                                </td>
+                                                <td class="text-center">${recipe.unit_code}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ` : `
+                            <div class="alert alert-warning py-2">
+                                Bu ürünler için malzeme bilgisi bulunamadı
+                            </div>
+                        `}
+                    </div>
+
+                    <!-- Butonlar -->
+                    <div class="border-top pt-3">
+                        ${order.status === 'new' ? `
+                            <button class="btn btn-warning" onclick="startPreparation(${order.id})">
+                                <i class="bi bi-play-fill"></i> Hazırlamaya Başla
+                            </button>
+                        ` : order.status === 'preparing' ? `
+                            <button class="btn btn-success" onclick="completePreparation(${order.id})">
+                                <i class="bi bi-check-lg"></i> Hazırlamayı Tamamla
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         `;
 
     } catch (error) {
         console.error('Detay yükleme hatası:', error);
-        showError(error.message);
+        detailContainer.innerHTML = `
+            <div class="alert alert-danger">
+                Sipariş detayları yüklenemedi: ${error.message}
+            </div>
+        `;
     }
 }
