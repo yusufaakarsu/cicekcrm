@@ -189,17 +189,37 @@ async function completePreparation(orderId) {
 
 async function showOrderDetail(orderId) {
     try {
-        // Loading state
-        const detailContainer = document.getElementById('orderDetail');
-        document.getElementById('noOrderSelected').classList.add('d-none');
-        detailContainer.classList.remove('d-none');
-        detailContainer.innerHTML = '<div class="text-center p-4"><div class="spinner-border"></div></div>';
+        // Debug log
+        console.log('Loading order detail:', orderId);
 
-        // Sipariş ve reçete bilgilerini paralel al
+        const detailContainer = document.getElementById('orderDetail');
+        const noOrderSelected = document.getElementById('noOrderSelected');
+
+        if (!detailContainer || !noOrderSelected) {
+            console.error('Required elements not found');
+            return;
+        }
+
+        // noOrderSelected'ı gizle
+        noOrderSelected.classList.add('d-none');
+        
+        // orderDetail'i göster ve loading state'e geç
+        detailContainer.classList.remove('d-none');
+        detailContainer.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2">Yükleniyor...</p>
+            </div>
+        `;
+
+        // Sipariş ve reçete bilgilerini al
+        console.log('Fetching order details and recipes...');
         const [orderResponse, recipesResponse] = await Promise.all([
             fetchAPI(`/orders/${orderId}/details`),
             fetchAPI(`/products/recipes/${orderId}`)
         ]);
+
+        console.log('API Responses:', {orderResponse, recipesResponse});
 
         if (!orderResponse.success) throw new Error('Sipariş detayları alınamadı');
         
@@ -308,11 +328,16 @@ async function showOrderDetail(orderId) {
         `;
 
     } catch (error) {
-        console.error('Detay yükleme hatası:', error);
-        detailContainer.innerHTML = `
-            <div class="alert alert-danger">
-                Sipariş detayları yüklenemedi: ${error.message}
-            </div>
-        `;
+        console.error('Detail loading error:', error);
+        
+        const detailContainer = document.getElementById('orderDetail');
+        if (detailContainer) {
+            detailContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Sipariş detayları yüklenemedi: ${error.message}
+                </div>
+            `;
+        }
     }
 }
