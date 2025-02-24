@@ -42,6 +42,89 @@ async function loadOrders(status = 'new') {
     }
 }
 
+// Duruma göre filtreleme
+function filterByStatus(status) {
+    currentFilter = status;
+    
+    // Tüm kartlardan active class'ı kaldır
+    document.querySelectorAll('.status-card').forEach(card => {
+        card.classList.remove('active', 'bg-white');
+        card.classList.add('bg-light');
+    });
+    
+    // Seçilen kartı aktif yap
+    const selectedCard = document.querySelector(`[data-status="${status}"]`);
+    if (selectedCard) {
+        selectedCard.classList.remove('bg-light');
+        selectedCard.classList.add('active', 'bg-white');
+    }
+
+    // Siparişleri yükle
+    loadOrders(status);
+}
+
+// Sipariş listesini güncelle
+function updateOrdersList(orders) {
+    const container = document.getElementById('ordersList');
+    
+    if (!orders?.length) {
+        container.innerHTML = `
+            <div class="text-center text-muted p-3">
+                Sipariş bulunmuyor
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = orders.map(order => `
+        <div class="card mb-2 cursor-pointer" onclick="showOrderDetail(${order.id})">
+            <div class="card-body p-2">
+                <div class="d-flex justify-content-between">
+                    <strong>#${order.id} - ${order.recipient_name}</strong>
+                    <span class="badge bg-${getStatusBadgeColor(order.status)}">
+                        ${getStatusText(order.status)}
+                    </span>
+                </div>
+                <div class="small text-muted mt-1">
+                    ${formatDate(order.delivery_date)} ${formatTimeSlot(order.delivery_time)}
+                </div>
+                <div class="small">
+                    ${order.items_summary || 'Ürün bilgisi yok'}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Sipariş sayılarını güncelle
+function updateCountBadges(orders) {
+    document.getElementById('newOrdersCount').textContent = 
+        orders.filter(o => o.status === 'new').length;
+        
+    document.getElementById('preparingOrdersCount').textContent = 
+        orders.filter(o => o.status === 'preparing').length;
+        
+    document.getElementById('readyOrdersCount').textContent = 
+        orders.filter(o => o.status === 'ready').length;
+}
+
+// Helper fonksiyonlar
+function getStatusBadgeColor(status) {
+    return {
+        'new': 'warning',
+        'preparing': 'info',
+        'ready': 'success'
+    }[status] || 'secondary';
+}
+
+function getStatusText(status) {
+    return {
+        'new': 'Yeni',
+        'preparing': 'Hazırlanıyor',
+        'ready': 'Hazır'
+    }[status] || status;
+}
+
 async function startPreparation(orderId) {
     try {
         const result = await fetchAPI(`/workshop/${orderId}/start`, {
