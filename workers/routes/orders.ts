@@ -65,7 +65,7 @@ router.get('/today', async (c) => {
   }
 })
 
-// Sipariş detay SQL'i güncellendi
+// Sipariş detay endpoint'i düzeltildi
 router.get('/:id/details', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
@@ -83,28 +83,24 @@ router.get('/:id/details', async (c) => {
         a.district,
         a.label as delivery_address,
         a.directions as delivery_directions,
-        COALESCE(o.custom_card_message, cm.content) as card_message,
-        GROUP_CONCAT(
-          p.name || ' x' || oi.quantity || 
-          CASE WHEN oi.notes IS NOT NULL THEN ' (' || oi.notes || ')' ELSE '' END
-        ) as items
+        COALESCE(o.custom_card_message, cm.content) as card_message
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       LEFT JOIN recipients r ON o.recipient_id = r.id
       LEFT JOIN addresses a ON o.address_id = a.id
       LEFT JOIN card_messages cm ON o.card_message_id = cm.id
-      LEFT JOIN order_items oi ON o.id = oi.order_id
-      LEFT JOIN products p ON oi.product_id = p.id
       WHERE o.id = ? AND o.tenant_id = ?
       AND o.deleted_at IS NULL
-      GROUP BY o.id
     `).bind(id, tenant_id).first()
 
     if (!order) {
-      return c.json({ error: 'Order not found' }, 404)
+      return c.json({ 
+        success: false,
+        error: 'Order not found' 
+      }, 404)
     }
 
-    // Sipariş kalemleri
+    // Sipariş kalemleri ayrı sorgu ile al
     const { results: items } = await db.prepare(`
       SELECT 
         oi.*,
@@ -120,12 +116,17 @@ router.get('/:id/details', async (c) => {
       success: true,
       order: {
         ...order,
-        items: items || []
+        items: items || [] // Boş array varsayılan değer
       }
     })
 
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Order detail error:', error)
+    return c.json({ 
+      success: false,
+      error: 'Database error',
+      details: error.message 
+    }, 500)
   }
 })
 

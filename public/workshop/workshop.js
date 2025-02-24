@@ -153,11 +153,16 @@ async function updateOrderStatus(orderId, newStatus) {
 
 async function showOrderDetail(orderId) {
     try {
-        const order = await fetchAPI(`/orders/${orderId}/details`);
+        const response = await fetchAPI(`/orders/${orderId}/details`);
         
-        if (!order.success) {
-            throw new Error(order.error);
+        if (!response.success) {
+            throw new Error(response.error || 'Sipariş detayları yüklenemedi');
         }
+
+        const order = response.order;
+
+        // Null check ekleyelim
+        const items = order.items || [];
 
         // Modal içeriğini doldur
         document.getElementById('modalOrderId').textContent = orderId;
@@ -168,13 +173,13 @@ async function showOrderDetail(orderId) {
                     <p>
                         <strong>Tarih:</strong> ${formatDate(order.delivery_date)}<br>
                         <strong>Saat:</strong> ${formatTimeSlot(order.delivery_time)}<br>
-                        <strong>Adres:</strong> ${order.delivery_address}
+                        <strong>Adres:</strong> ${order.delivery_address || ''}
                     </p>
                 </div>
                 <div class="col-md-6">
                     <h6>Alıcı Bilgileri</h6>
                     <p>
-                        <strong>İsim:</strong> ${order.recipient_name}<br>
+                        <strong>İsim:</strong> ${order.recipient_name || ''}<br>
                         <strong>Telefon:</strong> ${formatPhoneNumber(order.recipient_phone)}
                     </p>
                 </div>
@@ -190,9 +195,9 @@ async function showOrderDetail(orderId) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${order.items.map(item => `
+                        ${items.map(item => `
                             <tr>
-                                <td>${item.product_name}</td>
+                                <td>${item.product_name || ''}</td>
                                 <td class="text-end">${item.quantity}</td>
                             </tr>
                         `).join('')}
