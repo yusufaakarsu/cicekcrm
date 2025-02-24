@@ -632,20 +632,28 @@ async function confirmProducts() {
                 body: JSON.stringify({
                     tenant_id: 1,
                     customer_id: Number(customerId),
-                    label: selectedAddress.label,
+                    label: selectedAddress.label || 'Teslimat Adresi',
                     district: selectedAddress.district,
                     street: selectedAddress.street,
-                    building_no: selectedAddress.building_no,
-                    floor_no: selectedAddress.floor,
-                    door_no: selectedAddress.apartment_no,
                     here_place_id: selectedAddress.here_place_id,
+                    building_no: selectedAddress.building_no,
+                    floor_no: selectedAddress.floor,      // floor -> floor_no olarak değiştirildi
+                    door_no: selectedAddress.apartment_no, // apartment_no -> door_no olarak değiştirildi
                     lat: selectedAddress.lat,
-                    lng: selectedAddress.lng
+                    lng: selectedAddress.lng,
+                    neighborhood: selectedAddress.address?.neighborhood || null,
+                    directions: selectedAddress.directions || null
                 })
             });
 
+            // Debug log ekleyelim
+            console.log('Address Request:', {
+                selectedAddress,
+                addressResponse
+            });
+
             if (!addressResponse.success) {
-                throw new Error('Adres kaydedilemedi');
+                throw new Error('Adres kaydedilemedi: ' + addressResponse.error);
             }
 
             addressId = addressResponse.address_id;
