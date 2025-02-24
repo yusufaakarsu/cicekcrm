@@ -17,9 +17,13 @@ function setupEventListeners() {
 
 async function loadOrders() {
     try {
-        const dateFilter = document.getElementById('dateFilter').value;
-        const timeSlot = document.getElementById('timeSlotFilter').value;
-        const status = document.getElementById('statusFilter').value;
+        // Filtre değerlerini al ve null kontrolü yap
+        const dateFilter = document.getElementById('dateFilter')?.value || 'today';
+        const timeSlot = document.getElementById('timeSlotFilter')?.value || '';
+        const status = document.getElementById('statusFilter')?.value || '';
+
+        // Debug için
+        console.log('Loading with filters:', { dateFilter, timeSlot, status });
 
         // URL parametrelerini oluştur
         const params = new URLSearchParams({
