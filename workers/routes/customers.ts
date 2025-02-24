@@ -233,24 +233,21 @@ router.get('/:id/addresses', async (c) => {
   const { id } = c.req.param()
   
   try {
+    // SQL düzeltildi - addresses tablosu ile uyumlu hale getirildi
     const { results } = await db.prepare(`
       SELECT 
         a.*,
-        COALESCE(r.name, '') as recipient_name,
-        COALESCE(r.phone, '') as recipient_phone,
-        COALESCE(a.label, 'Teslimat Adresi') as label
+        COALESCE(a.label, 'Teslimat Adresi') as label,
+        a.floor_no as floor,
+        a.door_no as apartment_no
       FROM addresses a
-      LEFT JOIN recipients r ON a.recipient_id = r.id
       WHERE a.customer_id = ?
       AND a.tenant_id = ?
       AND a.deleted_at IS NULL
       ORDER BY a.created_at DESC
     `).bind(id, tenant_id).all()
     
-    return c.json({
-      success: true,
-      addresses: results || []
-    })
+    return c.json(results || [])
   } catch (error) {
     console.error('Customer addresses error:', error)
     return c.json({ 

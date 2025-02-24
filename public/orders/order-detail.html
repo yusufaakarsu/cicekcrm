@@ -9,12 +9,26 @@
     <link href="/css/style.css" rel="stylesheet">
 </head>
 <body data-page="orders">
-    <div id="mainSidebar"></div>
+    <div class="d-flex">
+        <div id="mainSidebar"></div>
 
-    <div class="container mt-5 pt-4" id="orderDetail">
-        <!-- Detaylar JS ile doldurulacak -->
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Yükleniyor...</span>
+        <div class="flex-grow-1 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="bi bi-box-seam"></i> 
+                    Sipariş Detayı <small class="text-muted">#<span id="orderId"></span></small>
+                </h2>
+                <a href="/orders/" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Siparişlere Dön
+                </a>
+            </div>
+
+            <div id="orderDetail">
+                <!-- Detaylar JS ile doldurulacak -->
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                </div>
+            </div>
         </div>
     </div>
 

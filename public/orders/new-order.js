@@ -560,14 +560,15 @@ function removeProduct(productId) {
     updateSelectedProducts();
 }
 
-// Ürün miktarını güncelle
+// Ürün miktarını güncelle - Fiyat hesaplaması düzeltildi
 function updateQuantity(productId, newQuantity) {
     if (newQuantity < 1) return;
 
     const product = selectedProducts.get(Number(productId));
     if (product) {
-        product.quantity = newQuantity;
-        product.total = product.retail_price * newQuantity;
+        product.quantity = Number(newQuantity);
+        product.unit_price = product.base_price; // base_price kullan
+        product.total = product.unit_price * product.quantity;
         selectedProducts.set(Number(productId), product);
         updateSelectedProducts();
     }
@@ -612,7 +613,7 @@ function updateSelectedProducts() {
     subtotalEl.textContent = formatCurrency(subtotal);
 }
 
-// Ürünleri onayla ve kaydet
+// Ürünleri onayla - Başarı durumunda yönlendirme eklendi
 async function confirmProducts() {
     try {
         const deliveryInfo = JSON.parse(sessionStorage.getItem('deliveryInfo'));
@@ -698,7 +699,13 @@ async function confirmProducts() {
             body: JSON.stringify(orderData)
         });
 
-        // ...success handling...
+        if (result.success) {
+            // Başarı sayfasına yönlendir
+            window.location.href = `/orders/order-detail.html?id=${result.order.id}`;
+        } else {
+            throw new Error(result.error || 'Sipariş kaydedilemedi');
+        }
+
     } catch (error) {
         console.error('Sipariş kayıt hatası:', error);
         showError('Sipariş kaydedilemedi: ' + error.message);

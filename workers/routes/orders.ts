@@ -362,12 +362,31 @@ router.post("/delivery", async (c) => {
 router.post('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
-  const user_id = c.get('user_id') // Kullanıcı ID'sini al
   
   try {
     const body = await c.req.json()
+    console.log('Order request body:', body)
 
-    // 1. Alıcı kaydı yap
+    // 1. Orders tablosuna bakalım
+    /*
+    CREATE TABLE orders (
+        tenant_id INTEGER NOT NULL,
+        customer_id INTEGER NOT NULL,
+        recipient_id INTEGER NOT NULL,    
+        address_id INTEGER NOT NULL,      
+        delivery_date DATE NOT NULL,
+        delivery_time TEXT CHECK(delivery_time IN ('morning','afternoon','evening')) NOT NULL,
+        status TEXT DEFAULT 'new',
+        payment_method TEXT CHECK(payment_method IN ('cash','credit_card','bank_transfer')),
+        payment_status TEXT DEFAULT 'pending',
+        subtotal DECIMAL(10,2) NOT NULL,
+        total_amount DECIMAL(10,2) NOT NULL,
+        created_by INTEGER NOT NULL,
+        // ...
+    )
+    */
+
+    // 2. Önce alıcı (recipient) kaydı yap
     const recipientResult = await db.prepare(`
       INSERT INTO recipients (
         tenant_id, customer_id, name, phone, 
@@ -384,31 +403,41 @@ router.post('/', async (c) => {
     const recipient_id = recipientResult.meta?.last_row_id
     if (!recipient_id) throw new Error('Alıcı kaydedilemedi')
 
-    // 2. Sipariş oluştur
+    // 3. Siparişi kaydet - required fields ekledik
     const orderResult = await db.prepare(`
       INSERT INTO orders (
-        tenant_id, customer_id, recipient_id, address_id,
-        delivery_date, delivery_time,
-        status, payment_method, payment_status,
-        subtotal, total_amount,
-        card_message,
-        created_by, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        tenant_id,             -- 1 
+        customer_id,          -- 2
+        recipient_id,         -- 3 
+        address_id,           -- 4
+        delivery_date,        -- 5 
+        delivery_time,        -- 6
+        status,              -- 7
+        payment_method,       -- 8 
+        payment_status,       -- 9
+        subtotal,            -- 10
+        total_amount,        -- 11
+        created_by,          -- 12 - REQUIRED!
+        created_at,
+        updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `).bind(
-      tenant_id,
-      body.customer_id,
-      recipient_id,
-      body.address_id,
-      body.delivery_date,
-      body.delivery_time_slot,
-      'new',
-      body.payment_method || 'cash',
-      'pending',
-      body.subtotal,
-      body.total_amount,
-      body.card_message,
-      user_id
+      tenant_id,                    // 1
+      body.customer_id,            // 2  
+      recipient_id,                // 3 
+      body.address_id,             // 4
+      body.delivery_date,          // 5
+      body.delivery_time,          // 6
+      'new',                       // 7
+      body.payment_method,         // 8
+      'pending',                   // 9
+      body.subtotal,              // 10
+      body.total_amount,          // 11
+      1                           // 12 - created_by eklendi
     ).run()
+
+    // Debug log ekleyelim
+    console.log('Order insert result:', orderResult)
 
     const order_id = orderResult.meta?.last_row_id
     if (!order_id) throw new Error('Sipariş kaydedilemedi')
@@ -419,15 +448,14 @@ router.post('/', async (c) => {
         INSERT INTO order_items (
           order_id, product_id, 
           quantity, unit_price, total_amount,
-          notes, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+          created_at
+        ) VALUES (?, ?, ?, ?, ?, datetime('now'))
       `).bind(
         order_id,
         item.product_id,
         item.quantity,
         item.unit_price,
-        item.quantity * item.unit_price,
-        item.notes || null
+        item.quantity * item.unit_price
       ).run()
     }
 
@@ -439,7 +467,13 @@ router.post('/', async (c) => {
     })
 
   } catch (error) {
-    console.error('[Sipariş Hatası]:', error)
+    // Hata detaylarını logla
+    console.error('[Order Error]:', {
+      message: error.message,
+      stack: error.stack,
+      body: body
+    })
+    
     return c.json({
       success: false,
       error: 'Sipariş oluşturulamadı',
