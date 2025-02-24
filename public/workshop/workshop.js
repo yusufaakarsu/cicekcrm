@@ -6,6 +6,14 @@ document.addEventListener('DOMContentLoaded', () => {
     filterByStatus('new'); // Başlangıçta yeni siparişleri göster
     setupEventListeners();
     startAutoRefresh();
+
+    // Status kartlarına click eventi ekle
+    document.querySelectorAll('.status-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            const status = e.currentTarget.dataset.status;
+            filterByStatus(status);
+        });
+    });
 });
 
 function setupEventListeners() {
@@ -577,20 +585,23 @@ window.addEventListener('beforeunload', () => {
 
 // Durum filtreleme fonksiyonu güncellendi
 function filterByStatus(status) {
-    currentFilter = status; // Global state'i güncelle
+    // Global state'i güncelle
+    currentFilter = status;
     
     // Tüm kartlardan active class'ı kaldır
     document.querySelectorAll('.status-card').forEach(card => {
-        card.classList.remove('active', 'border-primary');
+        card.classList.remove('active', 'bg-white');
+        card.classList.add('bg-light');
     });
     
-    // Seçilen karta active class ekle
+    // Seçilen kartı aktif yap
     const selectedCard = document.querySelector(`[data-status="${status}"]`);
     if (selectedCard) {
-        selectedCard.classList.add('active', 'border-primary');
+        selectedCard.classList.remove('bg-light');
+        selectedCard.classList.add('active', 'bg-white');
     }
 
-    // Siparişleri filtrele
+    // Siparişleri filtrele ve göster
     loadOrders(status);
 }
 
