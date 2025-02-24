@@ -632,9 +632,11 @@ async function confirmProducts() {
         const orderData = {
             tenant_id: 1,
             customer_id: Number(customerId),
-            address_id: selectedAddress.id,
+            // Düzeltme 1: address_id düzeltildi
+            address_id: Number(selectedAddress.id), // ID'yi number'a çevir
             delivery_date: deliveryInfo.delivery_date,
-            delivery_time_slot: deliveryInfo.delivery_time,
+            // Düzeltme 2: delivery_time olarak değiştirildi
+            delivery_time: deliveryInfo.delivery_time_slot, // _slot kaldırıldı
             recipient_name: deliveryInfo.recipient_name,
             recipient_phone: deliveryInfo.recipient_phone,
             recipient_note: deliveryInfo.recipient_note || null,
@@ -652,7 +654,10 @@ async function confirmProducts() {
             }))
         };
 
-        console.log('Gönderilecek sipariş verisi:', orderData);
+        // Debug log ekleyelim
+        console.log('Selected Address:', selectedAddress);
+        console.log('Delivery Info:', deliveryInfo);
+        console.log('Order Data:', orderData);
 
         // Siparişi kaydet
         const result = await fetchAPI('/orders', {
