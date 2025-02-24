@@ -525,8 +525,9 @@ function addProduct(product) {
 
         const productData = typeof product === 'string' ? JSON.parse(product) : product;
         
-        // Fiyat kontrolü
-        if (!productData.base_price) {
+        // base_price -> base_price olarak düzeltildi
+        const price = parseFloat(productData.base_price);
+        if (!price) {
             console.error('Product has no price:', productData);
             showError('Ürün fiyatı bulunamadı');
             return;
@@ -540,8 +541,8 @@ function addProduct(product) {
         selectedProducts.set(productData.id, {
             ...productData,
             quantity,
-            unit_price: parseFloat(productData.base_price),
-            total: parseFloat(productData.base_price) * quantity
+            unit_price: price, // price olarak değiştirildi
+            total: price * quantity
         });
         
         updateSelectedProducts();

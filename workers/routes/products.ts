@@ -239,6 +239,7 @@ router.get('/', async (c) => {
       SELECT 
         p.*,
         pc.name as category_name,
+        COALESCE(p.base_price, 0) as base_price, -- Fiyat null kontrolü eklendi
         (
           SELECT COUNT(*) 
           FROM product_materials 
