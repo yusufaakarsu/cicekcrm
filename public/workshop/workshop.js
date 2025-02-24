@@ -15,24 +15,15 @@ function setupEventListeners() {
     document.getElementById('refreshButton').addEventListener('click', loadOrders);
 }
 
-async function loadOrders() {
+async function loadOrders(filterStatus = '') {
     try {
-        // Filtre değerlerini al ve null kontrolü yap
         const dateFilter = document.getElementById('dateFilter')?.value || 'today';
         const timeSlot = document.getElementById('timeSlotFilter')?.value || '';
-        const status = document.getElementById('statusFilter')?.value || '';
 
-        // Debug için
-        console.log('Loading with filters:', { dateFilter, timeSlot, status });
-
-        // URL parametrelerini oluştur
         const params = new URLSearchParams({
             date_filter: dateFilter,
-            time_slot: timeSlot,
-            status: status
+            time_slot: timeSlot
         });
-
-        console.log('Loading orders with params:', params.toString());
 
         const orders = await fetchAPI(`/orders/workshop?${params}`);
         
@@ -40,25 +31,25 @@ async function loadOrders() {
             throw new Error(orders.error || 'Siparişler yüklenemedi');
         }
 
-        // Debug log
-        console.log('Received orders:', orders);
-
-        // Siparişleri durumlarına göre grupla
+        // Tüm siparişleri grupla (sayılar için)
+        const allOrders = orders.orders || [];
         const grouped = {
-            new: orders.orders.filter(o => o.status === 'new') || [],
-            preparing: orders.orders.filter(o => o.status === 'preparing') || [],
-            ready: orders.orders.filter(o => o.status === 'ready') || []
+            new: allOrders.filter(o => o.status === 'new'),
+            preparing: allOrders.filter(o => o.status === 'preparing'),
+            ready: allOrders.filter(o => o.status === 'ready')
         };
-
-        // Her kolonu güncelle
-        updateOrdersList('new', grouped.new);
-        updateOrdersList('preparing', grouped.preparing);
-        updateOrdersList('ready', grouped.ready);
 
         // Sayaçları güncelle
         document.getElementById('newOrdersCount').textContent = grouped.new.length;
         document.getElementById('preparingOrdersCount').textContent = grouped.preparing.length;
         document.getElementById('readyOrdersCount').textContent = grouped.ready.length;
+
+        // Aktif filtre varsa sadece o siparişleri göster
+        const filteredOrders = filterStatus ? 
+            grouped[filterStatus] : allOrders;
+
+        // Sipariş kartlarını güncelle
+        updateOrderCards(filteredOrders);
 
     } catch (error) {
         console.error('Orders loading error:', error);
@@ -66,10 +57,10 @@ async function loadOrders() {
     }
 }
 
-function updateOrdersList(status, orders) {
-    const container = document.getElementById(`${status}OrdersList`);
+function updateOrderCards(orders) {
+    const container = document.getElementById('ordersList');
     
-    if (!orders.length) {
+    if (!orders?.length) {
         container.innerHTML = `
             <div class="text-center text-muted p-3">
                 Sipariş bulunmuyor
@@ -79,25 +70,37 @@ function updateOrdersList(status, orders) {
     }
 
     container.innerHTML = orders.map(order => `
-        <div class="list-group-item list-group-item-action" 
-             onclick="showOrderDetail(${order.id})">
-            <div class="d-flex justify-content-between align-items-center">
-                <h6 class="mb-1">
-                    #${order.id} - ${order.recipient_name}
-                </h6>
-                <small class="text-${getTimeSlotColor(order.delivery_time)}">
-                    ${formatTimeSlot(order.delivery_time)}
-                </small>
-            </div>
-            <p class="mb-1 small">
-                ${order.items_summary}
-            </p>
-            <div class="d-flex justify-content-between align-items-center">
-                <small class="text-muted">
-                    ${formatDate(order.delivery_date)}
-                </small>
-                <div class="btn-group btn-group-sm">
-                    ${getActionButtons(status, order.id)}
+        <div class="card mb-3" onclick="showOrderDetail(${order.id})">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <!-- Sol Üst: Sipariş No ve Alıcı -->
+                    <div>
+                        <h5 class="card-title mb-1">#${order.id} - ${order.recipient_name}</h5>
+                        <p class="text-muted mb-2">${order.items_summary}</p>
+                    </div>
+                    
+                    <!-- Sağ Üst: Durum ve Zaman -->
+                    <div class="text-end">
+                        <span class="badge bg-${getStatusColor(order.status)} mb-2">
+                            ${getStatusText(order.status)}
+                        </span>
+                        <br>
+                        <small class="text-${getTimeSlotColor(order.delivery_time)}">
+                            ${formatTimeSlot(order.delivery_time)}
+                        </small>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <!-- Sol Alt: Tarih -->
+                    <small class="text-muted">
+                        ${formatDate(order.delivery_date)}
+                    </small>
+                    
+                    <!-- Sağ Alt: Aksiyonlar -->
+                    <div class="btn-group btn-group-sm">
+                        ${getActionButtons(order.status, order.id)}
+                    </div>
                 </div>
             </div>
         </div>
@@ -502,8 +505,21 @@ window.addEventListener('beforeunload', () => {
     if (refreshTimer) clearInterval(refreshTimer);
 });
 
-// Durum filtreleme fonksiyonu
+// Durum filtreleme fonksiyonu güncellendi
 function filterByStatus(status) {
-    document.getElementById('statusFilter').value = status;
-    loadOrders();
+    // Tüm status kartlarından active class'ı kaldır
+    document.querySelectorAll('.status-card').forEach(card => {
+        card.classList.remove('active', 'border-primary');
+    });
+    
+    // Seçilen karta active class ekle
+    if (status) {
+        const selectedCard = document.querySelector(`[data-status="${status}"]`);
+        if (selectedCard) {
+            selectedCard.classList.add('active', 'border-primary');
+        }
+    }
+
+    // Siparişleri filtrele
+    loadOrders(status);
 }

@@ -50,12 +50,14 @@
             <div class="flex-grow-1 d-flex overflow-hidden">
                 <!-- Sol Taraf - Siparişler -->
                 <div class="d-flex flex-column border-end" style="width: 400px; min-width: 350px;">
-                    <!-- Durum Kartları - tıklanabilir yapıldı -->
+                    <!-- Durum Kartları -->
                     <div class="border-bottom p-2">
                         <div class="row g-2">
                             <div class="col-4">
-                                <div class="card bg-warning bg-opacity-10 cursor-pointer" 
-                                     onclick="filterByStatus('new')" role="button">
+                                <div class="card bg-warning bg-opacity-10 status-card cursor-pointer" 
+                                     onclick="filterByStatus('new')" 
+                                     data-status="new" 
+                                     role="button">
                                     <div class="card-body p-2 text-center">
                                         <h6 class="mb-0">Yeni</h6>
                                         <span class="badge bg-warning" id="newOrdersCount">0</span>
@@ -63,8 +65,10 @@
                                 </div>
                             </div>
                             <div class="col-4">
-                                <div class="card bg-info bg-opacity-10 cursor-pointer"
-                                     onclick="filterByStatus('preparing')" role="button">
+                                <div class="card bg-info bg-opacity-10 status-card cursor-pointer"
+                                     onclick="filterByStatus('preparing')" 
+                                     data-status="preparing" 
+                                     role="button">
                                     <div class="card-body p-2 text-center">
                                         <h6 class="mb-0">Hazırlanıyor</h6>
                                         <span class="badge bg-info" id="preparingOrdersCount">0</span>
@@ -72,8 +76,10 @@
                                 </div>
                             </div>
                             <div class="col-4">
-                                <div class="card bg-success bg-opacity-10 cursor-pointer"
-                                     onclick="filterByStatus('ready')" role="button">
+                                <div class="card bg-success bg-opacity-10 status-card cursor-pointer"
+                                     onclick="filterByStatus('ready')" 
+                                     data-status="ready" 
+                                     role="button">
                                     <div class="card-body p-2 text-center">
                                         <h6 class="mb-0">Hazır</h6>
                                         <span class="badge bg-success" id="readyOrdersCount">0</span>
@@ -83,16 +89,11 @@
                         </div>
                     </div>
 
-                    <!-- Sipariş Listeleri - Scrollable -->
+                    <!-- Sipariş Listesi - Tek Liste -->
                     <div class="flex-grow-1 overflow-auto p-2">
-                        <!-- Yeni Siparişler -->
-                        <div id="newOrdersList" class="mb-3"></div>
-                        
-                        <!-- Hazırlanan Siparişler -->
-                        <div id="preparingOrdersList" class="mb-3"></div>
-                        
-                        <!-- Hazır Siparişler -->
-                        <div id="readyOrdersList"></div>
+                        <div id="ordersList">
+                            <!-- Siparişler kart olarak buraya gelecek -->
+                        </div>
                     </div>
                 </div>
 
@@ -140,6 +141,20 @@
         .cursor-pointer:hover {
             transform: translateY(-2px);
             transition: transform 0.2s;
+        }
+
+        /* Status kart stilleri */
+        .status-card {
+            transition: all 0.2s;
+        }
+        
+        .status-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .status-card.active {
+            transform: translateY(-2px);
+            border: 2px solid;
         }
     </style>
 
