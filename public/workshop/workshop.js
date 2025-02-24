@@ -1,21 +1,20 @@
+// Global state
+let currentFilter = 'new';
+
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
-    loadOrders();
+    filterByStatus('new'); // Başlangıçta yeni siparişleri göster
     setupEventListeners();
     startAutoRefresh();
 });
 
 function setupEventListeners() {
-    // Filtre değişikliklerini dinle
-    document.getElementById('dateFilter').addEventListener('change', loadOrders);
-    document.getElementById('timeSlotFilter').addEventListener('change', loadOrders);
-    document.getElementById('statusFilter').addEventListener('change', loadOrders);
-    
-    // Yenile butonu
-    document.getElementById('refreshButton').addEventListener('click', loadOrders);
+    document.getElementById('dateFilter').addEventListener('change', () => loadOrders(currentFilter));
+    document.getElementById('timeSlotFilter').addEventListener('change', () => loadOrders(currentFilter));
+    document.getElementById('refreshButton').addEventListener('click', () => loadOrders(currentFilter));
 }
 
-async function loadOrders(filterStatus = '') {
+async function loadOrders(filterStatus = 'new') {
     try {
         const dateFilter = document.getElementById('dateFilter')?.value || 'today';
         const timeSlot = document.getElementById('timeSlotFilter')?.value || '';
@@ -31,7 +30,7 @@ async function loadOrders(filterStatus = '') {
             throw new Error(orders.error || 'Siparişler yüklenemedi');
         }
 
-        // Tüm siparişleri grupla (sayılar için)
+        // Tüm siparişleri grupla
         const allOrders = orders.orders || [];
         const grouped = {
             new: allOrders.filter(o => o.status === 'new'),
@@ -44,11 +43,8 @@ async function loadOrders(filterStatus = '') {
         document.getElementById('preparingOrdersCount').textContent = grouped.preparing.length;
         document.getElementById('readyOrdersCount').textContent = grouped.ready.length;
 
-        // Aktif filtre varsa sadece o siparişleri göster
-        const filteredOrders = filterStatus ? 
-            grouped[filterStatus] : allOrders;
-
-        // Sipariş kartlarını güncelle
+        // Seçili durumdaki siparişleri göster
+        const filteredOrders = filterStatus ? grouped[filterStatus] : allOrders;
         updateOrderCards(filteredOrders);
 
     } catch (error) {
@@ -143,9 +139,10 @@ function getActionButtons(status, orderId) {
     }
 }
 
+// updateOrderStatus fonksiyonunu güncelle
 async function updateOrderStatus(orderId, newStatus) {
     try {
-        event.stopPropagation(); // Modal'ın açılmasını engelle
+        event?.stopPropagation();
 
         const result = await fetchAPI(`/orders/${orderId}/status`, {
             method: 'PUT',
@@ -154,7 +151,7 @@ async function updateOrderStatus(orderId, newStatus) {
 
         if (result.success) {
             showSuccess('Durum güncellendi');
-            loadOrders(); // Listeyi yenile
+            loadOrders(currentFilter); // Mevcut filtreyi kullan
         } else {
             throw new Error(result.error);
         }
@@ -344,7 +341,7 @@ async function showOrderDetail(orderId) {
     } catch (error) {
         console.error('Order detail error:', error);
         showError('Sipariş detayları yüklenemedi: ' + error.message);
-        
+
         // Hata durumunda detay alanını gizle
         document.getElementById('orderDetail').classList.add('d-none');
         document.getElementById('noOrderSelected').classList.remove('d-none');
@@ -356,7 +353,7 @@ function getDetailActionButtons(order) {
     switch (order.status) {
         case 'new':
             return `
-                <button type="button" class="btn btn-primary btn-lg w-100" 
+                <button type="button" class="btn btn-primary btn-lg w-100"
                         onclick="startPreparation(${order.id})">
                     <i class="bi bi-play-fill"></i> Hazırlamaya Başla
                 </button>
@@ -365,7 +362,7 @@ function getDetailActionButtons(order) {
             return `
                 <div class="row g-2">
                     <div class="col">
-                        <input type="number" class="form-control" 
+                        <input type="number" class="form-control"
                                id="preparationTime" placeholder="Süre (dk)">
                     </div>
                     <div class="col-auto">
@@ -507,17 +504,17 @@ window.addEventListener('beforeunload', () => {
 
 // Durum filtreleme fonksiyonu güncellendi
 function filterByStatus(status) {
-    // Tüm status kartlarından active class'ı kaldır
+    currentFilter = status; // Global state'i güncelle
+    
+    // Tüm kartlardan active class'ı kaldır
     document.querySelectorAll('.status-card').forEach(card => {
         card.classList.remove('active', 'border-primary');
     });
     
     // Seçilen karta active class ekle
-    if (status) {
-        const selectedCard = document.querySelector(`[data-status="${status}"]`);
-        if (selectedCard) {
-            selectedCard.classList.add('active', 'border-primary');
-        }
+    const selectedCard = document.querySelector(`[data-status="${status}"]`);
+    if (selectedCard) {
+        selectedCard.classList.add('active', 'border-primary');
     }
 
     // Siparişleri filtrele
