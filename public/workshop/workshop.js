@@ -164,6 +164,9 @@ async function updateOrderStatus(orderId, newStatus) {
 // Sipariş seçimini göster
 async function showOrderDetail(orderId) {
     try {
+        // Debug log ekleyelim
+        console.log('Loading order detail:', orderId);
+
         // noOrderSelected'ı gizle
         document.getElementById('noOrderSelected').classList.add('d-none');
         
@@ -183,14 +186,22 @@ async function showOrderDetail(orderId) {
             fetchAPI(`/orders/${orderId}/recipes`)
         ]);
 
-        if (!orderResponse.success) {
-            throw new Error(orderResponse.error || 'Sipariş detayları yüklenemedi');
+        // Debug log ekleyelim
+        console.log('Order Response:', orderResponse);
+        console.log('Recipes Response:', recipesResponse);
+
+        // API yanıt kontrolü
+        if (!orderResponse.success || !orderResponse.order) {
+            throw new Error('Sipariş bilgileri alınamadı');
         }
 
-        // ...API response validations...
-
         const order = orderResponse.order;
-        const recipes = recipesResponse.recipes || [];
+        const recipes = recipesResponse.success ? (recipesResponse.recipes || []) : [];
+
+        // Status için varsayılan değerler ekle
+        order.status = order.status || 'new';
+        order.items = order.items || [];
+        order.delivery_address = order.delivery_address || order.address?.label || 'Adres bilgisi yok';
 
         // Detay içeriğini güncelle
         detailContainer.innerHTML = `
@@ -323,6 +334,9 @@ async function showOrderDetail(orderId) {
                 </div>
             </div>
         `;
+
+        // Scroll to top
+        detailContainer.scrollTop = 0;
 
     } catch (error) {
         console.error('Order detail error:', error);
