@@ -82,82 +82,78 @@ async function saveAddress(c) {
     // ...save to database code...
 }
 
-// Yeni adres ekle - Hata ayıklama eklendi
+// Yeni adres ekle - Column mapping düzeltildi
 router.post('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
   try {
     const body = await c.req.json()
-    console.log('Gelen adres verisi:', body) // Debug log
+    
+    // Debug için gelen veriyi logla
+    console.log('Received body:', JSON.stringify(body, null, 2));
 
-    // Zorunlu alanları kontrol et
-    const required = ['customer_id', 'district', 'street', 'building_no']
-    for (const field of required) {
-      if (!body[field]) {
-        return c.json({
-          success: false,
-          error: `${field} alanı zorunludur`,
-          received: body
-        }, 400)
-      }
+    // Adres validasyonu
+    if (!body.customer_id || !body.district || !body.street) {
+      return c.json({
+        success: false,
+        error: 'Missing required fields',
+        required: ['customer_id', 'district', 'street']
+      }, 400)
     }
 
-    // SQL hata ayıklama
-    const sql = `
+    // SQL sorgusunu düzenle - Kolonları doğru sırala
+    const result = await db.prepare(`
       INSERT INTO addresses (
-        tenant_id, customer_id, label, 
-        district, neighborhood, street,
-        building_no, floor_no, door_no, 
-        here_place_id, lat, lng,
-        directions, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    `
-    console.log('SQL:', sql) // Debug log
-    console.log('Params:', [
-      tenant_id,
-      body.customer_id,
-      body.label,
-      body.district,
-      body.neighborhood,
-      body.street,
-      body.building_no,
-      body.floor,
-      body.apartment_no,
-      body.here_place_id,
-      body.lat,
-      body.lng,
-      body.directions
-    ]) // Debug log
-
-    const result = await db.prepare(sql).bind(
-      tenant_id,
-      body.customer_id,
-      body.label || 'Teslimat Adresi',
-      body.district,
-      body.neighborhood || null,
-      body.street,
-      body.building_no,
-      body.floor, // floor -> floor_no
-      body.apartment_no, // apartment_no -> door_no 
-      body.here_place_id,
-      body.lat,
-      body.lng,
-      body.directions || null
+        tenant_id,         -- 1
+        customer_id,       -- 2 
+        label,            -- 3
+        district,         -- 4
+        street,           -- 5
+        building_no,      -- 6
+        floor_no,         -- 7
+        door_no,          -- 8
+        here_place_id,    -- 9
+        lat,             -- 10
+        lng,             -- 11
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `).bind(
+      tenant_id,                              // 1
+      body.customer_id,                       // 2
+      body.label || 'Teslimat Adresi',       // 3
+      body.district,                          // 4
+      body.street,                            // 5
+      body.building_no,                       // 6
+      body.floor_no,                          // 7
+      body.door_no,                           // 8
+      body.here_place_id,                     // 9
+      body.lat,                              // 10
+      body.lng                               // 11
     ).run()
 
+    if (!result.success) {
+      throw new Error('Address insert failed')
+    }
+
+    // Başarılı response
     return c.json({
       success: true,
       address_id: result.meta?.last_row_id
     })
 
   } catch (error) {
-    console.error('Address save error:', error) // Debug log
+    // Hata detaylarını logla
+    console.error('Address save error:', {
+      error: error.message,
+      stack: error.stack,
+      body: body
+    })
+
     return c.json({
       success: false,
       error: 'Database error',
-      details: error.message,
-      stack: error.stack
+      message: error.message
     }, 500)
   }
 })
