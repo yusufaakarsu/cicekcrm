@@ -358,14 +358,24 @@ function getDetailActionButtons(order) {
 }
 
 // Hazırlamaya başla
+let preparationTimer; 
+let preparationStartTime;
+let preparationSeconds = 0;
+
+// Hazırlamaya başla fonksiyonu güncellendi
 async function startPreparation(orderId) {
     try {
         const result = await fetchAPI(`/orders/${orderId}/preparation/start`, {
-            method: 'POST'
+            method: 'POST',
+            body: JSON.stringify({
+                prepared_by: 1, // TODO: Aktif kullanıcı ID'si
+                preparation_start: new Date().toISOString()
+            })
         });
 
         if (result.success) {
             showSuccess('Hazırlama başlatıldı');
+            startTimer();
             loadOrders();
         } else {
             throw new Error(result.error);
@@ -375,7 +385,31 @@ async function startPreparation(orderId) {
     }
 }
 
-// Hazırlamayı tamamla
+// Timer fonksiyonları
+function startTimer() {
+    preparationStartTime = new Date();
+    preparationSeconds = 0;
+    
+    preparationTimer = setInterval(() => {
+        preparationSeconds++;
+        updateTimerDisplay();
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(preparationSeconds / 60);
+    const seconds = preparationSeconds % 60;
+    document.getElementById('preparationTime').value = minutes;
+}
+
+function stopTimer() {
+    if (preparationTimer) {
+        clearInterval(preparationTimer);
+        preparationTimer = null;
+    }
+}
+
+// Hazırlamayı tamamla fonksiyonu güncellendi
 async function completePreparation(orderId) {
     try {
         // Süre kontrolü
@@ -388,22 +422,33 @@ async function completePreparation(orderId) {
         // Kullanılan malzemeleri topla
         const materials = [];
         document.querySelectorAll('.used-quantity').forEach(input => {
-            materials.push({
-                material_id: input.dataset.materialId,
-                quantity: Number(input.value)
-            });
+            const materialId = input.dataset.materialId;
+            const quantity = Number(input.value);
+            const originalQuantity = Number(input.dataset.originalQuantity || quantity);
+
+            // Sadece değişen malzemeleri gönder
+            if (quantity !== originalQuantity) {
+                materials.push({
+                    material_id: materialId,
+                    quantity: quantity,
+                    original_quantity: originalQuantity
+                });
+            }
         });
 
         // API isteği
         const result = await fetchAPI(`/orders/${orderId}/preparation/complete`, {
             method: 'POST',
             body: JSON.stringify({
+                preparation_end: new Date().toISOString(),
+                preparation_time: Number(prepTime),
                 materials: materials,
-                preparation_time: Number(prepTime)
+                prepared_by: 1 // TODO: Aktif kullanıcı ID'si
             })
         });
 
         if (result.success) {
+            stopTimer();
             showSuccess('Hazırlama tamamlandı');
             loadOrders(currentFilter);
         } else {
