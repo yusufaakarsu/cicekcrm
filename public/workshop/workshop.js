@@ -233,32 +233,8 @@ async function showOrderDetail(orderId) {
                     </div>
                 </div>
 
-                <!-- İçerik -->
-                <div class="row g-2 mb-2">
-                    <!-- Teslimat & Alıcı - Yan yana ve daha küçük -->
-                    <div class="col-6">
-                        <div class="card card-sm">
-                            <div class="card-body p-2">
-                                <h6 class="card-title">Teslimat</h6>
-                                <p class="card-text small">${order.delivery_address}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="card card-sm">
-                            <div class="card-body p-2">
-                                <h6 class="card-title">Alıcı</h6>
-                                <p class="card-text small">
-                                    ${order.recipient_name}<br>
-                                    ${formatPhoneNumber(order.recipient_phone)}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Ürünler - Daha sade -->
-                <div class="card card-sm mb-2">
+                <!-- Ürünler -->
+                <div class="card mb-2">
                     <div class="card-body p-2">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="card-title mb-0">Ürünler</h6>
@@ -276,8 +252,8 @@ async function showOrderDetail(orderId) {
                     </div>
                 </div>
 
-                <!-- Reçete - Daha kompakt -->
-                <div class="card card-sm flex-grow-1">
+                <!-- Reçete -->
+                <div class="card flex-grow-1">
                     <div class="card-body p-2">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="card-title mb-0">Malzeme Kullanımı</h6>
@@ -299,23 +275,23 @@ async function showOrderDetail(orderId) {
                                     <tbody id="materialsList">
                                         ${recipes.map(item => `
                                             <tr>
-                                                <td class="small">${item.material_name}</td>
-                                                <td class="small text-center">${item.suggested_quantity}</td>
+                                                <td>${item.material_name}</td>
+                                                <td class="text-center">${item.suggested_quantity}</td>
                                                 <td>
                                                     <input type="number" 
-                                                        class="form-control form-control-sm used-quantity py-1"
+                                                        class="form-control form-control-sm used-quantity"
                                                         data-material-id="${item.material_id}"
                                                         value="${item.suggested_quantity}"
                                                         ${order.status !== 'preparing' ? 'disabled' : ''}>
                                                 </td>
-                                                <td class="small text-center">${item.unit}</td>
+                                                <td class="text-center">${item.unit}</td>
                                             </tr>
                                         `).join('')}
                                     </tbody>
                                 </table>
                             </div>
                         ` : `
-                            <div class="alert alert-info py-2 small">
+                            <div class="alert alert-info py-2">
                                 Bu ürün için tanımlanmış reçete bulunmuyor
                             </div>
                         `}
