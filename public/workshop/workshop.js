@@ -206,137 +206,122 @@ async function showOrderDetail(orderId) {
         order.items = order.items || [];
         order.delivery_address = order.delivery_address || order.address?.label || 'Adres bilgisi yok';
 
-        // Detay içeriğini güncelle
-        detailContainer.innerHTML = `
+        // Sipariş detayı HTML'ini güncelle - daha kompakt
+        const detailTemplate = `
             <div class="d-flex flex-column h-100">
                 <!-- Üst Bilgi -->
-                <div class="border-bottom pb-3 mb-3">
+                <div class="border-bottom pb-2 mb-2">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h3 class="mb-1">Sipariş #${order.id}</h3>
-                            <p class="mb-0 text-muted">
+                            <h5 class="mb-1">Sipariş #${order.id}</h5>
+                            <p class="mb-0 small text-muted">
                                 ${formatDate(order.delivery_date)} - 
                                 ${formatTimeSlot(order.delivery_time)}
                             </p>
                         </div>
-                        <span class="badge bg-${getStatusColor(order.status)} fs-6">
+                        <span class="badge bg-${getStatusColor(order.status)}">
                             ${getStatusText(order.status)}
                         </span>
                     </div>
                 </div>
 
-                <!-- Scrollable Content -->
-                <div class="flex-grow-1 overflow-auto">
-                    <!-- Teslimat & Alıcı -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title">Teslimat Bilgileri</h5>
-                                    <p class="card-text">
-                                        <strong>Adres:</strong><br>
-                                        ${order.delivery_address}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title">Alıcı Bilgileri</h5>
-                                    <p class="card-text">
-                                        <strong>${order.recipient_name}</strong><br>
-                                        ${formatPhoneNumber(order.recipient_phone)}
-                                    </p>
-                                </div>
+                <!-- İçerik -->
+                <div class="row g-2 mb-2">
+                    <!-- Teslimat & Alıcı - Yan yana ve daha küçük -->
+                    <div class="col-6">
+                        <div class="card card-sm">
+                            <div class="card-body p-2">
+                                <h6 class="card-title">Teslimat</h6>
+                                <p class="card-text small">${order.delivery_address}</p>
                             </div>
                         </div>
                     </div>
+                    <div class="col-6">
+                        <div class="card card-sm">
+                            <div class="card-body p-2">
+                                <h6 class="card-title">Alıcı</h6>
+                                <p class="card-text small">
+                                    ${order.recipient_name}<br>
+                                    ${formatPhoneNumber(order.recipient_phone)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                    <!-- Ürünler -->
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <h5 class="card-title">Ürünler</h5>
+                <!-- Ürünler - Daha sade -->
+                <div class="card card-sm mb-2">
+                    <div class="card-body p-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="card-title mb-0">Ürünler</h6>
+                        </div>
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                ${order.items.map(item => `
+                                    <tr>
+                                        <td>${item.product_name}</td>
+                                        <td class="text-end" style="width: 80px">${item.quantity}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Reçete - Daha kompakt -->
+                <div class="card card-sm flex-grow-1">
+                    <div class="card-body p-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="card-title mb-0">Malzeme Kullanımı</h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="showNewMaterialModal()">
+                                <i class="bi bi-plus-lg"></i> Yeni Malzeme
+                            </button>
+                        </div>
+                        ${recipes.length > 0 ? `
                             <div class="table-responsive">
-                                <table class="table table-sm">
+                                <table class="table table-sm align-middle mb-0">
                                     <thead>
                                         <tr>
-                                            <th>Ürün</th>
-                                            <th class="text-end">Adet</th>
+                                            <th>Malzeme</th>
+                                            <th style="width: 80px">Önerilen</th>
+                                            <th style="width: 100px">Kullanılan</th>
+                                            <th style="width: 60px">Birim</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        ${order.items.map(item => `
+                                    <tbody id="materialsList">
+                                        ${recipes.map(item => `
                                             <tr>
-                                                <td>${item.product_name}</td>
-                                                <td class="text-end">${item.quantity}</td>
+                                                <td class="small">${item.material_name}</td>
+                                                <td class="small text-center">${item.suggested_quantity}</td>
+                                                <td>
+                                                    <input type="number" 
+                                                        class="form-control form-control-sm used-quantity py-1"
+                                                        data-material-id="${item.material_id}"
+                                                        value="${item.suggested_quantity}"
+                                                        ${order.status !== 'preparing' ? 'disabled' : ''}>
+                                                </td>
+                                                <td class="small text-center">${item.unit}</td>
                                             </tr>
                                         `).join('')}
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Reçete -->
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <h5 class="card-title">Malzeme Kullanımı</h5>
-                            ${recipes.length > 0 ? `
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Malzeme</th>
-                                                <th>Önerilen</th>
-                                                <th>Kullanılan</th>
-                                                <th>Birim</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${recipes.map(item => `
-                                                <tr>
-                                                    <td>${item.material_name}</td>
-                                                    <td>${item.suggested_quantity}</td>
-                                                    <td>
-                                                        <input type="number" 
-                                                               class="form-control form-control-sm used-quantity"
-                                                               style="width: 80px"
-                                                               data-material-id="${item.material_id}"
-                                                               value="${item.suggested_quantity}"
-                                                               ${order.status !== 'preparing' ? 'disabled' : ''}>
-                                                    </td>
-                                                    <td>${item.unit}</td>
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ` : `
-                                <div class="alert alert-info">
-                                    Bu ürün için tanımlanmış reçete bulunmuyor
-                                </div>
-                            `}
-                        </div>
-                    </div>
-
-                    <!-- Notlar -->
-                    ${order.card_message ? `
-                        <div class="card mb-4">
-                            <div class="card-body">
-                                <h5 class="card-title">Kart Mesajı</h5>
-                                <p class="card-text">${order.card_message}</p>
+                        ` : `
+                            <div class="alert alert-info py-2 small">
+                                Bu ürün için tanımlanmış reçete bulunmuyor
                             </div>
-                        </div>
-                    ` : ''}
+                        `}
+                    </div>
                 </div>
 
                 <!-- Alt Aksiyon Alanı -->
-                <div class="border-top pt-3 mt-3">
+                <div class="border-top pt-2 mt-2">
                     ${getDetailActionButtons(order)}
                 </div>
             </div>
         `;
+
+        detailContainer.innerHTML = detailTemplate;
 
         // Scroll to top
         detailContainer.scrollTop = 0;
@@ -409,6 +394,13 @@ async function startPreparation(orderId) {
 // Hazırlamayı tamamla
 async function completePreparation(orderId) {
     try {
+        // Süre kontrolü
+        const prepTime = document.getElementById('preparationTime').value;
+        if (!prepTime) {
+            showError('Lütfen hazırlama süresini girin');
+            return;
+        }
+
         // Kullanılan malzemeleri topla
         const materials = [];
         document.querySelectorAll('.used-quantity').forEach(input => {
@@ -418,21 +410,18 @@ async function completePreparation(orderId) {
             });
         });
 
-        // Hazırlama detaylarını gönder
+        // API isteği
         const result = await fetchAPI(`/orders/${orderId}/preparation/complete`, {
             method: 'POST',
             body: JSON.stringify({
                 materials: materials,
-                preparation_time: Number(document.getElementById('preparationTime').value),
-                labor_cost: Number(document.getElementById('laborCost').value)
+                preparation_time: Number(prepTime)
             })
         });
 
         if (result.success) {
-            // Modal'ı kapat
-            bootstrap.Modal.getInstance(document.getElementById('orderDetailModal')).hide();
             showSuccess('Hazırlama tamamlandı');
-            loadOrders();
+            loadOrders(currentFilter);
         } else {
             throw new Error(result.error);
         }
@@ -445,6 +434,89 @@ function printOrderDetail(orderId) {
     // Print functionality will be implemented
     event.stopPropagation();
     console.log('Print order:', orderId);
+}
+
+// Yeni malzeme ekleme modal'ı
+function showNewMaterialModal() {
+    const modal = `
+        <div class="modal fade" id="newMaterialModal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Yeni Malzeme Ekle</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Malzeme</label>
+                            <select class="form-select" id="newMaterialId">
+                                <!-- Malzemeler AJAX ile doldurulacak -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Miktar</label>
+                            <input type="number" class="form-control" id="newMaterialQuantity">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                        <button type="button" class="btn btn-primary" onclick="addNewMaterial()">Ekle</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Modal'ı ekle ve aç
+    document.body.insertAdjacentHTML('beforeend', modal);
+    loadAvailableMaterials();
+    new bootstrap.Modal('#newMaterialModal').show();
+}
+
+// Malzemeleri yükle
+async function loadAvailableMaterials() {
+    try {
+        const response = await fetchAPI('/materials');
+        const select = document.getElementById('newMaterialId');
+        
+        select.innerHTML = response.materials.map(m => 
+            `<option value="${m.id}" data-unit="${m.unit}">${m.name}</option>`
+        ).join('');
+    } catch (error) {
+        showError('Malzemeler yüklenemedi');
+    }
+}
+
+// Yeni malzeme ekle
+function addNewMaterial() {
+    const materialId = document.getElementById('newMaterialId').value;
+    const quantity = document.getElementById('newMaterialQuantity').value;
+    const material = document.querySelector(`#newMaterialId option[value="${materialId}"]`);
+
+    if (!quantity) {
+        showError('Lütfen miktar girin');
+        return;
+    }
+
+    // Malzemeyi tabloya ekle
+    const tbody = document.getElementById('materialsList');
+    const row = `
+        <tr>
+            <td class="small">${material.text}</td>
+            <td class="small text-center">-</td>
+            <td>
+                <input type="number" 
+                    class="form-control form-control-sm used-quantity py-1"
+                    data-material-id="${materialId}"
+                    value="${quantity}">
+            </td>
+            <td class="small text-center">${material.dataset.unit}</td>
+        </tr>
+    `;
+    tbody.insertAdjacentHTML('beforeend', row);
+
+    // Modal'ı kapat
+    bootstrap.Modal.getInstance(document.getElementById('newMaterialModal')).hide();
 }
 
 // Zaman dilimlerini formatlayan fonksiyon
