@@ -419,15 +419,14 @@ async function saveDeliveryInfo() {
             return;
         }
 
-        // Teslimat bilgilerini kaydet
+        // Teslimat bilgilerini kaydet - recipientAlternativePhone kaldırıldı
         const deliveryInfo = {
             delivery_date: document.getElementById('deliveryDate').value,
             delivery_time_slot: timeSlot.value,
             recipient_name: document.getElementById('recipientName').value,
             recipient_phone: document.getElementById('recipientPhone').value,
-            recipient_alternative_phone: document.getElementById('recipientAlternativePhone').value,
-            recipient_note: document.getElementById('recipientNote').value,
-            card_message: document.getElementById('cardMessage').value,
+            recipient_note: document.getElementById('recipientNote').value || null,
+            card_message: document.getElementById('cardMessage').value || null
         };
 
         // Session storage'a kaydet
