@@ -431,8 +431,8 @@ CREATE TABLE order_items_materials (
     order_item_id INTEGER NOT NULL,     -- Hangi sipariş kalemine ait
     material_id INTEGER NOT NULL,       -- Hangi ham madde
     quantity DECIMAL(10,2) NOT NULL,    -- Kullanılan miktar
-    unit_price DECIMAL(10,2) NOT NULL,  -- Birim fiyat
-    total_amount DECIMAL(10,2) NOT NULL,-- Toplam tutar
+    unit_price DECIMAL(10,2),           -- NOT NULL kaldırıldı
+    total_amount DECIMAL(10,2),         -- NOT NULL kaldırıldı
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     deleted_at DATETIME,

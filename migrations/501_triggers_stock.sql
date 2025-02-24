@@ -274,3 +274,67 @@ BEGIN
         THEN RAISE(ABORT, 'Bu ham madde ürün reçetelerinde kullanılıyor')
     END;
 END;
+
+-- 9. Stok hareketi güncellendiğinde 
+CREATE TRIGGER trg_after_stock_movement_update
+AFTER UPDATE ON stock_movements
+BEGIN
+    -- Raw material stok miktarını güncelle
+    UPDATE raw_materials 
+    SET stock_quantity = stock_quantity + 
+        CASE 
+            WHEN NEW.movement_type = 'in' THEN (NEW.quantity - OLD.quantity)
+            ELSE (OLD.quantity - NEW.quantity)
+        END
+    WHERE id = NEW.material_id;
+    
+    -- Log kaydı
+    INSERT INTO audit_log (tenant_id, action, table_name, record_id, old_data, new_data)
+    VALUES (
+        NEW.tenant_id,
+        'UPDATE',
+        'stock_movements',
+        NEW.id,
+        json_object('quantity', OLD.quantity, 'movement_type', OLD.movement_type),
+        json_object('quantity', NEW.quantity, 'movement_type', NEW.movement_type)
+    );
+END;
+
+-- 10. Satın alma faturası güncellendiğinde (quantity veya price değişirse)
+CREATE TRIGGER trg_after_purchase_item_update
+AFTER UPDATE ON purchase_order_items
+WHEN NEW.quantity != OLD.quantity OR NEW.unit_price != OLD.unit_price
+BEGIN
+    -- Stok hareketi güncelle
+    UPDATE stock_movements
+    SET quantity = NEW.quantity
+    WHERE source_type = 'purchase' 
+    AND source_id = NEW.order_id 
+    AND material_id = NEW.material_id;
+
+    -- Fiyat geçmişi güncelle
+    UPDATE material_price_history
+    SET unit_price = NEW.unit_price
+    WHERE material_id = NEW.material_id
+    AND supplier_id = (SELECT supplier_id FROM purchase_orders WHERE id = NEW.order_id);
+END;
+
+-- Malzeme fiyat geçmişi için trigger
+CREATE TRIGGER trg_after_material_price_change
+AFTER INSERT ON material_price_history
+BEGIN
+    -- Önceki fiyatın geçerlilik süresini güncelle
+    UPDATE material_price_history 
+    SET valid_to = NEW.valid_from
+    WHERE material_id = NEW.material_id 
+    AND supplier_id = NEW.supplier_id
+    AND valid_to IS NULL
+    AND id != NEW.id;
+
+    -- Siparişlerdeki malzeme fiyatlarını güncelle
+    UPDATE order_items_materials
+    SET unit_price = NEW.unit_price,
+        total_amount = quantity * NEW.unit_price
+    WHERE material_id = NEW.material_id
+    AND unit_price IS NULL;  -- Sadece fiyatı henüz belirlenmemiş kayıtlar için
+END;

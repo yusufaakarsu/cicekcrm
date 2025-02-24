@@ -3,13 +3,45 @@
 CREATE TRIGGER trg_after_tenant_insert 
 AFTER INSERT ON tenants 
 BEGIN
-    -- Varsayılan ayarlar oluştur
+    -- 1. Varsayılan ayarlar
     INSERT INTO tenant_settings (tenant_id, require_stock, track_recipes)
     VALUES (NEW.id, 1, 1);
 
-    -- Ana kasa oluştur
+    -- 2. Ana kasa
     INSERT INTO accounts (tenant_id, name, type, initial_balance)
     VALUES (NEW.id, 'Ana Kasa', 'cash', 0);
+
+    -- 3. Temel Birimler
+    INSERT INTO units (tenant_id, name, code) VALUES
+        (NEW.id, 'Adet', 'PCS'),
+        (NEW.id, 'Dal', 'STEM'),
+        (NEW.id, 'Demet', 'BUNCH'),
+        (NEW.id, 'Gram', 'GR'),
+        (NEW.id, 'Metre', 'M');
+
+    -- 4. Ana Kategoriler
+    INSERT INTO raw_material_categories (tenant_id, name, display_order) VALUES
+        (NEW.id, 'Kesme Çiçek', 1),
+        (NEW.id, 'Yeşillik', 2),
+        (NEW.id, 'Ambalaj', 3),
+        (NEW.id, 'Aksesuar', 4);
+
+    INSERT INTO product_categories (tenant_id, name) VALUES
+        (NEW.id, 'Buketler'),
+        (NEW.id, 'Aranjmanlar'),
+        (NEW.id, 'Kutuda Çiçekler');
+
+    -- 5. İşlem Kategorileri
+    INSERT INTO transaction_categories (tenant_id, name, type, reporting_code) VALUES
+        (NEW.id, 'Satış Geliri', 'in', 'SALES'),
+        (NEW.id, 'Tedarikçi Ödemesi', 'out', 'SUPPLIER'),
+        (NEW.id, 'Diğer Gelirler', 'in', 'OTHER_IN'),
+        (NEW.id, 'Diğer Giderler', 'out', 'OTHER_OUT');
+
+    -- 6. Temel Mesaj Şablonları
+    INSERT INTO card_messages (tenant_id, category, title, content, display_order) VALUES
+        (NEW.id, 'birthday', 'Doğum Günü', 'Nice mutlu yıllara...', 1),
+        (NEW.id, 'get_well', 'Geçmiş Olsun', 'Acil şifalar dileriz...', 2);
 
     -- Log kaydı
     INSERT INTO audit_log (tenant_id, action, table_name, record_id, new_data)
