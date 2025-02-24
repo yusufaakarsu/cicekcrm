@@ -367,38 +367,53 @@ router.post('/', async (c) => {
   try {
     const body = await c.req.json()
 
-    // 1. Siparişi oluştur
+    // 1. Alıcı kaydı yap
+    const recipientResult = await db.prepare(`
+      INSERT INTO recipients (
+        tenant_id, customer_id, name, phone, 
+        notes, created_at
+      ) VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `).bind(
+      tenant_id,
+      body.customer_id,
+      body.recipient_name,
+      body.recipient_phone,
+      body.recipient_note || null
+    ).run()
+
+    const recipient_id = recipientResult.meta?.last_row_id
+    if (!recipient_id) throw new Error('Alıcı kaydedilemedi')
+
+    // 2. Sipariş oluştur
     const orderResult = await db.prepare(`
       INSERT INTO orders (
         tenant_id, customer_id, recipient_id, address_id,
         delivery_date, delivery_time,
         status, payment_method, payment_status,
-        subtotal, delivery_fee, total_amount,
-        custom_card_message, customer_notes,
+        subtotal, total_amount,
+        card_message,
         created_by, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `).bind(
       tenant_id,
       body.customer_id,
-      body.recipient_id,
+      recipient_id,
       body.address_id,
       body.delivery_date,
-      body.delivery_time,
+      body.delivery_time_slot,
       'new',
       body.payment_method || 'cash',
       'pending',
       body.subtotal,
-      body.delivery_fee || 0,
       body.total_amount,
       body.card_message,
-      body.customer_notes,
       user_id
     ).run()
 
-    const orderId = orderResult.meta?.last_row_id
-    if (!orderId) throw new Error('Sipariş ID alınamadı')
+    const order_id = orderResult.meta?.last_row_id
+    if (!order_id) throw new Error('Sipariş kaydedilemedi')
 
-    // 2. Sipariş kalemlerini ekle
+    // 3. Sipariş kalemlerini ekle
     for (const item of body.items) {
       await db.prepare(`
         INSERT INTO order_items (
@@ -407,18 +422,20 @@ router.post('/', async (c) => {
           notes, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
       `).bind(
-        orderId,
+        order_id,
         item.product_id,
         item.quantity,
         item.unit_price,
         item.quantity * item.unit_price,
-        item.notes
+        item.notes || null
       ).run()
     }
 
     return c.json({
       success: true,
-      order_id: orderId
+      order: {
+        id: order_id
+      }
     })
 
   } catch (error) {
@@ -426,7 +443,7 @@ router.post('/', async (c) => {
     return c.json({
       success: false,
       error: 'Sipariş oluşturulamadı',
-      message: error.message
+      details: error.message
     }, 500)
   }
 })

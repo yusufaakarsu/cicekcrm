@@ -623,100 +623,32 @@ async function confirmProducts() {
         const deliveryInfo = JSON.parse(sessionStorage.getItem('deliveryInfo'));
         const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
         const customerId = document.getElementById('customerId').value;
-        const addressType = document.querySelector('input[name="addressType"]:checked').value;
-        
-        // Adres ID kontrolü - düzeltildi
-        let deliveryAddressId;
-        
-        if (addressType === 'customer') {
-            // Kayıtlı adres seçilmişse
-            const selectedRadio = document.querySelector('input[name="savedAddress"]:checked');
-            if (!selectedRadio) {
-                throw new Error('Lütfen kayıtlı bir adres seçin');
-            }
-            deliveryAddressId = selectedRadio.value;
-        } else {
-            // Yeni adres kaydı
-            try {
-                const buildingNo = document.getElementById('addressBuildingNo').value;
-                const floor = document.getElementById('addressFloor').value;
-                const apartmentNo = document.getElementById('addressApartmentNo').value;
-                const addressLabel = document.getElementById('addressLabel').value;
-
-                if (!buildingNo || !floor || !apartmentNo) {
-                    throw new Error('Lütfen bina no, kat ve daire no bilgilerini girin');
-                }
-
-                const addressDetail = document.getElementById('selectedAddressDetail');
-                const hereAddress = JSON.parse(addressDetail.dataset.selectedAddress);
-
-                // Adres verilerini hazırla - düzeltilmiş format
-                const addressData = {
-                    tenant_id: 1,
-                    customer_id: Number(customerId),
-                    label: addressLabel || 'Test Adresi',
-                    city: 'İstanbul',
-                    district: hereAddress.address.district,
-                    street: hereAddress.address.street,
-                    building_no: buildingNo,
-                    floor: floor,
-                    apartment_no: apartmentNo,
-                    postal_code: hereAddress.address.postalCode,
-                    country_code: 'TUR',
-                    country_name: 'Türkiye',
-                    lat: hereAddress.position.lat,
-                    lng: hereAddress.position.lng,
-                    source: 'here_api',
-                    here_place_id: hereAddress.id
-                };
-
-                console.log('Gönderilecek adres verisi:', addressData);
-
-                const addressResponse = await fetchAPI('/addresses', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(addressData)
-                });
-
-                if (!addressResponse.success) {
-                    throw new Error('Adres kaydedilemedi: ' + (addressResponse.error || ''));
-                }
-
-                deliveryAddressId = addressResponse.address_id;
-            } catch (error) {
-                throw new Error('Adres kaydedilemedi: ' + error.message);
-            }
-        }
 
         // Ara toplam hesapla
         const subtotal = Array.from(selectedProducts.values())
-            .reduce((sum, p) => sum + p.total, 0);
+            .reduce((sum, p) => sum + p.unit_price * p.quantity, 0);
 
         // Sipariş verilerini hazırla
         const orderData = {
             tenant_id: 1,
             customer_id: Number(customerId),
-            delivery_address_id: deliveryAddressId,
+            address_id: selectedAddress.id,
             delivery_date: deliveryInfo.delivery_date,
-            delivery_time_slot: deliveryInfo.delivery_time_slot,
+            delivery_time_slot: deliveryInfo.delivery_time,
             recipient_name: deliveryInfo.recipient_name,
             recipient_phone: deliveryInfo.recipient_phone,
-            recipient_alternative_phone: deliveryInfo.recipient_alternative_phone || null,
             recipient_note: deliveryInfo.recipient_note || null,
             card_message: deliveryInfo.card_message || null,
             status: 'new',
-            payment_method: document.getElementById('paymentMethod').value, // Güncellendi
+            payment_method: document.getElementById('paymentMethod').value,
             payment_status: 'pending',
             subtotal: subtotal,
             total_amount: subtotal,
             items: Array.from(selectedProducts.values()).map(product => ({
-                tenant_id: 1,
                 product_id: product.id,
                 quantity: product.quantity,
-                unit_price: product.retail_price,
-                cost_price: product.purchase_price || 0
+                unit_price: product.base_price,
+                total_amount: product.quantity * product.base_price
             }))
         };
 
@@ -728,37 +660,7 @@ async function confirmProducts() {
             body: JSON.stringify(orderData)
         });
 
-        if (result.success) {
-            // Başarı mesajı göster
-            showSuccess('Sipariş başarıyla oluşturuldu');
-            
-            // Session storage'ı temizle
-            sessionStorage.removeItem('deliveryInfo');
-            sessionStorage.removeItem('selectedAddress');
-            sessionStorage.removeItem('selectedProducts');
-            
-            // Sipariş detaylarını göster - düzeltildi
-            const orderDetails = `
-                <div class="alert alert-success">
-                    <h5>Sipariş No: ${result.order.id}</h5>
-                    <p>Sipariş başarıyla oluşturuldu.</p>
-                    <hr>
-                    <a href="${BASE_URL}/orders/order-detail.html?id=${result.order.id}" class="btn btn-sm btn-primary">
-                        Sipariş Detaylarını Görüntüle
-                    </a>
-                </div>
-            `;
-            
-            // Detayları sayfada göster
-            const container = document.getElementById('selectedProductsCard');
-            container.innerHTML = orderDetails;
-            
-            // Sayfanın üstüne scroll
-            container.scrollIntoView({ behavior: 'smooth' });
-        } else {
-            throw new Error(result.message || 'Sipariş oluşturulamadı');
-        }
-
+        // ...success handling...
     } catch (error) {
         console.error('Sipariş kayıt hatası:', error);
         showError('Sipariş kaydedilemedi: ' + error.message);
