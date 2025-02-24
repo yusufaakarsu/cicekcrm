@@ -164,6 +164,9 @@ async function showOrderDetail(orderId) {
         // Null check ekleyelim
         const items = order.items || [];
 
+        // Ürünlerin reçetelerini al
+        const recipes = await fetchAPI(`/orders/${orderId}/recipes`);
+        
         // Modal içeriğini doldur
         document.getElementById('modalOrderId').textContent = orderId;
         document.getElementById('modalContent').innerHTML = `
@@ -209,6 +212,75 @@ async function showOrderDetail(orderId) {
                 <h6>Kart Mesajı</h6>
                 <p class="mb-0">${order.card_message}</p>
             ` : ''}
+
+            <!-- Tavsiye Reçete -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Tavsiye Reçete</h6>
+                    <button class="btn btn-sm btn-primary" onclick="startPreparation(${orderId})">
+                        Hazırlamaya Başla
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Malzeme</th>
+                                    <th>Önerilen Miktar</th>
+                                    <th>Kullanılan</th>
+                                    <th>Birim</th>
+                                    <th>Maliyet</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${recipes.map(item => `
+                                    <tr>
+                                        <td>${item.material_name}</td>
+                                        <td>${item.suggested_quantity}</td>
+                                        <td>
+                                            <input type="number" 
+                                                   class="form-control form-control-sm used-quantity" 
+                                                   data-material-id="${item.material_id}"
+                                                   value="${item.suggested_quantity}">
+                                        </td>
+                                        <td>${item.unit}</td>
+                                        <td>${formatCurrency(item.unit_price)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- İşçilik -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">İşçilik</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Hazırlama Süresi (dk)</label>
+                            <input type="number" class="form-control" id="preparationTime">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">İşçilik Maliyeti</label>
+                            <input type="number" class="form-control" id="laborCost">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tamamlama -->
+            <div class="card">
+                <div class="card-body">
+                    <button class="btn btn-success w-100" onclick="completePreparation(${orderId})">
+                        <i class="bi bi-check-lg"></i> Hazırlamayı Tamamla
+                    </button>
+                </div>
+            </div>
         `;
 
         // Modal'ı göster
@@ -218,6 +290,59 @@ async function showOrderDetail(orderId) {
     } catch (error) {
         console.error('Order detail error:', error);
         showError('Sipariş detayları yüklenemedi');
+    }
+}
+
+// Hazırlamaya başla
+async function startPreparation(orderId) {
+    try {
+        const result = await fetchAPI(`/orders/${orderId}/preparation/start`, {
+            method: 'POST'
+        });
+
+        if (result.success) {
+            showSuccess('Hazırlama başlatıldı');
+            loadOrders();
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        showError('Hazırlama başlatılamadı: ' + error.message);
+    }
+}
+
+// Hazırlamayı tamamla
+async function completePreparation(orderId) {
+    try {
+        // Kullanılan malzemeleri topla
+        const materials = [];
+        document.querySelectorAll('.used-quantity').forEach(input => {
+            materials.push({
+                material_id: input.dataset.materialId,
+                quantity: Number(input.value)
+            });
+        });
+
+        // Hazırlama detaylarını gönder
+        const result = await fetchAPI(`/orders/${orderId}/preparation/complete`, {
+            method: 'POST',
+            body: JSON.stringify({
+                materials: materials,
+                preparation_time: Number(document.getElementById('preparationTime').value),
+                labor_cost: Number(document.getElementById('laborCost').value)
+            })
+        });
+
+        if (result.success) {
+            // Modal'ı kapat
+            bootstrap.Modal.getInstance(document.getElementById('orderDetailModal')).hide();
+            showSuccess('Hazırlama tamamlandı');
+            loadOrders();
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        showError('Hazırlama tamamlanamadı: ' + error.message);
     }
 }
 

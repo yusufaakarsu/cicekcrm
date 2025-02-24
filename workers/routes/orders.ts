@@ -585,6 +585,156 @@ router.post('/', async (c) => {
   }
 })
 
+// Sipariş reçetesini getir
+router.get('/:id/recipes', async (c) => {
+    const db = c.get('db')
+    const tenant_id = c.get('tenant_id')
+    const { id } = c.req.param()
+
+    try {
+        const { results } = await db.prepare(`
+            SELECT 
+                m.id as material_id,
+                m.name as material_name,
+                u.name as unit,
+                pm.default_quantity as suggested_quantity,
+                COALESCE(
+                    (SELECT unit_price 
+                     FROM material_price_history 
+                     WHERE material_id = m.id
+                     ORDER BY valid_from DESC 
+                     LIMIT 1
+                    ), 
+                    0
+                ) as unit_price
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.id
+            JOIN product_materials pm ON p.id = pm.product_id
+            JOIN raw_materials m ON pm.material_id = m.id
+            JOIN units u ON m.unit_id = u.id
+            WHERE oi.order_id = ?
+            AND oi.deleted_at IS NULL
+        `).bind(id).all()
+
+        return c.json({
+            success: true,
+            recipes: results || []
+        })
+
+    } catch (error) {
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
+        }, 500)
+    }
+})
+
+// Hazırlamayı başlat
+router.post('/:id/preparation/start', async (c) => {
+    const db = c.get('db')
+    const tenant_id = c.get('tenant_id')
+    const { id } = c.req.param()
+
+    try {
+        await db.prepare(`
+            UPDATE orders 
+            SET status = 'preparing',
+                status_updated_at = datetime('now'),
+                preparation_start = datetime('now'),
+                prepared_by = ?
+            WHERE id = ? AND tenant_id = ?
+        `).bind(1, id, tenant_id).run()
+
+        return c.json({ success: true })
+
+    } catch (error) {
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
+        }, 500)
+    }
+})
+
+// Hazırlamayı tamamla
+router.post('/:id/preparation/complete', async (c) => {
+    const db = c.get('db')
+    const tenant_id = c.get('tenant_id')
+    const { id } = c.req.param()
+    const body = await c.req.json()
+
+    try {
+        // 1. Malzeme kullanımlarını kaydet
+        for (const material of body.materials) {
+            await db.prepare(`
+                INSERT INTO order_items_materials (
+                    order_id, material_id, quantity,
+                    unit_price, total_amount, created_at
+                ) VALUES (?, ?, ?, 
+                    (SELECT unit_price FROM material_price_history 
+                     WHERE material_id = ? 
+                     ORDER BY valid_from DESC LIMIT 1),
+                    ? * (SELECT unit_price FROM material_price_history 
+                         WHERE material_id = ? 
+                         ORDER BY valid_from DESC LIMIT 1),
+                    datetime('now')
+                )
+            `).bind(
+                id, 
+                material.material_id,
+                material.quantity,
+                material.material_id,
+                material.quantity,
+                material.material_id
+            ).run()
+
+            // 2. Stok düş
+            await db.prepare(`
+                INSERT INTO stock_movements (
+                    tenant_id, material_id, movement_type,
+                    quantity, source_type, source_id,
+                    created_by, created_at
+                ) VALUES (?, ?, 'out', ?, 'sale', ?, ?, datetime('now'))
+            `).bind(
+                tenant_id,
+                material.material_id,
+                material.quantity,
+                id,
+                1 // created_by
+            ).run()
+        }
+
+        // 3. Siparişi güncelle
+        await db.prepare(`
+            UPDATE orders 
+            SET status = 'ready',
+                status_updated_at = datetime('now'),
+                preparation_end = datetime('now'),
+                internal_notes = json_set(
+                    COALESCE(internal_notes, '{}'),
+                    '$.preparation_time', ?,
+                    '$.labor_cost', ?
+                )
+            WHERE id = ? AND tenant_id = ?
+        `).bind(
+            body.preparation_time,
+            body.labor_cost,
+            id,
+            tenant_id
+        ).run()
+
+        return c.json({ success: true })
+
+    } catch (error) {
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
+        }, 500)
+    }
+})
+
 // Helper function: Sipariş sayısını getir - SQL güncellendi
 async function getOrdersCount(db: D1Database, tenant_id: number, status?: string, date_filter?: string, start_date?: string, end_date?: string) {
   let countQuery = `
