@@ -614,15 +614,42 @@ function updateSelectedProducts() {
 
 // Ürünleri onayla ve kaydet
 async function confirmProducts() {
-    if (selectedProducts.size === 0) {
-        showError('Lütfen en az bir ürün seçin');
-        return;
-    }
-
     try {
         const deliveryInfo = JSON.parse(sessionStorage.getItem('deliveryInfo'));
         const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
         const customerId = document.getElementById('customerId').value;
+        const addressType = document.querySelector('input[name="addressType"]:checked').value;
+
+        // Önce adres kaydı yap
+        let addressId;
+        if (addressType === 'customer') {
+            // Kayıtlı adres seçilmişse
+            addressId = selectedAddress.id;
+        } else {
+            // Yeni adres oluştur
+            const addressResponse = await fetchAPI('/addresses', {
+                method: 'POST',
+                body: JSON.stringify({
+                    tenant_id: 1,
+                    customer_id: Number(customerId),
+                    label: selectedAddress.label,
+                    district: selectedAddress.district,
+                    street: selectedAddress.street,
+                    building_no: selectedAddress.building_no,
+                    floor_no: selectedAddress.floor,
+                    door_no: selectedAddress.apartment_no,
+                    here_place_id: selectedAddress.here_place_id,
+                    lat: selectedAddress.lat,
+                    lng: selectedAddress.lng
+                })
+            });
+
+            if (!addressResponse.success) {
+                throw new Error('Adres kaydedilemedi');
+            }
+
+            addressId = addressResponse.address_id;
+        }
 
         // Ara toplam hesapla
         const subtotal = Array.from(selectedProducts.values())
@@ -632,11 +659,9 @@ async function confirmProducts() {
         const orderData = {
             tenant_id: 1,
             customer_id: Number(customerId),
-            // Düzeltme 1: address_id düzeltildi
-            address_id: Number(selectedAddress.id), // ID'yi number'a çevir
+            address_id: addressId,
             delivery_date: deliveryInfo.delivery_date,
-            // Düzeltme 2: delivery_time olarak değiştirildi
-            delivery_time: deliveryInfo.delivery_time_slot, // _slot kaldırıldı
+            delivery_time: deliveryInfo.delivery_time_slot,
             recipient_name: deliveryInfo.recipient_name,
             recipient_phone: deliveryInfo.recipient_phone,
             recipient_note: deliveryInfo.recipient_note || null,
