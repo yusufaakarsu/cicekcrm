@@ -82,61 +82,37 @@ async function saveAddress(c) {
     // ...save to database code...
 }
 
-// Adres kaydetme endpoint'i düzeltildi
+// Yeni adres ekle - Hata ayıklama eklendi
 router.post('/', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   
   try {
-    // Debug raw request
-    const rawBody = await c.req.text();
-    console.log('[DEBUG] Raw request body:', rawBody);
-    
-    // Try parsing manually
-    let body;
-    try {
-      body = JSON.parse(rawBody);
-    } catch (e) {
-      return c.json({
-        success: false,
-        error: 'JSON parse error',
-        raw: rawBody,
-        parse_error: e.message
-      }, 400);
-    }
-
-    console.log('[DEBUG] Parsed body:', body);
+    const body = await c.req.json()
+    console.log('Gelen adres verisi:', body) // Debug log
 
     // Zorunlu alanları kontrol et
-    const required = ['customer_id', 'label', 'city', 'district', 'street', 'building_no'];
-    const missing = required.filter(field => !body[field]);
-    
-    if (missing.length > 0) {
-      return c.json({
-        success: false,
-        error: 'Eksik veya hatalı bilgi',
-        message: `Zorunlu alanlar eksik: ${missing.join(', ')}`,
-        required,
-        missing,
-        received: body,
-        debug: {
-          content_type: c.req.header('content-type'),
-          body_type: typeof body
-        }
-      }, 400);
+    const required = ['customer_id', 'district', 'street', 'building_no']
+    for (const field of required) {
+      if (!body[field]) {
+        return c.json({
+          success: false,
+          error: `${field} alanı zorunludur`,
+          received: body
+        }, 400)
+      }
     }
 
-    // SQL sorgusunu düzelt
-    const result = await db.prepare(`
+    // SQL hata ayıklama
+    const sql = `
       INSERT INTO addresses (
-        tenant_id, customer_id, label,
-        city, district, street, building_no,
-        floor, apartment_no, postal_code,
-        country_code, country_name,
-        lat, lng, source, here_place_id,
-        created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATETIME('now'))
-    `).bind(
+        tenant_id, customer_id, label, city, district, 
+        street, building_no, floor, door_no, postal_code, 
+        directions, lat, lng, here_place_id, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `
+    console.log('SQL:', sql) // Debug log
+    console.log('Params:', [
       tenant_id,
       body.customer_id,
       body.label,
@@ -144,39 +120,45 @@ router.post('/', async (c) => {
       body.district,
       body.street,
       body.building_no,
+      body.floor,
+      body.apartment_no,
+      body.postal_code,
+      body.directions,
+      body.lat,
+      body.lng,
+      body.here_place_id
+    ]) // Debug log
+
+    const result = await db.prepare(sql).bind(
+      tenant_id,
+      body.customer_id,
+      body.label || 'Teslimat Adresi',
+      body.city || 'İstanbul',
+      body.district,
+      body.street,
+      body.building_no,
       body.floor || null,
-      body.apartment_no || null,
+      body.apartment_no || null, // door_no olarak kaydediyoruz
       body.postal_code || null,
-      body.country_code || 'TUR',
-      body.country_name || 'Türkiye',
+      body.directions || null,
       body.lat || null,
       body.lng || null,
-      body.source || 'manual',
       body.here_place_id || null
     ).run()
 
-    const address_id = result.meta?.last_row_id;
-    if (!address_id) {
-      throw new Error('Adres ID alınamadı');
-    }
-
     return c.json({
       success: true,
-      address_id: address_id,
-      message: 'Adres kaydedildi'
-    });
+      address_id: result.meta?.last_row_id
+    })
 
   } catch (error) {
-    console.error('[Adres Kayıt Hatası]:', error);
+    console.error('Address save error:', error) // Debug log
     return c.json({
-      success: false, 
-      error: 'Adres kaydedilemedi',
-      message: error.message,
-      debug: {
-        error_type: error.constructor.name,
-        stack: error.stack
-      }
-    }, 500);
+      success: false,
+      error: 'Database error',
+      details: error.message,
+      stack: error.stack
+    }, 500)
   }
 })
 

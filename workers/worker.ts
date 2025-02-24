@@ -4,7 +4,7 @@ import dashboardRoutes from './routes/dashboard'
 import customerRoutes from './routes/customers'
 import orderRoutes from './routes/orders'
 import financeRoutes from './routes/finance'
-import addressRoutes from './routes/addresses'
+import addressRoutes from './routes/addresses'  // Yeni eklenen
 import productRoutes from './routes/products'
 import stockRoutes from './routes/stock'
 import suppliersRoutes from './routes/suppliers'
@@ -40,7 +40,7 @@ api.route('/orders', orderRoutes)
 api.route('/customers', customerRoutes)
 api.route('/products', productRoutes)
 api.route('/stock', stockRoutes)
-api.route('/addresses', addressRoutes)
+api.route('/addresses', addressRoutes)  // Yeni eklenen
 api.route('/suppliers', suppliersRoutes)
 api.route('/materials', materialsRouter)
 api.route('/purchase', purchaseRoutes)

@@ -518,14 +518,19 @@ document.getElementById('productSearch').addEventListener('input', (e) => {
 // Ürün ekle
 function addProduct(product) {
     try {
-        // Safety check
         if (!product || typeof product !== 'object') {
             console.error('Invalid product data:', product);
             return;
         }
 
-        // Parse product if it's a string
-        let productData = typeof product === 'string' ? JSON.parse(product) : product;
+        const productData = typeof product === 'string' ? JSON.parse(product) : product;
+        
+        // Fiyat kontrolü
+        if (!productData.base_price) {
+            console.error('Product has no price:', productData);
+            showError('Ürün fiyatı bulunamadı');
+            return;
+        }
 
         let quantity = 1;
         if (selectedProducts.has(productData.id)) {
@@ -535,7 +540,8 @@ function addProduct(product) {
         selectedProducts.set(productData.id, {
             ...productData,
             quantity,
-            total: productData.retail_price * quantity
+            unit_price: parseFloat(productData.base_price),
+            total: parseFloat(productData.base_price) * quantity
         });
         
         updateSelectedProducts();
@@ -781,13 +787,10 @@ function renderProducts(products) {
                     <p class="card-text text-success fw-bold mb-2">
                         ${formatCurrency(product.base_price)}
                     </p>
-                    ${product.description ? `
-                        <p class="card-text small text-muted">${product.description}</p>
-                    ` : ''}
                 </div>
                 <div class="card-footer bg-white border-top-0">
                     <button type="button" class="btn btn-primary btn-sm w-100" 
-                            onclick='addProduct(${JSON.stringify(product)})'>
+                            onclick="addProduct(${JSON.stringify(product).replace(/"/g, '&quot;')})">
                         <i class="bi bi-plus-lg"></i> Sepete Ekle
                     </button>
                 </div>
