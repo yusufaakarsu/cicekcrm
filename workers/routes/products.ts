@@ -391,34 +391,39 @@ router.delete('/:id', async (c) => {
   }
 })
 
-// Ürün reçetelerini getir - SQL düzeltildi
+// Ürün reçetelerini getir 
 router.get('/recipes/:orderId', async (c) => {
     const db = c.get('db')
     const tenant_id = c.get('tenant_id')
     const { orderId } = c.req.param()
 
+    console.log('Loading recipes for order:', orderId); // Debug log
+
     try {
+        // Debug log
+        console.log('Executing recipe query...');
+        
         const { results } = await db.prepare(`
+            WITH order_products AS (
+                SELECT oi.product_id, oi.quantity as order_quantity
+                FROM order_items oi 
+                WHERE oi.order_id = ? AND oi.deleted_at IS NULL
+            )
             SELECT 
                 rm.id as material_id,
                 rm.name as material_name,
                 u.code as unit_code,
-                pm.default_quantity as suggested_quantity,
-                pm.is_required,
-                oi.product_id
-            FROM order_items oi
-            LEFT JOIN products p ON oi.product_id = p.id
-            LEFT JOIN product_materials pm ON p.id = pm.product_id
-            LEFT JOIN raw_materials rm ON pm.material_id = rm.id
-            LEFT JOIN units u ON rm.unit_id = u.id
-            WHERE oi.order_id = ?
-            AND oi.tenant_id = ?
-            AND oi.deleted_at IS NULL
-            AND rm.id IS NOT NULL
-            ORDER BY rm.name
+                pm.default_quantity * op.order_quantity as suggested_quantity
+            FROM order_products op
+            JOIN product_materials pm ON op.product_id = pm.product_id
+            JOIN raw_materials rm ON pm.material_id = rm.id
+            JOIN units u ON rm.unit_id = u.id
+            WHERE pm.deleted_at IS NULL 
+            AND rm.deleted_at IS NULL
+            AND rm.tenant_id = ?
         `).bind(orderId, tenant_id).all()
 
-        console.log('Recipes loaded:', results); // Debug log
+        console.log('Recipe results:', results); // Debug log
 
         return c.json({
             success: true,
@@ -426,7 +431,7 @@ router.get('/recipes/:orderId', async (c) => {
         })
 
     } catch (error) {
-        console.error('Recipes error:', error); // Debug log
+        console.error('Recipe query error:', error); // Debug log
         return c.json({
             success: false,
             error: 'Database error',
