@@ -152,6 +152,9 @@ async function updateOrderStatus(orderId, newStatus) {
         if (result.success) {
             showSuccess('Durum güncellendi');
             loadOrders(currentFilter); // Mevcut filtreyi kullan
+            
+            // Durum değişikliğinden sonra detayı göster
+            showOrderDetail(orderId);
         } else {
             throw new Error(result.error);
         }
@@ -490,11 +493,9 @@ let refreshTimer;
 
 // Yenileme fonksiyonu
 function startAutoRefresh() {
-    // Varsa önceki timer'ı temizle
     if (refreshTimer) clearInterval(refreshTimer);
-    
-    // Yeni timer başlat
-    refreshTimer = setInterval(loadOrders, REFRESH_INTERVAL);
+    // Sadece yeni siparişleri kontrol et
+    refreshTimer = setInterval(checkNewOrders, REFRESH_INTERVAL);
 }
 
 // Sayfa kapanırken timer'ı temizle
@@ -519,4 +520,32 @@ function filterByStatus(status) {
 
     // Siparişleri filtrele
     loadOrders(status);
+}
+
+// Otomatik yenileme sadece yeni siparişler için
+async function checkNewOrders() {
+    try {
+        const params = new URLSearchParams({
+            date_filter: 'today',
+            status: 'new'
+        });
+
+        const response = await fetchAPI(`/orders/workshop?${params}`);
+        
+        if (!response.success) return;
+
+        const currentCount = document.getElementById('newOrdersCount').textContent;
+        const newCount = response.orders?.filter(o => o.status === 'new').length || 0;
+
+        // Yeni sipariş varsa
+        if (newCount > parseInt(currentCount)) {
+            // Bildirim göster
+            showSuccess(`${newCount - parseInt(currentCount)} yeni sipariş var!`);
+            // Listeyi güncelle
+            loadOrders(currentFilter);
+        }
+
+    } catch (error) {
+        console.error('New orders check error:', error);
+    }
 }
