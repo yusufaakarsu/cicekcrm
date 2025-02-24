@@ -518,6 +518,7 @@ document.getElementById('productSearch').addEventListener('input', (e) => {
 // Ürün ekle
 function addProduct(product) {
     try {
+        // Safety check
         if (!product || typeof product !== 'object') {
             console.error('Invalid product data:', product);
             return;
@@ -525,7 +526,7 @@ function addProduct(product) {
 
         const productData = typeof product === 'string' ? JSON.parse(product) : product;
         
-        // base_price -> base_price olarak düzeltildi
+        // base_price kullanımı - retail_price yerine
         const price = parseFloat(productData.base_price);
         if (!price) {
             console.error('Product has no price:', productData);
@@ -541,7 +542,7 @@ function addProduct(product) {
         selectedProducts.set(productData.id, {
             ...productData,
             quantity,
-            unit_price: price, // price olarak değiştirildi
+            unit_price: price,  // Değiştirildi
             total: price * quantity
         });
         
@@ -572,7 +573,7 @@ function updateQuantity(productId, newQuantity) {
     }
 }
 
-// Seçilen ürünleri göster
+// Seçilen ürünleri göster - Fiyat alanları düzeltildi
 function updateSelectedProducts() {
     const container = document.getElementById('selectedProductsList');
     const subtotalEl = document.getElementById('subtotal');
@@ -594,7 +595,7 @@ function updateSelectedProducts() {
                                 onclick="updateQuantity(${product.id}, ${product.quantity + 1})">+</button>
                     </div>
                 </td>
-                <td>${formatCurrency(product.retail_price)}</td>
+                <td>${formatCurrency(product.unit_price)}</td>
                 <td>${formatCurrency(product.total)}</td>
                 <td>
                     <button class="btn btn-sm btn-outline-danger" 

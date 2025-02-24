@@ -106,44 +106,44 @@ router.post('/', async (c) => {
     // SQL hata ayıklama
     const sql = `
       INSERT INTO addresses (
-        tenant_id, customer_id, label, city, district, 
-        street, building_no, floor, door_no, postal_code, 
-        directions, lat, lng, here_place_id, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        tenant_id, customer_id, label, 
+        district, neighborhood, street,
+        building_no, floor_no, door_no, 
+        here_place_id, lat, lng,
+        directions, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `
     console.log('SQL:', sql) // Debug log
     console.log('Params:', [
       tenant_id,
       body.customer_id,
       body.label,
-      body.city,
       body.district,
+      body.neighborhood,
       body.street,
       body.building_no,
       body.floor,
       body.apartment_no,
-      body.postal_code,
-      body.directions,
+      body.here_place_id,
       body.lat,
       body.lng,
-      body.here_place_id
+      body.directions
     ]) // Debug log
 
     const result = await db.prepare(sql).bind(
       tenant_id,
       body.customer_id,
       body.label || 'Teslimat Adresi',
-      body.city || 'İstanbul',
       body.district,
+      body.neighborhood || null,
       body.street,
       body.building_no,
-      body.floor || null,
-      body.apartment_no || null, // door_no olarak kaydediyoruz
-      body.postal_code || null,
-      body.directions || null,
-      body.lat || null,
-      body.lng || null,
-      body.here_place_id || null
+      body.floor, // floor -> floor_no
+      body.apartment_no, // apartment_no -> door_no 
+      body.here_place_id,
+      body.lat,
+      body.lng,
+      body.directions || null
     ).run()
 
     return c.json({
