@@ -152,149 +152,209 @@ async function updateOrderStatus(orderId, newStatus) {
     }
 }
 
+// Sipariş seçimini göster
 async function showOrderDetail(orderId) {
     try {
-        // İki API çağrısını parallel yap
+        // noOrderSelected'ı gizle
+        document.getElementById('noOrderSelected').classList.add('d-none');
+        
+        // orderDetail'i göster ve loading state'e geç
+        const detailContainer = document.getElementById('orderDetail');
+        detailContainer.classList.remove('d-none');
+        detailContainer.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2">Sipariş bilgileri yükleniyor...</p>
+            </div>
+        `;
+
+        // API çağrıları
         const [orderResponse, recipesResponse] = await Promise.all([
             fetchAPI(`/orders/${orderId}/details`),
             fetchAPI(`/orders/${orderId}/recipes`)
         ]);
-        
-        if (!orderResponse.success) {
-            throw new Error(orderResponse.error || 'Sipariş detayları yüklenemedi');
-        }
 
-        if (!recipesResponse.success) {
-            throw new Error(recipesResponse.error || 'Reçete bilgileri yüklenemedi');
-        }
+        // ...API response validations...
 
         const order = orderResponse.order;
-        const recipes = recipesResponse.recipes || []; // Boş array varsayılan
+        const recipes = recipesResponse.recipes || [];
 
-        // Modal içeriğini doldur
-        document.getElementById('modalOrderId').textContent = orderId;
-        document.getElementById('modalContent').innerHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    <h6>Teslimat Bilgileri</h6>
-                    <p>
-                        <strong>Tarih:</strong> ${formatDate(order.delivery_date)}<br>
-                        <strong>Saat:</strong> ${formatTimeSlot(order.delivery_time)}<br>
-                        <strong>Adres:</strong> ${order.delivery_address || ''}
-                    </p>
-                </div>
-                <div class="col-md-6">
-                    <h6>Alıcı Bilgileri</h6>
-                    <p>
-                        <strong>İsim:</strong> ${order.recipient_name || ''}<br>
-                        <strong>Telefon:</strong> ${formatPhoneNumber(order.recipient_phone)}
-                    </p>
-                </div>
-            </div>
-            <hr>
-            <h6>Ürünler</h6>
-            <div class="table-responsive">
-                <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>Ürün</th>
-                            <th class="text-end">Adet</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${order.items.map(item => `
-                            <tr>
-                                <td>${item.product_name || ''}</td>
-                                <td class="text-end">${item.quantity}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-            ${order.card_message ? `
-                <hr>
-                <h6>Kart Mesajı</h6>
-                <p class="mb-0">${order.card_message}</p>
-            ` : ''}
-
-            <!-- Reçete Tablosu -->
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Tavsiye Reçete</h6>
-                    ${order.status === 'new' ? `
-                        <button class="btn btn-sm btn-primary" onclick="startPreparation(${orderId})">
-                            <i class="bi bi-play-fill"></i> Hazırlamaya Başla
-                        </button>
-                    ` : ''}
-                </div>
-                <div class="card-body">
-                    ${recipes.length > 0 ? `
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Malzeme</th>
-                                        <th>Önerilen Miktar</th>
-                                        <th>Birim</th>
-                                        <th>Not</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${recipes.map(item => `
-                                        <tr>
-                                            <td>${item.material_name}</td>
-                                            <td>${item.suggested_quantity}</td>
-                                            <td>${item.unit}</td>
-                                            <td><small class="text-muted">${item.notes || ''}</small></td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
+        // Detay içeriğini güncelle
+        detailContainer.innerHTML = `
+            <div class="d-flex flex-column h-100">
+                <!-- Üst Bilgi -->
+                <div class="border-bottom pb-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h3 class="mb-1">Sipariş #${order.id}</h3>
+                            <p class="mb-0 text-muted">
+                                ${formatDate(order.delivery_date)} - 
+                                ${formatTimeSlot(order.delivery_time)}
+                            </p>
                         </div>
-                    ` : `
-                        <div class="alert alert-info mb-0">
-                            Bu ürün için tanımlanmış reçete bulunmuyor.
-                        </div>
-                    `}
-                </div>
-            </div>
-
-            <!-- İşçilik -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h6 class="mb-0">İşçilik</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Hazırlama Süresi (dk)</label>
-                            <input type="number" class="form-control" id="preparationTime">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">İşçilik Maliyeti</label>
-                            <input type="number" class="form-control" id="laborCost">
-                        </div>
+                        <span class="badge bg-${getStatusColor(order.status)} fs-6">
+                            ${getStatusText(order.status)}
+                        </span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Tamamlama -->
-            <div class="card">
-                <div class="card-body">
-                    <button class="btn btn-success w-100" onclick="completePreparation(${orderId})">
-                        <i class="bi bi-check-lg"></i> Hazırlamayı Tamamla
-                    </button>
+                <!-- Scrollable Content -->
+                <div class="flex-grow-1 overflow-auto">
+                    <!-- Teslimat & Alıcı -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Teslimat Bilgileri</h5>
+                                    <p class="card-text">
+                                        <strong>Adres:</strong><br>
+                                        ${order.delivery_address}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Alıcı Bilgileri</h5>
+                                    <p class="card-text">
+                                        <strong>${order.recipient_name}</strong><br>
+                                        ${formatPhoneNumber(order.recipient_phone)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ürünler -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Ürünler</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Ürün</th>
+                                            <th class="text-end">Adet</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${order.items.map(item => `
+                                            <tr>
+                                                <td>${item.product_name}</td>
+                                                <td class="text-end">${item.quantity}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reçete -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Malzeme Kullanımı</h5>
+                            ${recipes.length > 0 ? `
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Malzeme</th>
+                                                <th>Önerilen</th>
+                                                <th>Kullanılan</th>
+                                                <th>Birim</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${recipes.map(item => `
+                                                <tr>
+                                                    <td>${item.material_name}</td>
+                                                    <td>${item.suggested_quantity}</td>
+                                                    <td>
+                                                        <input type="number" 
+                                                               class="form-control form-control-sm used-quantity"
+                                                               style="width: 80px"
+                                                               data-material-id="${item.material_id}"
+                                                               value="${item.suggested_quantity}"
+                                                               ${order.status !== 'preparing' ? 'disabled' : ''}>
+                                                    </td>
+                                                    <td>${item.unit}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ` : `
+                                <div class="alert alert-info">
+                                    Bu ürün için tanımlanmış reçete bulunmuyor
+                                </div>
+                            `}
+                        </div>
+                    </div>
+
+                    <!-- Notlar -->
+                    ${order.card_message ? `
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title">Kart Mesajı</h5>
+                                <p class="card-text">${order.card_message}</p>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- Alt Aksiyon Alanı -->
+                <div class="border-top pt-3 mt-3">
+                    ${getDetailActionButtons(order)}
                 </div>
             </div>
         `;
 
-        // Modal'ı göster
-        const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
-        modal.show();
-
     } catch (error) {
         console.error('Order detail error:', error);
-        showError('Sipariş detayları yüklenemedi: ' + error.message);
+        showError('Sipariş detayları yüklenemedi');
+        
+        // Hata durumunda detay alanını gizle
+        document.getElementById('orderDetail').classList.add('d-none');
+        document.getElementById('noOrderSelected').classList.remove('d-none');
+    }
+}
+
+// Durum butonları
+function getDetailActionButtons(order) {
+    switch (order.status) {
+        case 'new':
+            return `
+                <button type="button" class="btn btn-primary btn-lg w-100" 
+                        onclick="startPreparation(${order.id})">
+                    <i class="bi bi-play-fill"></i> Hazırlamaya Başla
+                </button>
+            `;
+        case 'preparing':
+            return `
+                <div class="row g-2">
+                    <div class="col">
+                        <input type="number" class="form-control" 
+                               id="preparationTime" placeholder="Süre (dk)">
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-success btn-lg"
+                                onclick="completePreparation(${order.id})">
+                            <i class="bi bi-check-lg"></i> Hazırlamayı Tamamla
+                        </button>
+                    </div>
+                </div>
+            `;
+        case 'ready':
+            return `
+                <button type="button" class="btn btn-outline-primary btn-lg w-100"
+                        onclick="printOrderDetail(${order.id})">
+                    <i class="bi bi-printer"></i> Yazdır
+                </button>
+            `;
+        default:
+            return '';
     }
 }
 

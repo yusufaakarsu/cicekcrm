@@ -9,118 +9,95 @@
 </head>
 <body data-page="workshop">
     <div class="d-flex">
-        <div id="mainSidebar" class="position-fixed" style="width: 200px; height: 100vh; overflow-y: auto;"></div>
+        <!-- Sidebar -->
+        <div id="mainSidebar"></div>
 
-        <div class="flex-grow-1" style="margin-left: 200px;">
-            <!-- Başlık -->
-            <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-                <h2><i class="bi bi-flower1"></i> Atölye</h2>
-                <div class="btn-group">
-                    <button class="btn btn-outline-secondary" id="refreshButton">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Filtreler -->
-            <div class="bg-light border-bottom p-3">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <select class="form-select" id="dateFilter">
+        <!-- Ana içerik - İki bölümlü layout -->
+        <div class="flex-grow-1 d-flex flex-column vh-100" style="margin-left: 200px;">
+            <!-- Üst Bar -->
+            <div class="border-bottom p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2><i class="bi bi-flower1"></i> Atölye</h2>
+                    
+                    <!-- Filtreler -->
+                    <div class="d-flex gap-2">
+                        <select class="form-select form-select-sm" id="dateFilter">
                             <option value="today">Bugün</option>
                             <option value="tomorrow">Yarın</option>
                             <option value="week">Bu Hafta</option>
                         </select>
-                    </div>
-                    <div class="col-md-3">
-                        <select class="form-select" id="timeSlotFilter">
+                        <select class="form-select form-select-sm" id="timeSlotFilter">
                             <option value="">Tüm Saatler</option>
-                            <option value="morning">Sabah (09:00-12:00)</option>
-                            <option value="afternoon">Öğlen (12:00-17:00)</option>
-                            <option value="evening">Akşam (17:00-21:00)</option>
+                            <option value="morning">Sabah</option>
+                            <option value="afternoon">Öğlen</option>
+                            <option value="evening">Akşam</option>
                         </select>
-                    </div>
-                    <div class="col-md-3">
-                        <select class="form-select" id="statusFilter">
-                            <option value="">Tüm Durumlar</option>
-                            <option value="new">Yeni</option>
-                            <option value="preparing">Hazırlanıyor</option>
-                            <option value="ready">Hazır</option>
-                        </select>
+                        <button class="btn btn-sm btn-outline-primary" id="refreshButton">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Siparişler -->
-            <div class="container-fluid py-3">
-                <div class="row" id="orderColumns">
-                    <!-- Yeni Siparişler -->
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-header bg-primary text-white">
-                                <h5 class="card-title mb-0">
-                                    <i class="bi bi-inbox"></i> 
-                                    Yeni Siparişler
-                                    <span class="badge bg-white text-primary ms-2" id="newOrdersCount">0</span>
-                                </h5>
+            <!-- Alt Kısım - Siparişler ve Detay -->
+            <div class="flex-grow-1 d-flex overflow-hidden">
+                <!-- Sol Taraf - Siparişler -->
+                <div class="d-flex flex-column border-end" style="width: 400px; min-width: 350px;">
+                    <!-- Durum Kartları -->
+                    <div class="border-bottom p-2">
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <div class="card bg-warning bg-opacity-10">
+                                    <div class="card-body p-2 text-center">
+                                        <h6 class="mb-0">Yeni</h6>
+                                        <span class="badge bg-warning" id="newOrdersCount">0</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="card-body p-0">
-                                <div class="list-group list-group-flush" id="newOrdersList">
-                                    <!-- JS ile doldurulacak -->
+                            <div class="col-4">
+                                <div class="card bg-info bg-opacity-10">
+                                    <div class="card-body p-2 text-center">
+                                        <h6 class="mb-0">Hazırlanıyor</h6>
+                                        <span class="badge bg-info" id="preparingOrdersCount">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="card bg-success bg-opacity-10">
+                                    <div class="card-body p-2 text-center">
+                                        <h6 class="mb-0">Hazır</h6>
+                                        <span class="badge bg-success" id="readyOrdersCount">0</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Hazırlanan Siparişler -->
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-header bg-warning">
-                                <h5 class="card-title mb-0">
-                                    <i class="bi bi-hourglass-split"></i>
-                                    Hazırlanan
-                                    <span class="badge bg-white text-warning ms-2" id="preparingOrdersCount">0</span>
-                                </h5>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="list-group list-group-flush" id="preparingOrdersList">
-                                    <!-- JS ile doldurulacak -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Hazır Siparişler -->
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-header bg-success text-white">
-                                <h5 class="card-title mb-0">
-                                    <i class="bi bi-check2-circle"></i>
-                                    Hazır
-                                    <span class="badge bg-white text-success ms-2" id="readyOrdersCount">0</span>
-                                </h5>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="list-group list-group-flush" id="readyOrdersList">
-                                    <!-- JS ile doldurulacak -->
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Sipariş Listeleri - Scrollable -->
+                    <div class="flex-grow-1 overflow-auto p-2">
+                        <!-- Yeni Siparişler -->
+                        <div id="newOrdersList" class="mb-3"></div>
+                        
+                        <!-- Hazırlanan Siparişler -->
+                        <div id="preparingOrdersList" class="mb-3"></div>
+                        
+                        <!-- Hazır Siparişler -->
+                        <div id="readyOrdersList"></div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Sipariş Detay Modal -->
-            <div class="modal fade" id="orderDetailModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Sipariş Detayı #<span id="modalOrderId"></span></h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body" id="modalContent">
-                            <!-- JS ile doldurulacak -->
-                        </div>
+                <!-- Sağ Taraf - Sipariş Detay ve Hazırlama -->
+                <div class="flex-grow-1 overflow-auto position-relative">
+                    <!-- Sipariş seçilmediğinde -->
+                    <div id="noOrderSelected" class="position-absolute top-50 start-50 translate-middle text-center text-muted">
+                        <i class="bi bi-arrow-left-circle" style="font-size: 3rem;"></i>
+                        <h5>Sipariş Seçin</h5>
+                        <p>Hazırlamak için sol taraftan bir sipariş seçin</p>
+                    </div>
+
+                    <!-- Sipariş detay ve hazırlama alanı -->
+                    <div id="orderDetail" class="d-none h-100 p-3">
+                        <!-- Detaylar dinamik olarak doldurulacak -->
                     </div>
                 </div>
             </div>
