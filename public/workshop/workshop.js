@@ -117,21 +117,21 @@ function getActionButtons(status, orderId) {
         case 'new':
             return `
                 <button class="btn btn-sm btn-warning" 
-                        onclick="updateOrderStatus(${orderId}, 'preparing')">
+                        onclick="event.stopPropagation(); updateOrderStatus(${orderId}, 'preparing')">
                     <i class="bi bi-play-fill"></i> Hazırlamaya Başla
                 </button>
             `;
         case 'preparing':
             return `
                 <button class="btn btn-sm btn-success"
-                        onclick="updateOrderStatus(${orderId}, 'ready')">
+                        onclick="event.stopPropagation(); updateOrderStatus(${orderId}, 'ready')">
                     <i class="bi bi-check-lg"></i> Hazır
                 </button>
             `;
         case 'ready':
             return `
                 <button class="btn btn-sm btn-outline-primary"
-                        onclick="printOrderDetail(${orderId})">
+                        onclick="event.stopPropagation(); printOrderDetail(${orderId})">
                     <i class="bi bi-printer"></i> Yazdır
                 </button>
             `;
@@ -182,6 +182,10 @@ async function showOrderDetail(orderId) {
             fetchAPI(`/orders/${orderId}/details`),
             fetchAPI(`/orders/${orderId}/recipes`)
         ]);
+
+        if (!orderResponse.success) {
+            throw new Error(orderResponse.error || 'Sipariş detayları yüklenemedi');
+        }
 
         // ...API response validations...
 
@@ -322,7 +326,7 @@ async function showOrderDetail(orderId) {
 
     } catch (error) {
         console.error('Order detail error:', error);
-        showError('Sipariş detayları yüklenemedi');
+        showError('Sipariş detayları yüklenemedi: ' + error.message);
         
         // Hata durumunda detay alanını gizle
         document.getElementById('orderDetail').classList.add('d-none');
@@ -459,3 +463,9 @@ function startAutoRefresh() {
 window.addEventListener('beforeunload', () => {
     if (refreshTimer) clearInterval(refreshTimer);
 });
+
+// Durum filtreleme fonksiyonu
+function filterByStatus(status) {
+    document.getElementById('statusFilter').value = status;
+    loadOrders();
+}

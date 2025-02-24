@@ -50,11 +50,12 @@
             <div class="flex-grow-1 d-flex overflow-hidden">
                 <!-- Sol Taraf - Siparişler -->
                 <div class="d-flex flex-column border-end" style="width: 400px; min-width: 350px;">
-                    <!-- Durum Kartları -->
+                    <!-- Durum Kartları - tıklanabilir yapıldı -->
                     <div class="border-bottom p-2">
                         <div class="row g-2">
                             <div class="col-4">
-                                <div class="card bg-warning bg-opacity-10">
+                                <div class="card bg-warning bg-opacity-10 cursor-pointer" 
+                                     onclick="filterByStatus('new')" role="button">
                                     <div class="card-body p-2 text-center">
                                         <h6 class="mb-0">Yeni</h6>
                                         <span class="badge bg-warning" id="newOrdersCount">0</span>
@@ -62,7 +63,8 @@
                                 </div>
                             </div>
                             <div class="col-4">
-                                <div class="card bg-info bg-opacity-10">
+                                <div class="card bg-info bg-opacity-10 cursor-pointer"
+                                     onclick="filterByStatus('preparing')" role="button">
                                     <div class="card-body p-2 text-center">
                                         <h6 class="mb-0">Hazırlanıyor</h6>
                                         <span class="badge bg-info" id="preparingOrdersCount">0</span>
@@ -70,7 +72,8 @@
                                 </div>
                             </div>
                             <div class="col-4">
-                                <div class="card bg-success bg-opacity-10">
+                                <div class="card bg-success bg-opacity-10 cursor-pointer"
+                                     onclick="filterByStatus('ready')" role="button">
                                     <div class="card-body p-2 text-center">
                                         <h6 class="mb-0">Hazır</h6>
                                         <span class="badge bg-success" id="readyOrdersCount">0</span>
@@ -128,6 +131,15 @@
             .ps-fixed {
                 padding-left: 0;
             }
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        .cursor-pointer:hover {
+            transform: translateY(-2px);
+            transition: transform 0.2s;
         }
     </style>
 
