@@ -221,26 +221,128 @@ router.get('/filtered', async (c) => {
     }
 });
 
+// Workshop siparişlerini getir
+router.get('/workshop', async (c) => {
+    const db = c.get('db')
+    const tenant_id = c.get('tenant_id')
+
+    try {
+        // Query parametrelerini al
+        const url = new URL(c.req.url)
+        const dateFilter = url.searchParams.get('date_filter') || 'today'
+        const timeSlot = url.searchParams.get('time_slot')
+        const status = url.searchParams.get('status')
+
+        // SQL sorgusunu oluştur
+        let sql = `
+            SELECT 
+                o.*,
+                r.name as recipient_name,
+                r.phone as recipient_phone,
+                GROUP_CONCAT(p.name || ' x' || oi.quantity) as items_summary
+            FROM orders o
+            LEFT JOIN recipients r ON o.recipient_id = r.id
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            LEFT JOIN products p ON oi.product_id = p.id
+            WHERE o.tenant_id = ? 
+            AND o.deleted_at IS NULL
+        `
+
+        const params = [tenant_id]
+
+        // Tarih filtresi
+        switch (dateFilter) {
+            case 'today':
+                sql += ` AND DATE(o.delivery_date) = DATE('now')`
+                break
+            case 'tomorrow':
+                sql += ` AND DATE(o.delivery_date) = DATE('now', '+1 day')`
+                break
+            case 'week':
+                sql += ` AND DATE(o.delivery_date) BETWEEN DATE('now') AND DATE('now', '+7 days')`
+                break
+        }
+
+        // Saat dilimi filtresi
+        if (timeSlot) {
+            sql += ` AND o.delivery_time = ?`
+            params.push(timeSlot)
+        }
+
+        // Durum filtresi
+        if (status) {
+            sql += ` AND o.status = ?`
+            params.push(status)
+        }
+
+        // Grup ve sıralama
+        sql += `
+            GROUP BY o.id
+            ORDER BY 
+                o.delivery_date ASC,
+                CASE o.delivery_time 
+                    WHEN 'morning' THEN 1 
+                    WHEN 'afternoon' THEN 2 
+                    WHEN 'evening' THEN 3 
+                END,
+                o.created_at ASC
+        `
+
+        // Sorguyu çalıştır
+        const { results } = await db.prepare(sql).bind(...params).all()
+
+        return c.json({
+            success: true,
+            orders: results || []
+        })
+
+    } catch (error) {
+        console.error('Workshop orders error:', error)
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
+        }, 500)
+    }
+})
+
 // Sipariş durumunu güncelle
 router.put('/:id/status', async (c) => {
-  const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
-  const { id } = c.req.param()
-  const { status } = await c.req.json()
-  
-  try {
-    await db.prepare(`
-      UPDATE orders 
-      SET status = ?,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-      AND tenant_id = ?
-    `).bind(status, id, tenant_id).run()
+    const db = c.get('db')
+    const tenant_id = c.get('tenant_id')
+    const { id } = c.req.param()
+    const { status } = await c.req.json()
 
-    return c.json({ success: true })
-  } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
-  }
+    try {
+        // Geçerli durumları kontrol et
+        const validStatuses = ['new', 'preparing', 'ready', 'delivering', 'delivered', 'cancelled']
+        if (!validStatuses.includes(status)) {
+            return c.json({
+                success: false,
+                error: 'Invalid status'
+            }, 400)
+        }
+
+        // Durumu güncelle
+        await db.prepare(`
+            UPDATE orders 
+            SET status = ?,
+                status_updated_at = datetime('now'),
+                updated_at = datetime('now')
+            WHERE id = ?
+            AND tenant_id = ?
+        `).bind(status, id, tenant_id).run()
+
+        return c.json({ success: true })
+
+    } catch (error) {
+        console.error('Status update error:', error)
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
+        }, 500)
+    }
 })
 
 // Sipariş iptal et

@@ -23,6 +23,19 @@ async function loadSideBar() {
     const response = await fetch('/common/sidebar.html');  // header.html -> sidebar.html
     const html = await response.text();
     document.getElementById('mainSidebar').innerHTML = html;  // header -> mainSidebar
+
+    const menuHtml = `
+        <!-- ...existing menu items... -->
+
+        <!-- Atölye menüsü eklendi -->
+        <li class="nav-item">
+            <a href="/workshop/workshop.html" class="nav-link text-white">
+                <i class="bi bi-flower1 me-2"></i> Atölye
+            </a>
+        </li>
+
+        <!-- ...existing menu items... -->
+    `;
 }
 
 // Sayfa yüklendiğinde header'ı yükle
