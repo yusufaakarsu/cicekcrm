@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
     loadOrders();
     setupEventListeners();
+    startAutoRefresh();
 });
 
 function setupEventListeners() {
@@ -153,20 +154,23 @@ async function updateOrderStatus(orderId, newStatus) {
 
 async function showOrderDetail(orderId) {
     try {
-        const response = await fetchAPI(`/orders/${orderId}/details`);
+        // İki API çağrısını parallel yap
+        const [orderResponse, recipesResponse] = await Promise.all([
+            fetchAPI(`/orders/${orderId}/details`),
+            fetchAPI(`/orders/${orderId}/recipes`)
+        ]);
         
-        if (!response.success) {
-            throw new Error(response.error || 'Sipariş detayları yüklenemedi');
+        if (!orderResponse.success) {
+            throw new Error(orderResponse.error || 'Sipariş detayları yüklenemedi');
         }
 
-        const order = response.order;
+        if (!recipesResponse.success) {
+            throw new Error(recipesResponse.error || 'Reçete bilgileri yüklenemedi');
+        }
 
-        // Null check ekleyelim
-        const items = order.items || [];
+        const order = orderResponse.order;
+        const recipes = recipesResponse.recipes || []; // Boş array varsayılan
 
-        // Ürünlerin reçetelerini al
-        const recipes = await fetchAPI(`/orders/${orderId}/recipes`);
-        
         // Modal içeriğini doldur
         document.getElementById('modalOrderId').textContent = orderId;
         document.getElementById('modalContent').innerHTML = `
@@ -198,7 +202,7 @@ async function showOrderDetail(orderId) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${items.map(item => `
+                        ${order.items.map(item => `
                             <tr>
                                 <td>${item.product_name || ''}</td>
                                 <td class="text-end">${item.quantity}</td>
@@ -213,44 +217,45 @@ async function showOrderDetail(orderId) {
                 <p class="mb-0">${order.card_message}</p>
             ` : ''}
 
-            <!-- Tavsiye Reçete -->
+            <!-- Reçete Tablosu -->
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Tavsiye Reçete</h6>
-                    <button class="btn btn-sm btn-primary" onclick="startPreparation(${orderId})">
-                        Hazırlamaya Başla
-                    </button>
+                    ${order.status === 'new' ? `
+                        <button class="btn btn-sm btn-primary" onclick="startPreparation(${orderId})">
+                            <i class="bi bi-play-fill"></i> Hazırlamaya Başla
+                        </button>
+                    ` : ''}
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Malzeme</th>
-                                    <th>Önerilen Miktar</th>
-                                    <th>Kullanılan</th>
-                                    <th>Birim</th>
-                                    <th>Maliyet</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${recipes.map(item => `
+                    ${recipes.length > 0 ? `
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
                                     <tr>
-                                        <td>${item.material_name}</td>
-                                        <td>${item.suggested_quantity}</td>
-                                        <td>
-                                            <input type="number" 
-                                                   class="form-control form-control-sm used-quantity" 
-                                                   data-material-id="${item.material_id}"
-                                                   value="${item.suggested_quantity}">
-                                        </td>
-                                        <td>${item.unit}</td>
-                                        <td>${formatCurrency(item.unit_price)}</td>
+                                        <th>Malzeme</th>
+                                        <th>Önerilen Miktar</th>
+                                        <th>Birim</th>
+                                        <th>Not</th>
                                     </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    ${recipes.map(item => `
+                                        <tr>
+                                            <td>${item.material_name}</td>
+                                            <td>${item.suggested_quantity}</td>
+                                            <td>${item.unit}</td>
+                                            <td><small class="text-muted">${item.notes || ''}</small></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : `
+                        <div class="alert alert-info mb-0">
+                            Bu ürün için tanımlanmış reçete bulunmuyor.
+                        </div>
+                    `}
                 </div>
             </div>
 
@@ -289,7 +294,7 @@ async function showOrderDetail(orderId) {
 
     } catch (error) {
         console.error('Order detail error:', error);
-        showError('Sipariş detayları yüklenemedi');
+        showError('Sipariş detayları yüklenemedi: ' + error.message);
     }
 }
 
@@ -368,5 +373,20 @@ function formatDate(date) {
     return new Date(date).toLocaleDateString('tr-TR');
 }
 
-// 30 saniyede bir otomatik yenile
-setInterval(loadOrders, 30000);
+// Otomatik yenileme süresini artır (30sn -> 60sn)
+const REFRESH_INTERVAL = 60000;
+let refreshTimer;
+
+// Yenileme fonksiyonu
+function startAutoRefresh() {
+    // Varsa önceki timer'ı temizle
+    if (refreshTimer) clearInterval(refreshTimer);
+    
+    // Yeni timer başlat
+    refreshTimer = setInterval(loadOrders, REFRESH_INTERVAL);
+}
+
+// Sayfa kapanırken timer'ı temizle
+window.addEventListener('beforeunload', () => {
+    if (refreshTimer) clearInterval(refreshTimer);
+});
