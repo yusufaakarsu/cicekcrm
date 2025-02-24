@@ -8,6 +8,8 @@ router.get('/', async (c) => {
     const tenant_id = c.get('tenant_id')
 
     try {
+        console.log('Loading workshop orders...');
+        
         const { results } = await db.prepare(`
             SELECT 
                 o.*,
@@ -21,12 +23,18 @@ router.get('/', async (c) => {
             AND o.status IN ('new', 'preparing', 'ready')
             AND o.deleted_at IS NULL
             GROUP BY o.id
-            ORDER BY o.delivery_date ASC
+            ORDER BY o.delivery_date ASC, o.delivery_time ASC
         `).bind(tenant_id).all()
 
-        return c.json({ success: true, orders: results || [] })
+        console.log('Workshop orders loaded:', results?.length || 0);
+
+        return c.json({ 
+            success: true, 
+            orders: results || [] 
+        })
 
     } catch (error) {
+        console.error('Workshop orders error:', error);
         return c.json({
             success: false,
             error: 'Database error',
