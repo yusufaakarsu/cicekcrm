@@ -28,17 +28,22 @@ async function loadOrders() {
             status: status
         });
 
+        console.log('Loading orders with params:', params.toString());
+
         const orders = await fetchAPI(`/orders/workshop?${params}`);
         
         if (!orders.success) {
             throw new Error(orders.error || 'Siparişler yüklenemedi');
         }
 
+        // Debug log
+        console.log('Received orders:', orders);
+
         // Siparişleri durumlarına göre grupla
         const grouped = {
-            new: orders.orders.filter(o => o.status === 'new'),
-            preparing: orders.orders.filter(o => o.status === 'preparing'),
-            ready: orders.orders.filter(o => o.status === 'ready')
+            new: orders.orders.filter(o => o.status === 'new') || [],
+            preparing: orders.orders.filter(o => o.status === 'preparing') || [],
+            ready: orders.orders.filter(o => o.status === 'ready') || []
         };
 
         // Her kolonu güncelle
@@ -53,7 +58,7 @@ async function loadOrders() {
 
     } catch (error) {
         console.error('Orders loading error:', error);
-        showError('Siparişler yüklenemedi');
+        showError('Siparişler yüklenemedi: ' + error.message);
     }
 }
 
