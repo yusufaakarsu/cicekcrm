@@ -219,3 +219,23 @@ BEGIN
         )
     );
 END;
+
+-- Stok kontrolü ve trigger sıralaması önemli, önce kontrol sonra işlem yapılmalı
+CREATE TRIGGER trg_before_order_material_insert
+BEFORE INSERT ON order_items_materials
+BEGIN
+    -- Stok kontrolü
+    SELECT CASE 
+        WHEN (
+            SELECT allow_negative_stock 
+            FROM tenant_settings 
+            WHERE tenant_id = NEW.tenant_id
+        ) = 0 
+        AND (
+            SELECT stock_quantity 
+            FROM raw_materials 
+            WHERE id = NEW.material_id
+        ) < NEW.quantity
+        THEN RAISE(ABORT, 'Yetersiz stok')
+    END;
+END;

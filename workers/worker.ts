@@ -11,6 +11,7 @@ import suppliersRoutes from './routes/suppliers'
 import materialsRouter from './routes/materials'
 import purchaseRoutes from './routes/purchase'
 import settingsRoutes from './routes/settings'  // Yeni eklenen
+import workshopRoutes from './routes/workshop'
 
 const app = new Hono()
 
@@ -44,6 +45,7 @@ api.route('/addresses', addressRoutes)  // Yeni eklenen
 api.route('/suppliers', suppliersRoutes)
 api.route('/materials', materialsRouter)
 api.route('/purchase', purchaseRoutes)
+api.route('/workshop', workshopRoutes)
 
 // Mount API routes under /api
 app.route('/api', api)
