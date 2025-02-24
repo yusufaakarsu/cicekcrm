@@ -19,23 +19,25 @@ const ISTANBUL_DISTRICTS = [
 const BASE_URL = window.location.origin; // Mevcut domaini kullan
 
 // Genel utility fonksiyonları
+// Sidebar yükleme fonksiyonu düzeltildi - doğru path kullanıldı
 async function loadSideBar() {
-    const response = await fetch('/common/sidebar.html');  // header.html -> sidebar.html
-    const html = await response.text();
-    document.getElementById('mainSidebar').innerHTML = html;  // header -> mainSidebar
+    try {
+        const response = await fetch('/common/sidebar.html');
+        const html = await response.text();
+        document.getElementById('mainSidebar').innerHTML = html;
 
-    const menuHtml = `
-        <!-- ...existing menu items... -->
-
-        <!-- Atölye menüsü eklendi -->
-        <li class="nav-item">
-            <a href="/workshop/workshop.html" class="nav-link text-white">
-                <i class="bi bi-flower1 me-2"></i> Atölye
-            </a>
-        </li>
-
-        <!-- ...existing menu items... -->
-    `;
+        // Aktif sayfayı işaretle
+        const currentPage = document.body.dataset.page;
+        if (currentPage) {
+            const activeLink = document.querySelector(`#mainSidebar a[href*="/${currentPage}/"]`);
+            if (activeLink) {
+                activeLink.classList.add('active');
+            }
+        }
+    } catch (error) {
+        console.error('Sidebar yükleme hatası:', error);
+        showError('Menü yüklenemedi: ' + error.message);
+    }
 }
 
 // Sayfa yüklendiğinde header'ı yükle

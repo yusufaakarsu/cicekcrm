@@ -222,5 +222,21 @@ function printOrderDetail(orderId) {
     console.log('Print order:', orderId);
 }
 
+// Zaman dilimlerini formatlayan fonksiyon
+function formatTimeSlot(slot) {
+    const slots = {
+        'morning': 'Sabah (09:00-12:00)',
+        'afternoon': 'Öğlen (12:00-17:00)',
+        'evening': 'Akşam (17:00-21:00)'
+    };
+    return slots[slot] || slot;
+}
+
+// Tarihi formatlayan fonksiyon
+function formatDate(date) {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('tr-TR');
+}
+
 // 30 saniyede bir otomatik yenile
 setInterval(loadOrders, 30000);
