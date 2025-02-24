@@ -446,6 +446,30 @@ function formatDate(date) {
     return new Date(date).toLocaleDateString('tr-TR');
 }
 
+// Sipariş durumuna göre renk
+function getStatusColor(status) {
+    return {
+        'new': 'warning',
+        'preparing': 'info',
+        'ready': 'success',
+        'delivering': 'primary',
+        'delivered': 'success',
+        'cancelled': 'danger'
+    }[status] || 'secondary';
+}
+
+// Sipariş durumuna göre metin
+function getStatusText(status) {
+    return {
+        'new': 'Yeni',
+        'preparing': 'Hazırlanıyor',
+        'ready': 'Hazır',
+        'delivering': 'Teslimatta',
+        'delivered': 'Teslim Edildi',
+        'cancelled': 'İptal'
+    }[status] || 'Bilinmiyor';
+}
+
 // Otomatik yenileme süresini artır (30sn -> 60sn)
 const REFRESH_INTERVAL = 60000;
 let refreshTimer;
