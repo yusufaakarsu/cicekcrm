@@ -115,24 +115,23 @@ router.post('/orders', async (c) => {
     
     try {
         const data = await c.req.json();
-        const { supplier_id, order_date, items } = data; // notes kaldırıldı
+        const { supplier_id, order_date, items } = data;
 
-        console.log('Request data:', { supplier_id, order_date, items });
+        console.log('Processing purchase order:', { supplier_id, order_date, items });
 
         // Validasyon
         if (!supplier_id || !order_date || !Array.isArray(items) || items.length === 0) {
             return c.json({
                 success: false,
-                error: 'Missing or invalid required fields'
+                error: 'Eksik ya da hatalı alanlar mevcut'
             }, 400);
         }
 
-        // Ana siparişi oluştur
+        // 1. Ana siparişi oluştur
         const orderResult = await db.prepare(`
             INSERT INTO purchase_orders (
-                tenant_id, supplier_id, order_date, 
-                created_by
-            ) VALUES (?, ?, ?, ?)
+                tenant_id, supplier_id, order_date, created_by, created_at
+            ) VALUES (?, ?, ?, ?, datetime('now'))
         `).bind(
             tenant_id,
             supplier_id,
@@ -141,55 +140,49 @@ router.post('/orders', async (c) => {
         ).run();
 
         if (!orderResult.success) {
-            throw new Error('Order creation failed');
+            throw new Error('Sipariş kaydı oluşturulamadı');
         }
 
-        const order_id = orderResult.meta.last_row_id;
+        const order_id = orderResult.meta?.last_row_id;
+        console.log('Created purchase order:', order_id);
 
-        // Kalemleri ekle
-        let itemCount = 0;
+        // 2. Kalemleri tek tek ekle
         for (const item of items) {
+            console.log('Processing item:', item);
+
             if (!item.material_id || !item.quantity || !item.unit_price) {
-                continue; // Hatalı kalemleri atla
+                console.warn('Invalid item data:', item);
+                continue;
             }
 
-            const itemResult = await db.prepare(`
+            await db.prepare(`
                 INSERT INTO purchase_order_items (
-                    order_id, material_id, quantity, unit_price
-                ) VALUES (?, ?, ?, ?)
+                    order_id, 
+                    material_id, 
+                    quantity, 
+                    unit_price,
+                    created_at
+                ) VALUES (?, ?, ?, ?, datetime('now'))
             `).bind(
                 order_id,
                 item.material_id,
                 item.quantity,
                 item.unit_price
             ).run();
-
-            if (itemResult.success) {
-                itemCount++;
-            }
         }
 
-        if (itemCount === 0) {
-            // Eğer hiç kalem eklenmediyse siparişi sil
-            await db.prepare(`
-                DELETE FROM purchase_orders WHERE id = ?
-            `).bind(order_id).run();
-
-            throw new Error('No items could be inserted');
-        }
-
+        // 3. Başarılı sonuç dön
         return c.json({
             success: true,
-            order_id,
-            items_count: itemCount,
-            message: 'Purchase order created successfully'
+            order_id: order_id,
+            message: 'Satın alma kaydı oluşturuldu'
         });
 
     } catch (error) {
-        console.error('Database error:', error);
+        console.error('Purchase order error:', error);
         return c.json({ 
             success: false, 
-            error: 'Database error',
+            error: 'İşlem başarısız',
             message: error.message
         }, 500);
     }
