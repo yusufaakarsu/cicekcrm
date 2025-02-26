@@ -2,6 +2,8 @@
 DROP TRIGGER IF EXISTS trg_after_purchase_item_insert;
 DROP TRIGGER IF EXISTS trg_after_purchase_update;
 DROP TRIGGER IF EXISTS trg_after_purchase_delete;
+DROP TRIGGER IF EXISTS trg_after_purchase_item_update;
+DROP TRIGGER IF EXISTS trg_after_purchase_payment;
 
 -- 1. Satın alma kalemi eklendiğinde stok girişi ve fiyat geçmişi
 CREATE TRIGGER trg_after_purchase_item_insert 
@@ -144,4 +146,41 @@ BEGIN
         AND deleted_at IS NULL
     )
     WHERE id = NEW.order_id;
+END;
+
+-- Satın alma ödemesi için trigger
+DROP TRIGGER IF EXISTS trg_after_purchase_payment;
+
+CREATE TRIGGER trg_after_purchase_payment
+AFTER UPDATE OF paid_amount ON purchase_orders
+WHEN OLD.paid_amount != NEW.paid_amount 
+AND NEW.status != 'cancelled'
+BEGIN
+    UPDATE purchase_orders 
+    SET payment_status = CASE
+        WHEN NEW.paid_amount = 0 THEN 'pending'
+        WHEN NEW.paid_amount < NEW.total_amount THEN 'partial'
+        WHEN NEW.paid_amount >= NEW.total_amount THEN 'paid'
+        ELSE payment_status
+    END
+    WHERE id = NEW.id;
+
+    -- Audit log
+    INSERT INTO audit_log (
+        tenant_id, action, table_name, record_id, 
+        old_data, new_data
+    ) VALUES (
+        NEW.tenant_id,
+        'PAYMENT_UPDATE',
+        'purchase_orders',
+        NEW.id,
+        json_object(
+            'paid_amount', OLD.paid_amount,
+            'payment_status', OLD.payment_status
+        ),
+        json_object(
+            'paid_amount', NEW.paid_amount,
+            'payment_status', NEW.payment_status
+        )
+    );
 END;

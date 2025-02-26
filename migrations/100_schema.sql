@@ -94,15 +94,11 @@ CREATE TABLE delivery_regions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tenant_id INTEGER NOT NULL,
     name TEXT NOT NULL,             -- Kadıköy, Beşiktaş vs.
-    parent_id INTEGER,              -- Üst bölge (örn: Anadolu Yakası)
     base_fee DECIMAL(10,2),         -- Temel teslimat ücreti
-    min_order DECIMAL(10,2),        -- Minimum sipariş tutarı
-    delivery_notes TEXT,            -- Teslimat notları
-    is_active BOOLEAN DEFAULT 1,    
+    is_active BOOLEAN DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     deleted_at DATETIME,
-    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
-    FOREIGN KEY (parent_id) REFERENCES delivery_regions(id)
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id)
 );
 
 -- Birimler tablosu
@@ -187,8 +183,8 @@ CREATE TABLE purchase_orders (
     notes TEXT,
     status TEXT CHECK(status IN ('new', 'completed', 'cancelled')) DEFAULT 'new',
     payment_status TEXT CHECK(payment_status IN ('pending', 'partial', 'paid', 'cancelled')) DEFAULT 'pending',
-    total_amount DECIMAL(10,2) DEFAULT 0,
-    paid_amount DECIMAL(10,2) DEFAULT 0,
+    total_amount DECIMAL(10,2) DEFAULT 0 CHECK(total_amount >= 0),
+    paid_amount DECIMAL(10,2) DEFAULT 0 CHECK(paid_amount >= 0),
     created_by INTEGER NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -367,22 +363,17 @@ CREATE TABLE orders (
     -- Teslimat bilgileri
     delivery_date DATE NOT NULL,
     delivery_time TEXT CHECK(delivery_time IN ('morning','afternoon','evening')) NOT NULL,
+    delivery_region TEXT NOT NULL,    -- Teslimat bölgesi adı (Kadıköy, Beşiktaş vs.)
+    delivery_fee DECIMAL(10,2) NOT NULL DEFAULT 0,    -- Teslimat ücreti (seçilen bölgeden alınır)
  
     -- Sipariş durumu
     status TEXT CHECK(status IN ('new','confirmed','preparing','ready','delivering','delivered','cancelled')) DEFAULT 'new',
-    status_updated_at DATETIME,
     status_notes TEXT,
     
-    -- Ödeme bilgileri
-    subtotal DECIMAL(10,2) NOT NULL,      -- ara toplam
-    delivery_fee DECIMAL(10,2) DEFAULT 0, -- teslimat ücreti
-    tax_amount DECIMAL(10,2) DEFAULT 0,   -- vergi tutarı
-    discount_amount DECIMAL(10,2) DEFAULT 0, -- indirim tutarı
-    total_amount DECIMAL(10,2) NOT NULL,  -- genel toplam
-    
+    total_amount DECIMAL(10,2) NOT NULL CHECK(total_amount >= 0),  -- genel toplam
+    paid_amount DECIMAL(10,2) DEFAULT 0 CHECK(paid_amount >= 0),
     payment_method TEXT CHECK(payment_method IN ('cash','credit_card','bank_transfer')),
-    payment_status TEXT CHECK(payment_status IN ('pending','paid','partial','refunded')) DEFAULT 'pending',
-    paid_amount DECIMAL(10,2) DEFAULT 0,
+    payment_status TEXT CHECK(payment_status IN ('pending','partial','paid','cancelled')) DEFAULT 'pending',
     
     -- Mesaj ve notlar
     card_message_id INTEGER,             -- Hazır mesaj seçildiyse
@@ -436,8 +427,8 @@ CREATE TABLE order_items_materials (
     order_item_id INTEGER NOT NULL,     -- Hangi sipariş kalemine ait
     material_id INTEGER NOT NULL,       -- Hangi ham madde
     quantity DECIMAL(10,2) NOT NULL,    -- Kullanılan miktar
-    unit_price DECIMAL(10,2),           -- NOT NULL kaldırıldı
-    total_amount DECIMAL(10,2),         -- NOT NULL kaldırıldı
+    unit_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+    total_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     deleted_at DATETIME,
@@ -471,7 +462,7 @@ CREATE TABLE transactions (
     
     -- Temel bilgiler
     type TEXT CHECK(type IN ('in','out')) NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL CHECK(amount > 0),
     date DATETIME NOT NULL,                      -- İşlem tarihi
     
     -- İlişkili kayıt
@@ -486,7 +477,7 @@ CREATE TABLE transactions (
     
     -- Takip
     status TEXT CHECK(status IN 
-        ('pending','completed','cancelled','failed')) DEFAULT 'completed',
+        ('pending', 'partial', 'paid', 'cancelled')) DEFAULT 'pending',
     created_by INTEGER NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     deleted_at DATETIME,

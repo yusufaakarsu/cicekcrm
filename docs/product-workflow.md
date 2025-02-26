@@ -1,72 +1,167 @@
--- filepath: /Users/yusuf/Downloads/kod/CCRM/docs/product-workflow.md
-# Çiçek CRM - Yeni İş Akışı
+# Çiçek CRM Sistem Akışı ve Sorun Giderme Rehberi
 
-## 1. Tedarikçi Süreci
-1. Satın alma kaydı oluşturulur (purchases.html)
-   - Tedarikçi seçilir
-   - Malzemeler ve miktarlar girilir
-   - Birim fiyatlar girilir
-2. Kayıt sonrası otomatik olarak:
-   - Stok girişi yapılır (stock_movements)
-   - Malzeme fiyat geçmişi güncellenir (material_price_history)
-   - Ödeme kaydı expenses.html'e düşer (transactions tablosu)
+## 1. Sipariş Oluşturma Süreci
 
-## 2. Sipariş Süreci
-1. Sipariş Girişi (orders.html)
-   - Müşteri/alıcı bilgileri
-   - Teslimat bilgileri
-   - Ürün seçimi ve adet
-   - Fiyatlandırma
-2. Kayıt sonrası:
-   - Sipariş kaydı oluşur (orders tablosu)
-   - Sipariş kalemleri kaydedilir (order_items tablosu)
-   - Ödeme kaydı income.html'e düşer (transactions tablosu)
-   - Durum: 'new'
+### Frontend (orders.html)
+1. Müşteri Seçimi
+   - Mevcut müşteri seçimi veya yeni müşteri oluşturma
+   - Müşteri bilgileri customers tablosuna kaydedilir
+   - API: POST /api/customers
 
-## 3. Atölye Süreci (workshop.html)
-1. Yeni siparişler listelenir
-2. Hazırlamaya başla butonuna basılır
-   - Durum: 'preparing'
-   - Hazırlama başlangıç zamanı kaydedilir
-3. Ürün reçetesi görüntülenir (product_materials)
-   - Önerilen malzemeler ve miktarlar
-4. Gerçek kullanım girilir
-   - Kullanılan malzemeler
-   - Gerçek miktarlar
-5. Tamamla butonuna basılır
-   - Durum: 'ready'
-   - Hazırlama bitiş zamanı kaydedilir
-   - Malzeme kullanımı kaydedilir (order_items_materials)
-   - Malzeme fiyatları price_history'den alınır
-   - Stok düşümü yapılır (stock_movements)
+2. Alıcı Bilgileri
+   - Mevcut alıcı seçimi veya yeni alıcı oluşturma
+   - Alıcı bilgileri recipients tablosuna kaydedilir
+   - API: POST /api/recipients
 
-## 4. Veri İlişkileri
-```mermaid
-graph TD
-    A[purchases] --> B[stock_movements]
-    A --> C[material_price_history]
-    A --> D[transactions/expenses]
-    E[orders] --> F[order_items]
-    E --> G[transactions/income]
-    E --> H[order_items_materials]
-    H --> I[stock_movements]
-```
-## 4. Veri İlişkileri
-   1. trg_after_purchase_item_insert
-      Stok girişi
-      Fiyat geçmişi
-      Ödeme kaydı (expense)
-   2. trg_after_order_insert
-      Gelir kaydı (income)
-   3. trg_after_order_complete
-      Stok çıkışı
-      Maliyet hesaplama
+3. Teslimat Bilgileri
+   - Bölge seçimi (delivery_regions tablosundan)
+   - Seçilen bölgenin base_fee değeri orders.delivery_fee'ye yazılır
+   - Adres bilgileri addresses tablosuna kaydedilir
+   - API: POST /api/addresses
 
-   Bu yeni iş akışındaki önemli değişiklikler:
-   1. Tedarikçi ödemeleri ve müşteri tahsilatları ayrı ekranlarda
-   2. Stok hareketleri otomatik
-   3. Malzeme fiyatları geçmişten otomatik alınıyor
-   4. Atölye süreci daha net tanımlanmış
+4. Sipariş Detayları
+   - Ürün seçimi (products tablosundan)
+   - Miktar girişi
+   - Her ürün için orders_items tablosuna kayıt
+   - Toplam tutar otomatik hesaplanır (trg_after_order_item_insert)
 
+### Backend (orders.js)
+1. Sipariş Kaydı
+   - orders tablosuna ana kayıt
+   - order_items tablosuna kalem kayıtları
+   - Başlangıç durumu: 'new'
 
-   git hub süreci deneme
+2. Trigger İşlemleri
+   - trg_after_order_item_insert: Toplam tutarı hesaplar
+   - Stok kontrolü henüz yapılmaz
+
+## 2. Hazırlık Süreci
+
+### Frontend (workshop.html) 
+1. Yeni Siparişlerin Listelenmesi
+   - status = 'new' olan siparişler
+   - API: GET /api/orders?status=new
+
+2. Hazırlama Başlangıcı
+   - "Hazırlamaya Başla" butonu
+   - API: PUT /api/orders/{id}/status
+   - Yeni durum: 'preparing'
+
+3. Malzeme Kullanımı
+   - Ürün reçetesi görüntülenir (product_materials)
+   - Gerçek kullanım miktarları girilir
+   - API: POST /api/orders/{id}/materials
+
+4. Hazırlama Bitişi
+   - "Tamamla" butonu
+   - API: PUT /api/orders/{id}/status
+   - Yeni durum: 'ready'
+
+### Backend İşlemler
+1. Status = 'preparing' olduğunda:
+   - trg_after_order_status_change tetiklenir
+   - preparation_start ve prepared_by güncellenir
+   - Audit log kaydı oluşur
+
+2. Status = 'ready' olduğunda:
+   - trg_after_order_ready tetiklenir
+   - Stok kontrolü yapılır
+   - Stok hareketi oluşturulur (stock_movements)
+   - Malzeme maliyetleri hesaplanır
+   - preparation_end güncellenir
+
+## 3. Teslimat Süreci
+
+### Frontend (delivery.html)
+1. Hazır Siparişlerin Listelenmesi
+   - status = 'ready' olan siparişler
+   - API: GET /api/orders?status=ready
+
+2. Kurye Ataması
+   - Kurye seçimi
+   - API: PUT /api/orders/{id}/courier
+
+3. Teslimat Tamamlama
+   - Teslim belgesi/fotoğraf yükleme
+   - API: PUT /api/orders/{id}/complete
+
+### Backend İşlemler
+1. Teslimat Kaydı
+   - delivered_at güncellenir
+   - delivery_proof kaydedilir
+   - status = 'delivered' olur
+
+## 4. Ödeme Süreci
+
+### Frontend (payments.html)
+1. Ödeme Alma
+   - Ödeme türü seçimi
+   - Tutar girişi
+   - API: POST /api/payments
+
+### Backend İşlemler
+1. Ödeme Kaydı
+   - transactions tablosuna kayıt
+   - orders.paid_amount güncellenir
+   - trg_after_order_payment tetiklenir
+
+2. Payment Status Güncelleme
+   - Otomatik payment_status güncelleme
+   - pending -> partial -> paid
+
+## 5. Sorun Giderme
+
+### Stok Sorunları
+1. Yetersiz Stok
+   - tenant_settings.allow_negative_stock kontrolü
+   - Stok hareketi logları inceleme
+
+### Ödeme Sorunları
+1. Tutarsız Bakiyeler
+   - transactions tablosu kontrolü
+   - orders.paid_amount ve total_amount karşılaştırma
+
+### Performans Sorunları
+1. Yavaş Sorgular
+   - İlgili indexler:
+     * idx_orders_status
+     * idx_orders_payment
+     * idx_stock_movements_material
+
+## 6. Veri Doğrulama
+
+### Frontend Validasyonlar
+1. Müşteri Formu
+   - Zorunlu alanlar: name, phone
+   - Format kontrolleri
+
+2. Sipariş Formu
+   - Teslimat tarihi kontrolü
+   - Minimum sipariş tutarı kontrolü
+
+### Backend Validasyonlar
+1. Stok Kontrolleri
+   - Negatif stok kontrolü
+   - Miktar format kontrolü
+
+2. Tutar Kontrolleri
+   - Negatif tutar engelleme
+   - Maximum limit kontrolleri
+
+## 7. Audit ve Logging
+1. Her İşlem İçin
+   - Kullanıcı kaydı
+   - Zaman damgası
+   - Eski/yeni değerler
+   - İşlem tipi
+
+## 8. Raporlama
+1. Günlük Raporlar
+   - Ciro
+   - Stok durumu
+   - Bekleyen siparişler
+
+2. Performans Metrikleri
+   - Hazırlama süreleri
+   - Teslimat süreleri
+   - Ödeme süreleri

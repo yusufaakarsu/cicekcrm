@@ -1,12 +1,14 @@
--- Önce tüm trigger'ları temizle
+-- Trigger'ları sil
 DROP TRIGGER IF EXISTS trg_after_transaction_insert;
 DROP TRIGGER IF EXISTS trg_after_transaction_update;
 DROP TRIGGER IF EXISTS trg_after_transaction_cancel;
+DROP TRIGGER IF EXISTS trg_after_payment_status_change;
+DROP TRIGGER IF EXISTS trg_after_order_payment_status_change;
 
--- 1. Yeni transaction eklendiğinde
+-- Yeni transaction eklendiğinde 
 CREATE TRIGGER trg_after_transaction_insert
 AFTER INSERT ON transactions
-WHEN NEW.status = 'completed'
+WHEN NEW.status = 'paid'  -- 'completed' yerine 'paid' kullan
 BEGIN
     -- Hesap bakiyesini güncelle
     UPDATE accounts 
@@ -25,10 +27,10 @@ BEGIN
     );
 END;
 
--- 2. İşlem durumu değiştiğinde (pending -> completed)
+-- İşlem durumu değiştiğinde
 CREATE TRIGGER trg_after_transaction_update 
 AFTER UPDATE ON transactions 
-WHEN NEW.status = 'completed' AND OLD.status = 'pending'
+WHEN NEW.status = 'paid' AND OLD.status = 'pending'  -- completed -> paid
 BEGIN
     UPDATE accounts 
     SET balance_calculated = balance_calculated + 
@@ -46,10 +48,10 @@ BEGIN
     );
 END;
 
--- 3. İşlem iptal edildiğinde
+-- İşlem iptal edildiğinde
 CREATE TRIGGER trg_after_transaction_cancel
 AFTER UPDATE ON transactions 
-WHEN NEW.status = 'cancelled' AND OLD.status = 'completed'
+WHEN NEW.status = 'cancelled' AND OLD.status = 'paid'  -- completed -> paid
 BEGIN
     -- Bakiyeyi geri al
     UPDATE accounts 
@@ -89,11 +91,10 @@ BEGIN
     );
 END;
 
--- Ödeme durumu değişince otomatik transaction oluştur
+-- Purchase order ödemesi
 CREATE TRIGGER trg_after_payment_status_change
 AFTER UPDATE ON purchase_orders
-FOR EACH ROW
-WHEN NEW.payment_status = 'completed' AND OLD.payment_status = 'pending'
+WHEN NEW.payment_status = 'paid' AND OLD.payment_status = 'pending'  -- completed -> paid
 BEGIN
     INSERT INTO transactions (
         tenant_id, account_id, category_id, type,
@@ -111,15 +112,14 @@ BEGIN
         NEW.id,
         'cash',
         'Tedarikçi ödemesi #' || NEW.id,
-        'completed',
+        'paid',  -- 'completed' yerine 'paid'
         NEW.updated_by;
 END;
 
--- Benzer trigger sipariş tahsilatları için
+-- Sipariş tahsilatı için trigger
 CREATE TRIGGER trg_after_order_payment_status_change 
 AFTER UPDATE ON orders
-FOR EACH ROW
-WHEN NEW.payment_status = 'completed' AND OLD.payment_status = 'pending'
+WHEN NEW.payment_status = 'paid' AND OLD.payment_status = 'pending'
 BEGIN
     INSERT INTO transactions (
         tenant_id, account_id, category_id, type,
@@ -137,7 +137,25 @@ BEGIN
         NEW.id,
         'cash',
         'Sipariş tahsilatı #' || NEW.id,
-        'completed',
+        'paid',  -- 'completed' yerine 'paid'
         NEW.updated_by;
+
+    -- Audit log
+    INSERT INTO audit_log (
+        tenant_id, action, table_name, record_id, old_data, new_data
+    ) VALUES (
+        NEW.tenant_id,
+        'PAYMENT_STATUS_CHANGE',
+        'transactions',
+        NEW.id,
+        json_object(
+            'status', OLD.payment_status,
+            'amount', OLD.paid_amount
+        ),
+        json_object(
+            'status', NEW.payment_status,
+            'amount', NEW.paid_amount
+        )
+    );
 END;
 

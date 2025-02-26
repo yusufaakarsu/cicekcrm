@@ -1,3 +1,9 @@
+DROP TRIGGER IF EXISTS trg_after_tenant_insert;
+DROP TRIGGER IF EXISTS trg_before_tenant_delete;
+DROP TRIGGER IF EXISTS trg_after_user_insert;
+DROP TRIGGER IF EXISTS trg_after_user_update;
+DROP TRIGGER IF EXISTS trg_after_settings_update;
+
 -- Core System Triggers
 CREATE TRIGGER trg_after_tenant_insert 
 AFTER INSERT ON tenants 
