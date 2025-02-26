@@ -45,3 +45,13 @@ cat /Users/yusuf/Library/Preferences/.wrangler/logs/wrangler-2025-02-21_22-18-02
         }
     }
 }
+
+
+# Tabloları listele
+wrangler d1 execute cicek-crm-db --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
+
+# Trigger'ları listele
+wrangler d1 execute cicek-crm-db --remote --command "SELECT name FROM sqlite_master WHERE type='trigger' ORDER BY name;"
+
+# Index'leri listele 
+wrangler d1 execute cicek-crm-db --remote --command "SELECT name FROM sqlite_master WHERE type='index' ORDER BY name;"

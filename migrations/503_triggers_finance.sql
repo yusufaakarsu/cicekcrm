@@ -113,7 +113,8 @@ BEGIN
         'cash',
         'Tedarikçi ödemesi #' || NEW.id,
         'paid',  -- 'completed' yerine 'paid'
-        NEW.updated_by;
+        NEW.created_by  -- created_by kullan
+    WHERE NEW.created_by IS NOT NULL;
 END;
 
 -- Sipariş tahsilatı için trigger

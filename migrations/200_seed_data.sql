@@ -71,7 +71,8 @@ INSERT INTO transactions (
    (SELECT id FROM accounts WHERE tenant_id = 1 AND type = 'cash' LIMIT 1),
    (SELECT id FROM transaction_categories WHERE tenant_id = 1 AND reporting_code = 'CASH_OPEN' LIMIT 1),
    'in', 10000, CURRENT_TIMESTAMP, 'balance', 1, 'cash', 'İlk kasa açılış bakiyesi',
-   'completed', 1);
+   'paid', -- 'completed' yerine 'paid' kullanılmalı
+   1);
 
 -- Ham maddeler
 INSERT INTO raw_materials (tenant_id, name, unit_id, category_id, description) VALUES
