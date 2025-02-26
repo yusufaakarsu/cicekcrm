@@ -599,6 +599,71 @@ router.get('/pending', async (c) => {
   }
 })
 
+// Ödeme detayları endpoint'i
+router.get('/payments/:type/:id', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  const type = c.req.param('type')
+  const id = c.req.param('id')
+
+  try {
+    let details;
+    
+    if (type === 'purchase') {
+      // Satın alma detayları
+      details = await db.prepare(`
+        SELECT 
+          po.*,
+          s.name as supplier_name,
+          s.phone as supplier_phone,
+          s.contact_name as supplier_contact
+        FROM purchase_orders po
+        JOIN suppliers s ON s.id = po.supplier_id
+        WHERE po.id = ?
+        AND po.tenant_id = ?
+        AND po.deleted_at IS NULL
+      `).bind(id, tenant_id).first();
+
+    } else if (type === 'order') {
+      // Sipariş detayları
+      details = await db.prepare(`
+        SELECT 
+          o.*,
+          c.name as customer_name,
+          c.phone as customer_phone
+        FROM orders o
+        JOIN customers c ON c.id = o.customer_id
+        WHERE o.id = ?
+        AND o.tenant_id = ?
+        AND o.deleted_at IS NULL
+      `).bind(id, tenant_id).first();
+    }
+
+    if (!details) {
+      return c.json({ success: false, error: 'Record not found' }, 404);
+    }
+
+    // Mevcut hesapları da getir
+    const { results: accounts } = await db.prepare(`
+      SELECT id, name, type 
+      FROM accounts 
+      WHERE tenant_id = ? 
+      AND status = 'active'
+      AND deleted_at IS NULL
+    `).bind(tenant_id).all();
+
+    return c.json({
+      success: true,
+      details,
+      accounts: accounts || []
+    });
+
+  } catch (error) {
+    console.error('Payment details error:', error);
+    return c.json({ success: false, error: 'Database error' }, 500);
+  }
+});
+
 // Kategori listesi
 router.get('/categories', async (c) => {
   // ... implementation ...

@@ -57,21 +57,22 @@ function updatePendingPaymentsTable(pending) {
             ...p,
             typeText: 'Tedarikçi Ödemesi',
             nameLabel: 'Tedarikçi',
-            onclick: `showPaymentModal('expense', ${p.id}, 'purchase')`  // Değişti
+            onclick: `showPaymentModal('out', ${p.id}, 'purchase')`
         })),
         ...pending.orders.map(o => ({
             ...o,
             typeText: 'Sipariş Tahsilatı',
             nameLabel: 'Müşteri',
-            onclick: `showPaymentModal('income', ${o.id}, 'order')`      // Değişti
+            onclick: `showPaymentModal('in', ${o.id}, 'order')`
         }))
     ].sort((a, b) => new Date(a.date) - new Date(b.date));
 
+    // Tabloyu güncelle
     tbody.innerHTML = allPayments.map(p => `
         <tr>
-            <td>${p[p.type === 'purchase' ? 'supplier_name' : 'customer_name']}</td>
             <td>${formatDate(p.date)}</td>
             <td>${p.typeText}</td>
+            <td>${p[p.type === 'purchase' ? 'supplier_name' : 'customer_name']}</td>
             <td class="text-end">${formatMoney(p.amount)}</td>
             <td class="text-end">${formatMoney(p.paid_amount)}</td>
             <td class="text-end">${formatMoney(p.amount - p.paid_amount)}</td>
@@ -84,19 +85,88 @@ function updatePendingPaymentsTable(pending) {
     `).join('') || '<tr><td colspan="7" class="text-center">Bekleyen ödeme bulunmuyor</td></tr>';
 }
 
-// Modal işlemleri tek fonksiyonda
-function showPaymentModal(mode, id = null, type = null) {
-    const modalId = `${mode}Modal`;
-    const modal = new bootstrap.Modal(document.getElementById(modalId));
-    
-    if (id && type) {
-        loadPaymentDetails(mode, id, type);
+// Tek modal fonksiyonu
+async function showPaymentModal(paymentType, id, relatedType) {
+    try {
+        const response = await fetch(`${API_URL}/finance/payments/${relatedType}/${id}`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Veri alınamadı');
+        }
+
+        // Modal başlığını ayarla
+        document.getElementById('modalTitle').textContent = 
+            paymentType === 'in' ? 'Tahsilat İşlemi' : 'Ödeme İşlemi';
+
+        // Kişi bilgilerini doldur
+        document.getElementById('relatedPerson').textContent = 
+            relatedType === 'purchase' ? data.details.supplier_name : data.details.customer_name;
+        
+        document.getElementById('relatedContact').textContent = 
+            relatedType === 'purchase' ? data.details.supplier_contact : data.details.customer_phone;
+        
+        // Tutar bilgilerini doldur
+        document.getElementById('totalAmount').textContent = formatMoney(data.details.total_amount);
+        document.getElementById('paidAmount').textContent = formatMoney(data.details.paid_amount);
+        document.getElementById('remainingAmount').textContent = 
+            formatMoney(data.details.total_amount - data.details.paid_amount);
+
+        // Form alanlarını doldur
+        const form = document.getElementById('paymentForm');
+        form.querySelector('[name="type"]').value = paymentType;
+        form.querySelector('[name="related_type"]').value = relatedType;
+        form.querySelector('[name="related_id"]').value = id;
+        form.querySelector('[name="amount"]').value = data.details.total_amount - data.details.paid_amount;
+        form.querySelector('[name="date"]').value = new Date().toISOString().slice(0, 16);
+
+        // Hesap listesini doldur
+        const accountSelect = form.querySelector('[name="account_id"]');
+        accountSelect.innerHTML = data.accounts.map(a => 
+            `<option value="${a.id}">${a.name}</option>`
+        ).join('');
+
+        // Modal'ı göster
+        const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        modal.show();
+
+    } catch (error) {
+        console.error('Payment modal error:', error);
+        showError('Ödeme detayları alınamadı');
     }
-    
-    modal.show();
 }
 
-// Tek bir detay yükleme fonksiyonu
+// Tek kaydetme fonksiyonu
+async function savePayment() {
+    const form = document.getElementById('paymentForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch(`${API_URL}/finance/payments`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+            throw new Error('İşlem kaydedilemedi');
+        }
+
+        // Modal'ı kapat
+        bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+        
+        // Sayfayı yenile
+        loadFinanceData();
+        loadPendingPayments();
+        showSuccess('İşlem başarıyla kaydedildi');
+
+    } catch (error) {
+        console.error('Save payment error:', error);
+        showError('İşlem kaydedilemedi');
+    }
+}
+
 async function loadPaymentDetails(mode, id, type) {
     try {
         const response = await fetch(`${API_URL}/finance/payments/${type}/${id}`);
@@ -110,28 +180,6 @@ async function loadPaymentDetails(mode, id, type) {
         }
     } catch (error) {
         console.error(`Error loading ${mode} details:`, error);
-    }
-}
-
-// Tek bir kaydetme fonksiyonu 
-async function savePayment(mode) {
-    const form = document.getElementById(`${mode}Form`);
-    const formData = new FormData(form);
-    
-    try {
-        const response = await fetch(`${API_URL}/finance/${mode}`, {
-            method: 'POST',
-            body: JSON.stringify(Object.fromEntries(formData)),
-            headers: {'Content-Type': 'application/json'}
-        });
-        
-        if (response.ok) {
-            bootstrap.Modal.getInstance(document.getElementById(`${mode}Modal`)).hide();
-            loadFinanceData();
-            loadPendingPayments();
-        }
-    } catch (error) {
-        console.error(`Save ${mode} error:`, error);
     }
 }
 
