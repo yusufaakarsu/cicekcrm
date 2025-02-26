@@ -57,6 +57,43 @@ async function loadTransactions(page = 1) {
     }
 }
 
+// Hesapları yükle
+async function loadAccounts() {
+    try {
+        const response = await fetch(`${API_URL}/finance/accounts`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        const select = document.getElementById('accountFilter');
+        select.innerHTML = '<option value="">Tüm Hesaplar</option>' + 
+            data.accounts.map(account => 
+                `<option value="${account.id}">${account.name}</option>`
+            ).join('');
+
+    } catch (error) {
+        console.error('Accounts loading error:', error);
+        showError('Hesaplar yüklenemedi');
+    }
+}
+
+// Kategorileri yükle
+async function loadCategories() {
+    try {
+        const response = await fetch(`${API_URL}/finance/categories`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.error) {
+            // Kategori filtresi eklenecekse burada işlenebilir
+            console.log('Categories loaded:', data);
+        }
+    } catch (error) {
+        console.error('Categories loading error:', error);
+    }
+}
+
 function renderTransactionsTable(transactions) {
     const tbody = document.getElementById('transactionsTable');
     
@@ -71,7 +108,7 @@ function renderTransactionsTable(transactions) {
             <td>${t.account_name}</td>
             <td>${getTransactionTypeBadge(t.type)}</td>
             <td>
-                <span class="badge" style="background-color: ${t.category_color || '#6c757d'}">
+                <span class="badge bg-secondary">
                     ${t.category_name || '-'}
                 </span>
             </td>

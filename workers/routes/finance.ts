@@ -184,11 +184,12 @@ router.get('/transactions/filtered', async (c) => {
         t.*,
         a.name as account_name,
         c.name as category_name,
-        c.color as category_color
+        COALESCE(c.reporting_code, 'OTHER') as category_code
       FROM transactions t
       LEFT JOIN accounts a ON t.account_id = a.id
       LEFT JOIN transaction_categories c ON t.category_id = c.id
       WHERE t.tenant_id = ?
+      AND t.deleted_at IS NULL
     `
     const params: any[] = [tenant_id]
 
