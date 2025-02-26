@@ -607,62 +607,73 @@ router.get('/payments/:type/:id', async (c) => {
   const id = c.req.param('id')
 
   try {
-    let details;
+    let query = '';
     
     if (type === 'purchase') {
-      // Satın alma detayları
-      details = await db.prepare(`
+      query = `
         SELECT 
           po.*,
           s.name as supplier_name,
           s.phone as supplier_phone,
-          s.contact_name as supplier_contact
+          s.contact_name as supplier_contact,
+          total_amount as total_amount,
+          paid_amount
         FROM purchase_orders po
         JOIN suppliers s ON s.id = po.supplier_id
-        WHERE po.id = ?
+        WHERE po.id = ? 
         AND po.tenant_id = ?
         AND po.deleted_at IS NULL
-      `).bind(id, tenant_id).first();
-
+      `
     } else if (type === 'order') {
-      // Sipariş detayları
-      details = await db.prepare(`
+      query = `
         SELECT 
           o.*,
           c.name as customer_name,
-          c.phone as customer_phone
+          c.phone as customer_phone,
+          total_amount as total_amount,
+          paid_amount
         FROM orders o
         JOIN customers c ON c.id = o.customer_id
         WHERE o.id = ?
         AND o.tenant_id = ?
         AND o.deleted_at IS NULL
-      `).bind(id, tenant_id).first();
+      `
     }
+
+    const details = await db.prepare(query).bind(id, tenant_id).first()
 
     if (!details) {
-      return c.json({ success: false, error: 'Record not found' }, 404);
+      return c.json({ success: false, error: 'Record not found' }, 404)
     }
 
-    // Mevcut hesapları da getir
+    // Hesapları getir
     const { results: accounts } = await db.prepare(`
       SELECT id, name, type 
       FROM accounts 
       WHERE tenant_id = ? 
       AND status = 'active'
       AND deleted_at IS NULL
-    `).bind(tenant_id).all();
+    `).bind(tenant_id).all()
 
     return c.json({
       success: true,
-      details,
+      details: {
+        ...details,
+        total_amount: details.total_amount || 0,
+        paid_amount: details.paid_amount || 0
+      },
       accounts: accounts || []
-    });
+    })
 
   } catch (error) {
-    console.error('Payment details error:', error);
-    return c.json({ success: false, error: 'Database error' }, 500);
+    console.error('Payment details error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      details: error.message 
+    }, 500)
   }
-});
+})
 
 // Ödeme/Tahsilat kaydetme
 router.post('/payments', async (c) => {
@@ -671,56 +682,104 @@ router.post('/payments', async (c) => {
   const body = await c.req.json()
 
   try {
-    // 1. Önce transaction kaydı oluştur
+    console.log('Payment request:', body)
+
+    // Eksik: Mevcut ödeme durumu kontrolü yapılmıyor
+    // Eklenmeli:
+    const currentPayment = await db.prepare(`
+      SELECT total_amount, paid_amount 
+      FROM ${body.related_type === 'purchase' ? 'purchase_orders' : 'orders'}
+      WHERE id = ? AND tenant_id = ?
+    `).bind(body.related_id, tenant_id).first()
+
+    if (!currentPayment) {
+      return c.json({ success: false, error: 'Record not found' }, 404)
+    }
+
+    if (currentPayment.paid_amount >= currentPayment.total_amount) {
+      return c.json({ success: false, error: 'Payment already completed' }, 400)
+    }
+
+    // HATA 2: Ödeme tutarı kontrolü yok
+    if (currentPayment.paid_amount + body.amount > currentPayment.total_amount) {
+      return c.json({ 
+        success: false, 
+        error: 'Payment amount exceeds remaining balance',
+        details: {
+          total: currentPayment.total_amount,
+          paid: currentPayment.paid_amount,
+          remaining: currentPayment.total_amount - currentPayment.paid_amount
+        }
+      }, 400)
+    }
+
+    // 1. Kategori ID'sini belirle
+    const categoryId = body.type === 'in' ? 
+      // Sipariş tahsilatı için kategori 
+      await db.prepare(`
+        SELECT id FROM transaction_categories 
+        WHERE tenant_id = ? AND reporting_code = 'SALES_CASH'
+        LIMIT 1
+      `).bind(tenant_id).first() :
+      // Tedarikçi ödemesi için kategori
+      await db.prepare(`
+        SELECT id FROM transaction_categories 
+        WHERE tenant_id = ? AND reporting_code = 'SUPPLIER'
+        LIMIT 1
+      `).bind(tenant_id).first()
+
+    if (!categoryId?.id) {
+      throw new Error('Transaction category not found')
+    }
+
+    // 2. Transaction kaydı
     const transaction = await db.prepare(`
       INSERT INTO transactions (
         tenant_id, type, amount, account_id,
-        payment_method, date, description,
+        payment_method, date, description,  
         related_type, related_id, status,
-        created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        created_by, category_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       tenant_id,
-      body.type, // in/out
+      body.type,
       body.amount,
-      body.account_id,
+      body.account_id, 
       body.payment_method,
       body.date || new Date().toISOString(),
-      body.notes || null,
-      body.related_type, // purchase/order
+      body.notes || '',
+      body.related_type,
       body.related_id,
       'completed',
-      1 // TODO: aktif kullanıcı
+      1,
+      categoryId.id // Kategori ID'sini ekledik
     ).run()
 
     if (!transaction.success) {
+      console.error('Transaction insert failed') // Debug için
       throw new Error('Transaction creation failed')
     }
 
-    // 2. İlgili kaydı güncelle (satın alma/sipariş)
-    const updateQuery = body.related_type === 'purchase' 
-      ? `UPDATE purchase_orders SET 
-          paid_amount = paid_amount + ?,
+    // 2. Related record update
+    const table = body.related_type === 'purchase' ? 'purchase_orders' : 'orders'
+    
+    const update = await db.prepare(`
+      UPDATE ${table}
+      SET paid_amount = paid_amount + ?,
           payment_status = CASE 
             WHEN paid_amount + ? >= total_amount THEN 'completed'
-            ELSE 'partial' 
-          END,
-          updated_at = CURRENT_TIMESTAMP
-         WHERE id = ? AND tenant_id = ?`
-      : `UPDATE orders SET 
-          paid_amount = paid_amount + ?,
-          payment_status = CASE
-            WHEN paid_amount + ? >= total_amount THEN 'completed'
             ELSE 'partial'
-          END,
-          updated_at = CURRENT_TIMESTAMP
-         WHERE id = ? AND tenant_id = ?`
-
-    const update = await db.prepare(updateQuery)
-      .bind(body.amount, body.amount, body.related_id, tenant_id)
-      .run()
+          END
+      WHERE id = ? AND tenant_id = ?
+    `).bind(
+      body.amount,
+      body.amount,
+      body.related_id,
+      tenant_id
+    ).run()
 
     if (!update.success) {
+      console.error('Payment update failed') // Debug için
       throw new Error('Payment update failed')
     }
 
