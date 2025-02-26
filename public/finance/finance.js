@@ -139,6 +139,11 @@ async function showPaymentModal(paymentType, id, relatedType) {
 // Tek kaydetme fonksiyonu
 async function savePayment() {
     const form = document.getElementById('paymentForm');
+    if (!form) {
+        console.error('Payment form not found');
+        return;
+    }
+
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
     
@@ -150,11 +155,15 @@ async function savePayment() {
         });
         
         if (!response.ok) {
-            throw new Error('İşlem kaydedilemedi');
+            const error = await response.json();
+            throw new Error(error.error || 'İşlem kaydedilemedi');
         }
 
         // Modal'ı kapat
-        bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+        const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+        if (modal) {
+            modal.hide();
+        }
         
         // Sayfayı yenile
         loadFinanceData();
@@ -163,7 +172,7 @@ async function savePayment() {
 
     } catch (error) {
         console.error('Save payment error:', error);
-        showError('İşlem kaydedilemedi');
+        showError(error.message || 'İşlem kaydedilemedi');
     }
 }
 
@@ -208,9 +217,10 @@ async function loadFinanceData() {
     }    
 }
 
+// Hata yönetimini iyileştir
 async function loadRecentTransactions() {
     try {
-        showLoading('recentTransactions');
+        showLoading('transactionsTable');
         const response = await fetch(`${API_URL}/finance/transactions`);
         
         if (!response.ok) {
@@ -224,12 +234,16 @@ async function loadRecentTransactions() {
         }
 
         updateTransactionsTable(data.transactions);
-        hideLoading('recentTransactions');
+        hideLoading('transactionsTable');
 
     } catch (error) {
         console.error('Transactions error:', error);
         showError('İşlem geçmişi alınamadı');
-        document.getElementById('lastError').textContent = error.message;
+        // lastError hatası için kontrol ekle
+        const lastError = document.getElementById('lastError');
+        if (lastError) {
+            lastError.textContent = error.message;
+        }
     }
 }
 
@@ -242,8 +256,13 @@ function updateFinanceCards(data) {
 }
 
 function updateTransactionsTable(transactions) {
-    const tbody = document.getElementById('recentTransactions');
+    const tbody = document.getElementById('transactionsTable'); // ID değişti
     
+    if (!tbody) {
+        console.warn('Transactions table not found');
+        return;
+    }
+
     if (!transactions?.length) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center">İşlem bulunamadı</td></tr>';
         return;
