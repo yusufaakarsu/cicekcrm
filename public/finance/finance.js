@@ -11,15 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Ana sayfa başlatma
 function initFinancePage() {
-    loadFinanceData();
-    loadRecentTransactions();
-    loadPendingPayments();
+    loadFinanceData();     
+    loadPendingPayments(); // Sadece pending payments yükle
     
     // Periyodik güncelleme
-    const UPDATE_INTERVAL = 60000; // 60 saniye
+    const UPDATE_INTERVAL = 60000; 
     setInterval(() => {
         loadFinanceData();
-        loadRecentTransactions();
         loadPendingPayments();
     }, UPDATE_INTERVAL);
 }
