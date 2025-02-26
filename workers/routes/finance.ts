@@ -664,6 +664,68 @@ router.get('/payments/:type/:id', async (c) => {
   }
 });
 
+// Ödeme/Tahsilat kaydetme
+router.post('/payments', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+  const body = await c.req.json()
+
+  try {
+    const result = await db.prepare(`
+      INSERT INTO transactions (
+        tenant_id, type, amount, account_id,
+        related_type, related_id, payment_method,
+        description, date, status, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      tenant_id,
+      body.type,
+      body.amount,
+      body.account_id,
+      body.related_type,
+      body.related_id,
+      body.payment_method,
+      body.notes,
+      body.date || new Date().toISOString(),
+      'completed',
+      1 // TODO: active user
+    ).run()
+
+    if (!result.success) {
+      throw new Error('Payment creation failed')
+    }
+
+    // Ödeme durumunu güncelle
+    if (body.related_type === 'purchase') {
+      await db.prepare(`
+        UPDATE purchase_orders 
+        SET payment_status = CASE
+          WHEN paid_amount + ? >= total_amount THEN 'completed'
+          ELSE 'partial'
+        END,
+        paid_amount = paid_amount + ?
+        WHERE id = ? AND tenant_id = ?
+      `).bind(body.amount, body.amount, body.related_id, tenant_id).run()
+    } else if (body.related_type === 'order') {
+      await db.prepare(`
+        UPDATE orders
+        SET payment_status = CASE
+          WHEN paid_amount + ? >= total_amount THEN 'completed'
+          ELSE 'partial'
+        END,
+        paid_amount = paid_amount + ?
+        WHERE id = ? AND tenant_id = ?
+      `).bind(body.amount, body.amount, body.related_id, tenant_id).run()
+    }
+
+    return c.json({ success: true })
+
+  } catch (error) {
+    console.error('Payment error:', error)
+    return c.json({ success: false, error: 'Database error' }, 500)
+  }
+})
+
 // Kategori listesi
 router.get('/categories', async (c) => {
   // ... implementation ...
