@@ -138,7 +138,7 @@ async function showPaymentModal(paymentType, id, relatedType) {
 async function savePayment() {
     const form = document.getElementById('paymentForm');
     if (!form) {
-        console.error('Payment form not found');
+        showError('Form bulunamadı');
         return;
     }
 
@@ -149,7 +149,10 @@ async function savePayment() {
         const response = await fetch(`${API_URL}/finance/payments`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
+            body: JSON.stringify({
+                ...data,
+                amount: parseFloat(data.amount) // string -> number
+            })
         });
         
         if (!response.ok) {
@@ -157,13 +160,13 @@ async function savePayment() {
             throw new Error(error.error || 'İşlem kaydedilemedi');
         }
 
-        // Modal'ı kapat
-        const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
-        if (modal) {
-            modal.hide();
-        }
+        const result = await response.json();
         
-        // Sayfayı yenile
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+
+        bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
         loadFinanceData();
         loadPendingPayments();
         showSuccess('İşlem başarıyla kaydedildi');

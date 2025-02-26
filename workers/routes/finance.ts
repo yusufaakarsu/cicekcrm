@@ -671,58 +671,68 @@ router.post('/payments', async (c) => {
   const body = await c.req.json()
 
   try {
-    const result = await db.prepare(`
+    // 1. Önce transaction kaydı oluştur
+    const transaction = await db.prepare(`
       INSERT INTO transactions (
         tenant_id, type, amount, account_id,
-        related_type, related_id, payment_method,
-        description, date, status, created_by
+        payment_method, date, description,
+        related_type, related_id, status,
+        created_by
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       tenant_id,
-      body.type,
+      body.type, // in/out
       body.amount,
       body.account_id,
-      body.related_type,
-      body.related_id,
       body.payment_method,
-      body.notes,
       body.date || new Date().toISOString(),
+      body.notes || null,
+      body.related_type, // purchase/order
+      body.related_id,
       'completed',
-      1 // TODO: active user
+      1 // TODO: aktif kullanıcı
     ).run()
 
-    if (!result.success) {
-      throw new Error('Payment creation failed')
+    if (!transaction.success) {
+      throw new Error('Transaction creation failed')
     }
 
-    // Ödeme durumunu güncelle
-    if (body.related_type === 'purchase') {
-      await db.prepare(`
-        UPDATE purchase_orders 
-        SET payment_status = CASE
-          WHEN paid_amount + ? >= total_amount THEN 'completed'
-          ELSE 'partial'
-        END,
-        paid_amount = paid_amount + ?
-        WHERE id = ? AND tenant_id = ?
-      `).bind(body.amount, body.amount, body.related_id, tenant_id).run()
-    } else if (body.related_type === 'order') {
-      await db.prepare(`
-        UPDATE orders
-        SET payment_status = CASE
-          WHEN paid_amount + ? >= total_amount THEN 'completed'
-          ELSE 'partial'
-        END,
-        paid_amount = paid_amount + ?
-        WHERE id = ? AND tenant_id = ?
-      `).bind(body.amount, body.amount, body.related_id, tenant_id).run()
+    // 2. İlgili kaydı güncelle (satın alma/sipariş)
+    const updateQuery = body.related_type === 'purchase' 
+      ? `UPDATE purchase_orders SET 
+          paid_amount = paid_amount + ?,
+          payment_status = CASE 
+            WHEN paid_amount + ? >= total_amount THEN 'completed'
+            ELSE 'partial' 
+          END,
+          updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND tenant_id = ?`
+      : `UPDATE orders SET 
+          paid_amount = paid_amount + ?,
+          payment_status = CASE
+            WHEN paid_amount + ? >= total_amount THEN 'completed'
+            ELSE 'partial'
+          END,
+          updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND tenant_id = ?`
+
+    const update = await db.prepare(updateQuery)
+      .bind(body.amount, body.amount, body.related_id, tenant_id)
+      .run()
+
+    if (!update.success) {
+      throw new Error('Payment update failed')
     }
 
     return c.json({ success: true })
 
   } catch (error) {
     console.error('Payment error:', error)
-    return c.json({ success: false, error: 'Database error' }, 500)
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      details: error.message 
+    }, 500)
   }
 })
 

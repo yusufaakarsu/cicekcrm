@@ -1,77 +1,93 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+
+// Route imports
 import dashboardRoutes from './routes/dashboard'
 import customerRoutes from './routes/customers'
 import orderRoutes from './routes/orders'
 import financeRoutes from './routes/finance'
-import addressRoutes from './routes/addresses'  // Yeni eklenen
+import addressRoutes from './routes/addresses'
 import productRoutes from './routes/products'
 import stockRoutes from './routes/stock'
 import suppliersRoutes from './routes/suppliers'
 import materialsRouter from './routes/materials'
 import purchaseRoutes from './routes/purchase'
-import settingsRoutes from './routes/settings'  // Yeni eklenen
+import settingsRoutes from './routes/settings'
 import workshopRoutes from './routes/workshop'
 
 const app = new Hono()
 
-// CORS middleware
+// CORS ayarları
 app.use('*', cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
-    exposeHeaders: ['Content-Length'],
+    exposeHeaders: ['Content-Length', 'X-Total-Count'],  // Pagination için eklendi
     maxAge: 600,
     credentials: true
 }))
 
-// Global middleware
+// Global middleware - DB ve tenant_id ataması
 app.use('*', async (c, next) => {
+    // DB bağlantısı
     c.set('db', c.env.DB)
+    
+    // TODO: Token'dan tenant_id çekilecek
     c.set('tenant_id', 1)
+    
     await next()
 })
 
 // API Routes
 const api = new Hono()
-api.route('/finance', financeRoutes)
-api.route('/settings', settingsRoutes)  // Yeni eklenen
+
+// Core routes
 api.route('/dashboard', dashboardRoutes)
-api.route('/orders', orderRoutes)
+api.route('/settings', settingsRoutes)
+
+// Customer related
 api.route('/customers', customerRoutes)
-api.route('/products', productRoutes)
-api.route('/stock', stockRoutes)
-api.route('/addresses', addressRoutes)  // Yeni eklenen
-api.route('/suppliers', suppliersRoutes)
-api.route('/materials', materialsRouter)
-api.route('/purchase', purchaseRoutes)
+api.route('/addresses', addressRoutes)
+
+// Order related 
+api.route('/orders', orderRoutes)
 api.route('/workshop', workshopRoutes)
 
-// Mount API routes under /api
+// Product related
+api.route('/products', productRoutes)
+api.route('/materials', materialsRouter)
+
+// Finance & Stock
+api.route('/finance', financeRoutes)
+api.route('/stock', stockRoutes)
+api.route('/purchase', purchaseRoutes)
+api.route('/suppliers', suppliersRoutes)
+
+// Mount all routes under /api
 app.route('/api', api)
 
-// Catch-all for API 404s
+// 404 handler for API
 app.all('/api/*', (c) => {
-    console.log('404 API:', c.req.url)
+    console.log('404 Not Found:', c.req.url)
     return c.json({
         success: false,
         error: 'API endpoint not found'
     }, 404)
 })
 
-// Static files
+// Static file handler
 app.get('*', (c) => {
     return c.env.ASSETS.fetch(c.req)
 })
 
-// Error handler
+// Global error handler
 app.onError((err, c) => {
-    console.error('App Error:', err)
+    console.error('Application Error:', err)
     return c.json({
         success: false,
-        error: 'Server Error',
-        message: err.message
-    }, 500)
+        error: err.message || 'Internal Server Error',
+        details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    }, err.status || 500)
 })
 
 export default app
