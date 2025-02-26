@@ -1,51 +1,119 @@
 -- Core System Triggers
--- Yeni tenant oluşturulduğunda otomatik ayarlar oluştur
 CREATE TRIGGER trg_after_tenant_insert 
 AFTER INSERT ON tenants 
 BEGIN
-    -- 1. Varsayılan ayarlar
-    INSERT INTO tenant_settings (tenant_id, require_stock, track_recipes)
-    VALUES (NEW.id, 1, 1);
+    -- 1. Temel ayarlar
+    INSERT INTO tenant_settings (
+        tenant_id, 
+        require_stock,
+        track_recipes,
+        allow_negative_stock
+    )
+    VALUES (NEW.id, 1, 1, 0);
 
-    -- 2. Ana kasa
-    INSERT INTO accounts (tenant_id, name, type, initial_balance)
-    VALUES (NEW.id, 'Ana Kasa', 'cash', 0);
+    -- 2. Finansal Hesaplar
+    INSERT INTO accounts (tenant_id, name, type, initial_balance, status) VALUES
+        (NEW.id, 'Ana Kasa', 'cash', 0, 'active'),
+        (NEW.id, 'Kredi Kartı', 'pos', 0, 'active'),
+        (NEW.id, 'Banka', 'bank', 0, 'active');
 
-    -- 3. Temel Birimler
-    INSERT INTO units (tenant_id, name, code) VALUES
-        (NEW.id, 'Adet', 'PCS'),
-        (NEW.id, 'Dal', 'STEM'),
-        (NEW.id, 'Demet', 'BUNCH'),
-        (NEW.id, 'Gram', 'GR'),
-        (NEW.id, 'Metre', 'M');
+    -- 3. Temel Birimler (Genişletilmiş)
+    INSERT INTO units (tenant_id, name, code, description) VALUES
+        (NEW.id, 'Adet', 'ADET', 'Tek parça ürünler'),
+        (NEW.id, 'Dal', 'DAL', 'Tek dal çiçekler'),
+        (NEW.id, 'Demet', 'DEMET', '10-12 dallık demetler'),
+        (NEW.id, 'Kutu', 'KUTU', 'Ambalaj malzemeleri'),
+        (NEW.id, 'Metre', 'METRE', 'Kurdele, şerit vb.'),
+        (NEW.id, 'Gram', 'GRAM', 'Toz/granül malzemeler'),
+        (NEW.id, 'Paket', 'PAKET', 'Paketli ürünler');
 
-    -- 4. Ana Kategoriler
-    INSERT INTO raw_material_categories (tenant_id, name, display_order) VALUES
-        (NEW.id, 'Kesme Çiçek', 1),
-        (NEW.id, 'Yeşillik', 2),
-        (NEW.id, 'Ambalaj', 3),
-        (NEW.id, 'Aksesuar', 4);
+    -- 4. Ham Madde Kategorileri (Genişletilmiş)
+    INSERT INTO raw_material_categories (tenant_id, name) VALUES
+        -- Çiçekler
+        (NEW.id, 'Kesme Çiçekler'),
+        (NEW.id, 'İthal Çiçekler'),
+        (NEW.id, 'Yeşillikler'),
+        (NEW.id, 'Saksı Çiçekleri'),
+        -- Ambalaj
+        (NEW.id, 'Kutular'),
+        (NEW.id, 'Vazolar'),
+        (NEW.id, 'Seramikler'),
+        (NEW.id, 'Sepetler'),
+        -- Süsleme
+        (NEW.id, 'Kurdeleler'),
+        (NEW.id, 'Spreyler'),
+        (NEW.id, 'Aksesuarlar'),
+        (NEW.id, 'Kartlar'),
+        -- Bakım
+        (NEW.id, 'Topraklar'),
+        (NEW.id, 'Gübreler'),
+        (NEW.id, 'Bakım Ürünleri');
 
-    INSERT INTO product_categories (tenant_id, name) VALUES
-        (NEW.id, 'Buketler'),
-        (NEW.id, 'Aranjmanlar'),
-        (NEW.id, 'Kutuda Çiçekler');
+    -- 5. Ürün Kategorileri (Genişletilmiş)
+    INSERT INTO product_categories (tenant_id, name, description) VALUES
+        (NEW.id, 'Buketler', 'El buketleri ve demet çiçekler'),
+        (NEW.id, 'Kutuda Çiçekler', 'Özel tasarım kutu aranjmanları'),
+        (NEW.id, 'Vazoda Çiçekler', 'Cam vazolu aranjmanlar'),
+        (NEW.id, 'Saksı Çiçekleri', 'Dekoratif bitkiler'),
+        (NEW.id, 'Teraryum', 'Minyatür bahçeler'),
+        (NEW.id, 'VIP Tasarımlar', 'Özel tasarım çiçekler'),
+        (NEW.id, 'Mevsimseller', 'Mevsimlik özel ürünler'),
+        (NEW.id, 'Cenaze Çelenkleri', 'Taziye çelenkleri');
 
-    -- 5. İşlem Kategorileri
+    -- 6. İşlem Kategorileri (Genişletilmiş)
     INSERT INTO transaction_categories (tenant_id, name, type, reporting_code) VALUES
-        (NEW.id, 'Satış Geliri', 'in', 'SALES'),
+        -- Kasa İşlemleri
+        (NEW.id, 'Kasa Açılış', 'in', 'CASH_OPEN'),
+        (NEW.id, 'Kasa Sayım Farkı (+)', 'in', 'CASH_COUNT_PLUS'),
+        (NEW.id, 'Kasa Sayım Farkı (-)', 'out', 'CASH_COUNT_MINUS'),
+        -- Ortaklık İşlemleri
+        (NEW.id, 'Ortak Para Girişi', 'in', 'PARTNER_IN'),
+        (NEW.id, 'Ortak Para Çıkışı', 'out', 'PARTNER_OUT'),
+        -- Satışlar
+        (NEW.id, 'Nakit Satış', 'in', 'SALES_CASH'),
+        (NEW.id, 'Kredi Kartı Satış', 'in', 'SALES_CARD'),
+        (NEW.id, 'Havale/EFT Satış', 'in', 'SALES_BANK'),
+        (NEW.id, 'Online Satış', 'in', 'SALES_ONLINE'),
+        -- Giderler
         (NEW.id, 'Tedarikçi Ödemesi', 'out', 'SUPPLIER'),
-        (NEW.id, 'Diğer Gelirler', 'in', 'OTHER_IN'),
-        (NEW.id, 'Diğer Giderler', 'out', 'OTHER_OUT');
+        (NEW.id, 'Personel Maaş', 'out', 'SALARY'),
+        (NEW.id, 'Kira Gideri', 'out', 'RENT'),
+        (NEW.id, 'Elektrik Faturası', 'out', 'ELECTRIC'),
+        (NEW.id, 'Su Faturası', 'out', 'WATER'),
+        (NEW.id, 'Doğalgaz Faturası', 'out', 'GAS'),
+        (NEW.id, 'İnternet Faturası', 'out', 'INTERNET'),
+        (NEW.id, 'Telefon Faturası', 'out', 'PHONE'),
+        (NEW.id, 'Vergi Ödemesi', 'out', 'TAX'),
+        (NEW.id, 'SGK Ödemesi', 'out', 'INSURANCE'),
+        (NEW.id, 'Genel Giderler', 'out', 'GENERAL');
 
-    -- 6. Temel Mesaj Şablonları
+    -- 7. Hazır Kart Mesajları
     INSERT INTO card_messages (tenant_id, category, title, content, display_order) VALUES
-        (NEW.id, 'birthday', 'Doğum Günü', 'Nice mutlu yıllara...', 1),
-        (NEW.id, 'get_well', 'Geçmiş Olsun', 'Acil şifalar dileriz...', 2);
+        (NEW.id, 'birthday', 'Doğum Günü', 'Nice mutlu, sağlıklı yıllara...', 10),
+        (NEW.id, 'birthday', 'Yaş Günü - 2', 'Yeni yaşınız kutlu olsun...', 20),
+        (NEW.id, 'anniversary', 'Yıldönümü', 'Nice mutlu yıllara...', 30),
+        (NEW.id, 'get_well', 'Geçmiş Olsun', 'Acil şifalar dileriz...', 40),
+        (NEW.id, 'love', 'Sevgiliye', 'Seni seviyorum...', 50);
 
-    -- Log kaydı
-    INSERT INTO audit_log (tenant_id, action, table_name, record_id, new_data)
-    VALUES (NEW.id, 'INSERT', 'tenants', NEW.id, json_object('name', NEW.name));
+    -- 8. Audit log kaydı
+    INSERT INTO audit_log (
+        tenant_id, 
+        action, 
+        table_name, 
+        record_id, 
+        new_data
+    )
+    VALUES (
+        NEW.id, 
+        'TENANT_SETUP', 
+        'tenants', 
+        NEW.id, 
+        json_object(
+            'name', NEW.name,
+            'company', NEW.company_name,
+            'email', NEW.contact_email
+        )
+    );
 END;
 
 -- Tenant silinmeden önce ilişkili kayıtları kontrol et

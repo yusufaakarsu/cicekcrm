@@ -545,6 +545,60 @@ router.post('/expenses/:id/approve', async (c) => {
   }
 })
 
+// Bekleyen ödemeler (Satın alma ve Siparişler)
+router.get('/pending', async (c) => {
+  const db = c.get('db')
+  const tenant_id = c.get('tenant_id')
+
+  try {
+    // Bekleyen satın alma ödemeleri
+    const purchases = await db.prepare(`
+      SELECT 
+        po.id,
+        po.order_date as date,
+        s.name as supplier_name,
+        po.total_amount as amount,
+        po.paid_amount,
+        po.status,
+        'purchase' as type
+      FROM purchase_orders po
+      JOIN suppliers s ON s.id = po.supplier_id
+      WHERE po.tenant_id = ?
+      AND po.payment_status = 'pending'
+      AND po.deleted_at IS NULL
+    `).bind(tenant_id).all();
+
+    // Bekleyen sipariş tahsilatları
+    const orders = await db.prepare(`
+      SELECT 
+        o.id,
+        o.delivery_date as date,
+        c.name as customer_name,
+        o.total_amount as amount,
+        o.paid_amount,
+        o.status,
+        'order' as type
+      FROM orders o
+      JOIN customers c ON c.id = o.customer_id
+      WHERE o.tenant_id = ?
+      AND o.payment_status = 'pending'
+      AND o.deleted_at IS NULL
+    `).bind(tenant_id).all();
+
+    return c.json({
+      success: true,
+      pending: {
+        purchases: purchases?.results || [],
+        orders: orders?.results || []
+      }
+    });
+
+  } catch (error) {
+    console.error('Pending payments error:', error);
+    return c.json({ success: false, error: 'Database error' }, 500);
+  }
+})
+
 // Kategori listesi
 router.get('/categories', async (c) => {
   // ... implementation ...

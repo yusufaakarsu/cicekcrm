@@ -21,6 +21,7 @@ DROP TABLE IF EXISTS product_categories;
 
 -- 5. Stok ve Satın Alma Sistemi
 DROP TABLE IF EXISTS stock_movements;
+DROP TABLE IF EXISTS material_price_history;
 DROP TABLE IF EXISTS purchase_order_items;
 DROP TABLE IF EXISTS purchase_orders;
 DROP TABLE IF EXISTS raw_materials;
@@ -184,6 +185,10 @@ CREATE TABLE purchase_orders (
     supplier_id INTEGER NOT NULL,
     order_date DATE NOT NULL,
     notes TEXT,
+    status TEXT CHECK(status IN ('new', 'completed', 'cancelled')) DEFAULT 'new',
+    payment_status TEXT CHECK(payment_status IN ('pending', 'partial', 'paid', 'cancelled')) DEFAULT 'pending',
+    total_amount DECIMAL(10,2) DEFAULT 0,
+    paid_amount DECIMAL(10,2) DEFAULT 0,
     created_by INTEGER NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

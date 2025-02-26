@@ -17,12 +17,14 @@ document.addEventListener('DOMContentLoaded', () => {
 function initFinancePage() {
     loadFinanceData();
     loadRecentTransactions();
+    loadPendingPayments();  // Yeni eklenen
     
     // Periyodik güncelleme
     const UPDATE_INTERVAL = 60000; // 60 saniye
     setInterval(() => {
         loadFinanceData();
         loadRecentTransactions();
+        loadPendingPayments();  // Yeni eklenen
     }, UPDATE_INTERVAL);
 }
 
@@ -83,6 +85,66 @@ async function loadRecentTransactions() {
         showError('İşlem geçmişi alınamadı');
         document.getElementById('lastError').textContent = error.message;
     }
+}
+
+// Bekleyen ödemeleri yükle
+async function loadPendingPayments() {
+  try {
+    showLoading('pendingPayments');
+    const response = await fetch(`${API_URL}/finance/pending`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Veri alınamadı');
+    }
+
+    updatePendingPaymentsTable(data.pending);
+    hideLoading('pendingPayments');
+
+  } catch (error) {
+    console.error('Pending payments error:', error);
+    showError('Bekleyen ödemeler alınamadı');
+  }
+}
+
+function updatePendingPaymentsTable(pending) {
+  const tbody = document.getElementById('pendingPaymentsTable');
+  
+  const allPayments = [
+    ...pending.purchases.map(p => ({
+      ...p,
+      typeText: 'Tedarikçi Ödemesi',
+      nameLabel: 'Tedarikçi',
+      link: `/purchase/detail.html?id=${p.id}`
+    })),
+    ...pending.orders.map(o => ({
+      ...o,
+      typeText: 'Sipariş Tahsilatı',
+      nameLabel: 'Müşteri',
+      link: `/orders/detail.html?id=${o.id}`
+    }))
+  ].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  tbody.innerHTML = allPayments.map(p => `
+    <tr>
+      <td>${formatDate(p.date)}</td>
+      <td>${p.typeText}</td>
+      <td>${p[p.type === 'purchase' ? 'supplier_name' : 'customer_name']}</td>
+      <td class="text-end">${formatMoney(p.amount)}</td>
+      <td class="text-end">${formatMoney(p.paid_amount)}</td>
+      <td class="text-end">${formatMoney(p.amount - p.paid_amount)}</td>
+      <td>
+        <a href="${p.link}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-arrow-right"></i>
+        </a>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="7" class="text-center">Bekleyen ödeme bulunmuyor</td></tr>';
 }
 
 function updateFinanceCards(data) {
