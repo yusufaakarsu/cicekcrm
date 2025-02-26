@@ -25,6 +25,9 @@
                     <a href="expense.html" class="btn btn-danger">
                         <i class="bi bi-dash-circle"></i> Ödeme Ekle
                     </a>
+                    <a href="/finance/pending-payments.html" class="btn btn-sm btn-outline-primary">
+                        Tüm Ödemeler <i class="bi bi-arrow-right"></i>
+                    </a>
                 </div>
             </div>
 
@@ -196,6 +199,85 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="incomeModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tahsilat</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="incomeForm">
+                        <div class="mb-3">
+                            <label class="form-label">Hesap</label>
+                            <select name="account_id" class="form-select" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tutar</label>
+                            <input type="number" name="amount" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Ödeme Yöntemi</label>
+                            <select name="payment_method" class="form-select" required>
+                                <option value="cash">Nakit</option>
+                                <option value="credit_card">Kredi Kartı</option>
+                                <option value="bank_transfer">Havale/EFT</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Not</label>
+                            <textarea name="notes" class="form-control"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-success" onclick="savePayment('income')">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="expenseModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ödeme</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="expenseForm">
+                        <div class="mb-3">
+                            <label class="form-label">Hesap</label>
+                            <select name="account_id" class="form-select" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tutar</label>
+                            <input type="number" name="amount" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Ödeme Yöntemi</label>
+                            <select name="payment_method" class="form-select" required>
+                                <option value="cash">Nakit</option>
+                                <option value="credit_card">Kredi Kartı</option>
+                                <option value="bank_transfer">Havale/EFT</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Not</label>
+                            <textarea name="notes" class="form-control"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-success" onclick="savePayment('expense')">Kaydet</button>
                 </div>
             </div>
         </div>

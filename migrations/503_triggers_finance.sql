@@ -89,3 +89,55 @@ BEGIN
     );
 END;
 
+-- Ödeme durumu değişince otomatik transaction oluştur
+CREATE TRIGGER trg_after_payment_status_change
+AFTER UPDATE ON purchase_orders
+FOR EACH ROW
+WHEN NEW.payment_status = 'completed' AND OLD.payment_status = 'pending'
+BEGIN
+    INSERT INTO transactions (
+        tenant_id, account_id, category_id, type,
+        amount, date, related_type, related_id,
+        payment_method, description, status, created_by
+    )
+    SELECT 
+        NEW.tenant_id,
+        (SELECT id FROM accounts WHERE tenant_id = NEW.tenant_id AND type = 'cash' LIMIT 1),
+        (SELECT id FROM transaction_categories WHERE tenant_id = NEW.tenant_id AND reporting_code = 'SUPPLIER' LIMIT 1),
+        'out',
+        NEW.total_amount,
+        CURRENT_TIMESTAMP,
+        'purchase',
+        NEW.id,
+        'cash',
+        'Tedarikçi ödemesi #' || NEW.id,
+        'completed',
+        NEW.updated_by;
+END;
+
+-- Benzer trigger sipariş tahsilatları için
+CREATE TRIGGER trg_after_order_payment_status_change 
+AFTER UPDATE ON orders
+FOR EACH ROW
+WHEN NEW.payment_status = 'completed' AND OLD.payment_status = 'pending'
+BEGIN
+    INSERT INTO transactions (
+        tenant_id, account_id, category_id, type,
+        amount, date, related_type, related_id,
+        payment_method, description, status, created_by
+    )
+    SELECT
+        NEW.tenant_id,
+        (SELECT id FROM accounts WHERE tenant_id = NEW.tenant_id AND type = 'cash' LIMIT 1),
+        (SELECT id FROM transaction_categories WHERE tenant_id = NEW.tenant_id AND reporting_code = 'SALES_CASH' LIMIT 1),
+        'in',
+        NEW.total_amount,
+        CURRENT_TIMESTAMP,
+        'order',
+        NEW.id,
+        'cash',
+        'Sipariş tahsilatı #' || NEW.id,
+        'completed',
+        NEW.updated_by;
+END;
+
