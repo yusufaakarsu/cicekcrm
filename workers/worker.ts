@@ -17,7 +17,7 @@ import workshopRoutes from './routes/workshop'
 
 const app = new Hono()
 
-// CORS ayarları
+// CORS ve middleware'ler
 app.use('*', cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -27,7 +27,6 @@ app.use('*', cors({
     credentials: true
 }))
 
-// Global middleware - DB ve tenant_id ataması
 app.use('*', async (c, next) => {
     // DB bağlantısı
     c.set('db', c.env.DB)

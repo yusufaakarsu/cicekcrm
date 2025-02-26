@@ -1,6 +1,8 @@
 // API URL configuration
 const CONFIG = {
-    API_URL: 'https://cicek-crm-api.yusufaakarsu.workers.dev/api',
+    API_URL: window.location.hostname.includes('pages.dev')
+        ? 'https://cicek-crm-api.yusufaakarsu.workers.dev/api'  // <-- /api eklendi
+        : `${window.location.protocol}//${window.location.host}/api`,
     HERE_API_KEY: '8ga3iUSKvwTytKYkk8PbpnnH5iCFlNDsvFoSyCghhjI'
 };
 
