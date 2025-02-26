@@ -67,3 +67,6 @@ graph TD
    2. Stok hareketleri otomatik
    3. Malzeme fiyatları geçmişten otomatik alınıyor
    4. Atölye süreci daha net tanımlanmış
+
+
+   git hub süreci deneme
