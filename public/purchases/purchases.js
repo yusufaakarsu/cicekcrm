@@ -325,9 +325,7 @@ async function updateStatus(status) {
 // Ödeme işlemleri için yeni fonksiyonlar
 async function showPaymentModal(order) {
     try {
-        const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
-        
-        // Sipariş özeti
+        // Modal içeriğini doldur
         document.getElementById('payment-order-id').textContent = order.id;
         document.getElementById('payment-supplier').textContent = order.supplier_name;
         document.getElementById('payment-total').textContent = formatPrice(order.total_amount);
@@ -341,32 +339,40 @@ async function showPaymentModal(order) {
         amountInput.max = remainingAmount;
         amountInput.value = remainingAmount;
 
-        // Hesapları yükle
-        await loadAccounts();
+        // Ödeme yöntemi değişince hesap otomatik seçilsin
+        const paymentMethodSelect = document.querySelector('[name="payment_method"]');
+        const accountIdInput = document.createElement('input');
+        accountIdInput.type = 'hidden';
+        accountIdInput.name = 'account_id';
+        
+        paymentMethodSelect.onchange = function() {
+            // Ödeme yöntemine göre hesap ID'sini ayarla
+            switch(this.value) {
+                case 'cash':
+                    accountIdInput.value = '1'; // Ana Kasa
+                    break;
+                case 'credit_card':
+                    accountIdInput.value = '2'; // Kredi Kartı POS
+                    break;
+                case 'bank_transfer':
+                    accountIdInput.value = '3'; // Banka Hesabı
+                    break;
+            }
+        };
 
-        modal.show();
+        // Default olarak nakit seç
+        paymentMethodSelect.value = 'cash';
+        accountIdInput.value = '1';
+
+        // Formu güncelle
+        const form = document.getElementById('paymentForm');
+        form.appendChild(accountIdInput);
+
+        const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        paymentModal.show();
     } catch (error) {
         console.error('Ödeme modalı açılırken hata:', error);
         showError('Ödeme modalı açılamadı!');
-    }
-}
-
-// Hesapları yükle
-async function loadAccounts() {
-    try {
-        const response = await fetch(`${API_URL}/finance/accounts`);
-        if (!response.ok) throw new Error('API Hatası');
-        
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error);
-
-        const select = document.querySelector('select[name="account_id"]');
-        select.innerHTML = data.accounts.map(acc => `
-            <option value="${acc.id}">${acc.name} (${formatPrice(acc.balance_calculated)} ₺)</option>
-        `).join('');
-    } catch (error) {
-        console.error('Hesaplar yüklenirken hata:', error);
-        showError('Hesaplar yüklenemedi!');
     }
 }
 
