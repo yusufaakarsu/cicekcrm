@@ -202,33 +202,54 @@ async function loadPurchases() {
 function renderPurchaseTable(orders) {
     const tbody = document.getElementById('purchaseTable');
     
-    if (!orders || orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Kayıt bulunamadı</td></tr>';
+    if (!orders?.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Kayıt bulunamadı</td></tr>';
         return;
     }
-    
-    // Tarihe göre sırala (yeniden eskiye)
-    orders.sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
-    
+
     tbody.innerHTML = orders.map(order => `
-        <tr class="order-row" data-order-id="${order.id}">
-            <td class="text-center">#${order.id}</td>
+        <tr>
+            <td>#${order.id}</td>
             <td>${order.supplier_name}</td>
-            <td class="text-center">${formatDate(order.order_date)}</td>
-            <td class="text-end fw-bold">${formatCurrency(order.total_amount)}</td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary" 
-                        onclick="toggleOrderDetails(${order.id}, this)">
-                    <i class="bi bi-chevron-down"></i>
+            <td>${formatDate(order.order_date)}</td>
+            <td>
+                <span class="badge ${getStatusBadge(order.payment_status)}">
+                    ${getStatusText(order.payment_status)}
+                </span>
+            </td>
+            <td class="text-end">
+                <strong>${formatPrice(order.total_amount)}</strong>
+                ${order.paid_amount ? `<br><small class="text-success">Ödenen: ${formatPrice(order.paid_amount)}</small>` : ''}
+            </td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-primary" onclick="showPurchaseDetail(${order.id})">
+                    <i class="bi bi-eye"></i> Detay
                 </button>
             </td>
         </tr>
-        <tr id="details-${order.id}" class="d-none">
-            <td colspan="5" class="p-0">
-                <div class="details-content p-3 bg-light border-top"></div>
-            </td>
-        </tr>
     `).join('');
+}
+
+// Durum badge'i için helper
+function getStatusBadge(status) {
+    const badges = {
+        pending: 'bg-warning',
+        partial: 'bg-info',
+        paid: 'bg-success',
+        cancelled: 'bg-danger'
+    };
+    return badges[status] || 'bg-secondary';
+}
+
+// Durum metni için helper
+function getStatusText(status) {
+    const texts = {
+        pending: 'Bekliyor',
+        partial: 'Kısmi Ödeme',
+        paid: 'Ödendi',
+        cancelled: 'İptal'
+    };
+    return texts[status] || status;
 }
 
 // Sipariş detaylarını göster/gizle
