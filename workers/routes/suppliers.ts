@@ -85,14 +85,14 @@ router.get('/:id', async (c) => {
     }
 });
 
-// Yeni tedarikçi ekle
+// Yeni tedarikçi ekleme
 router.post('/', async (c) => {
     const db = c.get('db');
     
     try {
         const body = await c.req.json();
         
-        // Temel validasyon
+        // Validasyon
         if (!body.name || !body.phone) {
             return c.json({
                 success: false,
@@ -100,12 +100,17 @@ router.post('/', async (c) => {
             }, 400);
         }
 
+        // Sadece tablodaki kolonları kullan
         const result = await db.prepare(`
             INSERT INTO suppliers (
-                name, contact_name, phone, email,
-                address, notes, status,
-                created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+                name,           -- 1
+                contact_name,   -- 2
+                phone,         -- 3
+                email,         -- 4
+                address,       -- 5
+                notes,         -- 6
+                status        -- 7
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `).bind(
             body.name,
             body.contact_name || null,
@@ -113,7 +118,7 @@ router.post('/', async (c) => {
             body.email || null,
             body.address || null,
             body.notes || null,
-            body.status || 'active'
+            'active'  // Yeni kayıtlar için default 'active'
         ).run();
 
         return c.json({

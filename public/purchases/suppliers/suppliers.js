@@ -89,30 +89,45 @@ async function saveSupplier() {
     }
 
     const formData = new FormData(form);
-    const data = Object.fromEntries(formData);
-    const method = currentSupplierId ? 'PUT' : 'POST';
-    const url = currentSupplierId ? 
-        `${API_URL}/suppliers/${currentSupplierId}` : 
-        `${API_URL}/suppliers`;
+    // Tablo yapısına uygun data mapping
+    const data = {
+        name: formData.get('name').trim(),
+        contact_name: formData.get('contact_name')?.trim() || null,
+        phone: formData.get('phone').trim(),
+        email: formData.get('email')?.trim() || null,
+        address: formData.get('address')?.trim() || null,
+        notes: formData.get('notes')?.trim() || null,
+        status: 'active' // Yeni kayıtlar için varsayılan
+    };
 
     try {
+        console.log('Saving supplier:', data); // Debug log
+
+        const method = currentSupplierId ? 'PUT' : 'POST';
+        const url = currentSupplierId ? 
+            `${API_URL}/suppliers/${currentSupplierId}` : 
+            `${API_URL}/suppliers`;
+
         const response = await fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
 
-        if (!response.ok) throw new Error('API Hatası');
-        
         const result = await response.json();
-        if (!result.success) throw new Error(result.error);
+        
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'API Hatası');
+        }
 
         supplierModal.hide();
+        form.reset();
         await loadSuppliers();
+        
         showSuccess(`Tedarikçi başarıyla ${currentSupplierId ? 'güncellendi' : 'eklendi'}`);
     } catch (error) {
-        console.error('Tedarikçi kaydedilirken hata:', error);
-        showError('Tedarikçi kaydedilemedi!');
+        console.error('Tedarikçi işlem hatası:', error);
+        showError(error.message || 'Bir hata oluştu');
     }
 }
 
