@@ -104,56 +104,60 @@ router.post('/orders', async (c) => {
     
     try {
         const body = await c.req.json();
-        
-        // Temel validasyon
+        console.log('Purchase order request:', body); // Debug log
+
+        // Validasyon
         if (!body.supplier_id || !body.items?.length) {
             return c.json({
                 success: false,
-                error: 'Missing required fields'
+                error: 'Tedarikçi ve en az bir ürün gereklidir'
             }, 400);
         }
 
-        // Siparişi oluştur
-        const result = await db.prepare(`
+        // 1. Ana siparişi oluştur
+        const orderResult = await db.prepare(`
             INSERT INTO purchase_orders (
-                supplier_id, order_date, notes,
-                payment_status, total_amount,
-                created_by, created_at, updated_at
-            ) VALUES (?, date('now'), ?, ?, ?, ?, datetime('now'), datetime('now'))
+                supplier_id,
+                order_date,
+                notes,
+                payment_status,
+                total_amount,
+                created_by
+            ) VALUES (?, ?, ?, 'pending', ?, 1)
         `).bind(
             body.supplier_id,
+            body.order_date || new Date().toISOString().split('T')[0],
             body.notes || null,
-            body.payment_status || 'pending',
-            body.total_amount || 0,
-            1 // TODO: Gerçek user ID
+            body.total_amount || 0
         ).run();
 
-        const order_id = result.meta?.last_row_id;
-        if (!order_id) throw new Error('Order could not be created');
+        const orderId = orderResult.meta?.last_row_id;
+        if (!orderId) throw new Error('Sipariş oluşturulamadı');
 
-        // Sipariş kalemlerini ekle
+        // 2. Sipariş kalemlerini ekle
         for (const item of body.items) {
             await db.prepare(`
                 INSERT INTO purchase_order_items (
-                    order_id, material_id, quantity,
-                    unit_price, notes, created_at
-                ) VALUES (?, ?, ?, ?, ?, datetime('now'))
+                    order_id,
+                    material_id,
+                    quantity,
+                    unit_price
+                ) VALUES (?, ?, ?, ?)
             `).bind(
-                order_id,
+                orderId,
                 item.material_id,
                 item.quantity,
-                item.unit_price,
-                item.notes || null
+                item.unit_price
             ).run();
         }
 
         return c.json({
             success: true,
-            order_id: order_id
+            order_id: orderId
         });
 
     } catch (error) {
-        console.error('Create purchase order error:', error);
+        console.error('Create purchase order error:', error); // Debug log
         return c.json({
             success: false,
             error: 'Database error',

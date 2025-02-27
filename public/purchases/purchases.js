@@ -192,15 +192,15 @@ async function savePurchase() {
     // Sipariş kalemlerini topla
     const items = Array.from(document.querySelectorAll('#itemsTable tbody tr')).map(row => {
         const material = row.querySelector('select').value;
-        const quantity = row.querySelector('input:first-of-type').value;
-        const price = row.querySelector('input:last-of-type').value;
+        const quantity = parseFloat(row.querySelector('.quantity').value);
+        const price = parseFloat(row.querySelector('.price').value);
         
         return {
             material_id: parseInt(material),
-            quantity: parseFloat(quantity),
-            unit_price: parseFloat(price)
+            quantity: quantity,
+            unit_price: price
         };
-    }).filter(item => item.material_id && item.quantity && item.unit_price);
+    }).filter(item => item.material_id && item.quantity > 0 && item.unit_price > 0);
 
     if (items.length === 0) {
         showError('En az bir ürün eklemelisiniz!');
@@ -210,32 +210,36 @@ async function savePurchase() {
     const data = {
         supplier_id: parseInt(form.elements['supplier_id'].value),
         order_date: form.elements['order_date'].value,
-        notes: form.elements['notes'].value,
-        items: items,
-        total_amount: parseFloat(document.getElementById('totalAmount').textContent)
+        notes: form.elements['notes'].value || null,
+        total_amount: parseFloat(document.getElementById('totalAmount').textContent),
+        items: items
     };
 
     try {
+        console.log('Saving purchase order:', data); // Debug log
+
         const response = await fetch(`${API_URL}/purchase/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
 
-        if (!response.ok) throw new Error('API Hatası');
-        
         const result = await response.json();
-        if (!result.success) throw new Error(result.error);
+        
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'API Hatası');
+        }
 
         createModal.hide();
-        await loadPurchases();
-        showSuccess('Sipariş başarıyla oluşturuldu');
         form.reset();
         document.querySelector('#itemsTable tbody').innerHTML = '';
         calculateTotal();
+        await loadPurchases();
+        
+        showSuccess('Sipariş başarıyla oluşturuldu');
     } catch (error) {
         console.error('Sipariş oluşturma hatası:', error);
-        showError('Sipariş oluşturulamadı!');
+        showError(error.message || 'Sipariş oluşturulamadı');
     }
 }
 
