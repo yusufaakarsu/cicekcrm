@@ -230,5 +230,43 @@ function resetCategoryForm() {
     form.elements['id'].value = '';
 }
 
+// Ürün düzenleme fonksiyonu - Ürün düzenleme sayfasına yönlendir
+function editProduct(id) {
+    window.location.href = `/products/edit-product/edit-product.html?id=${id}`;
+}
+
+// Ürün silme fonksiyonu
+async function deleteProduct(id) {
+    if (!confirm('Bu ürünü silmek istediğinize emin misiniz?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/products/${id}`, {
+            method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'API Hatası');
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Silme işlemi başarısız');
+        }
+        
+        showSuccess('Ürün başarıyla silindi');
+        
+        // Tabloyu yeniden yükle
+        await loadProducts();
+        
+    } catch (error) {
+        console.error('Product delete error:', error);
+        showError(`Ürün silinemedi: ${error.message}`);
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', initializePage);
