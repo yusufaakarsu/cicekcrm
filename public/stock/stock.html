@@ -74,77 +74,12 @@
                                     <th>Kategori</th>
                                     <th>Birim</th>
                                     <th class="text-center">Stok Durumu</th>
-                                    <th class="text-center">Kritik Seviye</th>
                                     <th class="text-center">Son İşlem</th>
                                     <th class="text-end">İşlemler</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="rounded-circle bg-success me-2" style="width: 8px; height: 8px; display: inline-block;"></div>
-                                            <div>
-                                                <div class="fw-bold">{{material.name}}</div>
-                                                <small class="text-muted">Kod: #{{material.id}}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary">{{material.category_name}}</span>
-                                    </td>
-                                    <td>
-                                        <div class="small">
-                                            <div>{{material.unit_name}}</div>
-                                            <small class="text-muted">{{material.unit_code}}</small>
-                                        </div>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="d-flex flex-column align-items-center">
-                                            <h5 class="mb-1">
-                                                <span class="badge {{getStockBadgeClass(material.current_stock)}}">
-                                                    {{material.current_stock}} {{material.unit_code}}
-                                                </span>
-                                            </h5>
-                                            <div class="small text-muted">
-                                                <i class="bi bi-arrow-up-circle text-success"></i>
-                                                <span class="text-success">%10 artış</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="d-flex flex-column align-items-center">
-                                            <div>{{material.min_stock}} {{material.unit_code}}</div>
-                                            {{#if isLowStock}}
-                                            <div class="text-danger small mt-1">
-                                                <i class="bi bi-exclamation-triangle-fill"></i>
-                                                Kritik Seviye
-                                            </div>
-                                            {{/if}}
-                                        </div>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="d-flex flex-column align-items-center">
-                                            <div class="text-muted small">{{formatDate(material.last_movement)}}</div>
-                                            <span class="badge {{getMovementBadgeClass(material.last_movement_type)}}">
-                                                {{material.last_movement_quantity}} {{material.unit_code}}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td class="text-end">
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-primary" onclick="showStockDetail({{material.id}})">
-                                                <i class="bi bi-box-arrow-in-right"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-success" onclick="showQuickAdd({{material.id}})">
-                                                <i class="bi bi-plus-lg"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-info" onclick="showHistory({{material.id}})">
-                                                <i class="bi bi-clock-history"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <tr><td colspan="6" class="text-center">Yükleniyor...</td></tr>
                             </tbody>
                         </table>
                     </div>

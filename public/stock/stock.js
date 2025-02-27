@@ -26,10 +26,9 @@ async function loadStock() {
         if (data.materials?.length > 0) {
             tbody.innerHTML = data.materials.map(material => {
                 const stockStatus = getStockStatus(material);
-                const isLowStock = material.current_stock <= (material.min_stock || 0);
                 
-                // Son işlem bilgilerini kontrol et ve formatla
-                const lastMovement = material.last_movement ? {
+                // Son işlem bilgilerini kontrol et
+                const lastMovement = material.last_movement_date ? {
                     date: formatDateTime(material.last_movement_date),
                     type: material.last_movement_type,
                     quantity: material.last_movement_quantity
@@ -53,34 +52,17 @@ async function loadStock() {
                         <small class="text-muted">${material.unit_code}</small>
                     </td>
                     <td class="text-center">
-                        <div class="d-flex flex-column align-items-center">
-                            <h5 class="mb-1">
-                                <span class="badge ${stockStatus.badge}">
-                                    ${material.current_stock} ${material.unit_code}
-                                </span>
-                            </h5>
-                        </div>
-                    </td>
-                    <td class="text-center">
-                        <div class="d-flex flex-column align-items-center">
-                            <div>${material.min_stock || 0} ${material.unit_code}</div>
-                            ${isLowStock ? `
-                                <div class="text-danger small mt-1">
-                                    <i class="bi bi-exclamation-triangle-fill"></i>
-                                    Kritik Seviye
-                                </div>
-                            ` : ''}
-                        </div>
+                        <span class="badge ${stockStatus.badge}">
+                            ${material.current_stock} ${material.unit_code}
+                        </span>
                     </td>
                     <td class="text-center">
                         ${lastMovement ? `
-                            <div class="d-flex flex-column align-items-center">
-                                <div class="text-muted small">${lastMovement.date}</div>
-                                <span class="badge ${lastMovement.type === 'in' ? 'bg-success' : 'bg-danger'}">
-                                    ${lastMovement.type === 'in' ? 'Giriş' : 'Çıkış'}: 
-                                    ${lastMovement.quantity} ${material.unit_code}
-                                </span>
-                            </div>
+                            <div class="text-muted small">${lastMovement.date}</div>
+                            <span class="badge ${getMovementBadgeClass(lastMovement.type)}">
+                                ${lastMovement.type === 'in' ? 'Giriş' : 'Çıkış'}: 
+                                ${lastMovement.quantity} ${material.unit_code}
+                            </span>
                         ` : '-'}
                     </td>
                     <td class="text-end">
@@ -96,7 +78,7 @@ async function loadStock() {
                 </tr>`;
             }).join('');
         } else {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Kayıt bulunamadı</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Kayıt bulunamadı</td></tr>';
         }
 
     } catch (error) {
