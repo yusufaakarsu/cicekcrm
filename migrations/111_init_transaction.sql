@@ -1,30 +1,26 @@
 -- Kasa açılış bakiyesi için transaction kaydı
 INSERT INTO transactions (
-    account_id,        -- Ana Kasa ID'si (1)
-    category_id,       -- Nakit Satış kategorisi (1)
-    type,             -- Giriş işlemi
-    amount,           -- 10.000 TL
-    date,             -- Şu anki tarih
-    related_type,     -- İşlem tipi
-    related_id,       -- İlişkili kayıt yok
-    payment_method,   -- Nakit
-    description,      -- Açıklama
-    status,          -- Tamamlandı
-    created_by       -- Admin kullanıcı
+    account_id,        
+    category_id,       
+    type,             
+    amount,           
+    date,            
+    related_type,     
+    related_id,       
+    payment_method,   
+    description,      
+    status,          
+    created_by       
 ) VALUES (
-    1,                                  -- Ana Kasa
-    1,                                  -- Nakit Satış kategorisi
-    'in',                              -- Giriş
-    10000.00,                          -- Tutar
-    datetime('now'),                   -- Tarih
-    'opening_balance',                 -- İşlem tipi
-    0,                                 -- İlişkili kayıt
-    'cash',                           -- Ödeme yöntemi
-    'Kasa açılış bakiyesi',           -- Açıklama
-    'paid',                           -- Durum
-    1                                 -- Admin user ID
+    1,                                  
+    1,                                 
+    'in',                              
+    10000.00,                          
+    datetime('now'),                
+    'opening_balance',               
+    0,                              
+    'cash',                         
+    'Kasa açılış bakiyesi',          
+    'paid',                           
+    1                                
 );
-
--- Kontrol sorguları
-SELECT * FROM transactions ORDER BY id DESC LIMIT 1;
-SELECT * FROM accounts WHERE id = 1;

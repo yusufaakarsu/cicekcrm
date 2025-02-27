@@ -9,13 +9,11 @@
 </head>
 <body data-page="orders">
     <div class="d-flex">
-        <!-- Sidebar - position-fixed ile sabitleyelim -->
-        <div id="mainSidebar" class="position-fixed" style="width: 200px; height: 100vh; overflow-y: auto;"></div>
-            <!-- ...existing sidebar content... -->
-        </div>
-
-        <!-- Ana içerik - margin-left ile sidebar'a yer açalım -->
-        <div class="flex-grow-1" style="margin-left: 200px;">
+        <!-- Sidebar - Düzeltildi -->
+        <div id="mainSidebar"></div>
+        
+        <!-- Ana içerik - Düzeltildi -->
+        <div class="flex-grow-1 p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="bi bi-plus-lg"></i> Yeni Sipariş</h2>
                 <a href="/orders/" class="btn btn-outline-secondary">
@@ -64,23 +62,9 @@
                             </div>
                         </div>
 
-                        <!-- Yeni Müşteri Formu -->
+                        <!-- Yeni Müşteri Formu - Müşteri tipi kaldırıldı -->
                         <div id="newCustomerForm" class="d-none">
                             <div class="row g-3">
-                                <!-- Müşteri Tipi Seçimi -->
-                                <div class="col-12">
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="new_customer_type" 
-                                               id="customerTypeRetail" value="retail" checked>
-                                        <label class="form-check-label" for="customerTypeRetail">Bireysel</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="new_customer_type" 
-                                               id="customerTypeCorporate" value="corporate">
-                                        <label class="form-check-label" for="customerTypeCorporate">Kurumsal</label>
-                                    </div>
-                                </div>
-
                                 <!-- Temel Bilgiler -->
                                 <div class="col-sm-6">
                                     <label class="form-label">İsim <span class="text-danger">*</span></label>
@@ -93,16 +77,6 @@
                                 <div class="col-sm-6">
                                     <label class="form-label">E-posta</label>
                                     <input type="email" class="form-control" name="new_customer_email">
-                                </div>
-
-                                <!-- Kurumsal Alanlar -->
-                                <div class="col-sm-6 corporate-fields d-none">
-                                    <label class="form-label">Vergi Numarası</label>
-                                    <input type="text" class="form-control" name="new_customer_tax_number">
-                                </div>
-                                <div class="col-sm-6 corporate-fields d-none">
-                                    <label class="form-label">Şirket Adı</label>
-                                    <input type="text" class="form-control" name="new_customer_company_name">
                                 </div>
 
                                 <!-- Adres Bilgileri -->
@@ -301,7 +275,7 @@
                     </div>
                 </div>
 
-                <!-- Seçilen Ürünler Özeti -->
+                <!-- Seçilen Ürünler Özeti - Ödeme yöntemi kaldırıldı -->
                 <div class="card mb-3 d-none" id="selectedProductsCard">
                     <div class="card-header">
                         <h5 class="card-title mb-0">Seçilen Ürünler</h5>
@@ -323,16 +297,6 @@
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <td colspan="3" class="text-end">Ödeme Yöntemi:</td>
-                                        <td colspan="2">
-                                            <select class="form-select form-select-sm" id="paymentMethod">
-                                                <option value="cash">Nakit</option>
-                                                <option value="credit_card">Kredi Kartı</option>
-                                                <option value="bank_transfer">Havale/EFT</option>
-                                            </select>
-                                        </td>
-                                    </tr>
-                                    <tr>
                                         <td colspan="3" class="text-end fw-bold">Ara Toplam:</td>
                                         <td colspan="2" class="fw-bold" id="subtotal">₺0.00</td>
                                     </tr>
@@ -342,19 +306,18 @@
                     </div>
                     <div class="card-footer">
                         <button type="button" class="btn btn-primary" onclick="confirmProducts()">
-                            Ürünleri Onayla ve Devam Et
+                            Siparişi Oluştur
                         </button>
                     </div>
                 </div>
-                
             </form>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/common.js"></script>
-    <script src="js/HERE-api/address-service.js"></script> <!-- Yolu güncellendi -->
-    <script src="js/HERE-api/address-select.js"></script> <!-- Yolu güncellendi -->
+    <script src="js/HERE-api/address-service.js"></script>
+    <script src="js/HERE-api/address-select.js"></script>
     <script src="js/new-order.js"></script>
 </body>
 </html>

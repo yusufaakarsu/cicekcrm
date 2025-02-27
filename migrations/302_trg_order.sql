@@ -1,12 +1,34 @@
--- Müşteri siparişleri için triggerlar
-DROP TRIGGER IF EXISTS trg_after_order_item_insert;
-DROP TRIGGER IF EXISTS trg_after_order_payment_update;
-
--- TODO: Bu kısım daha sonra implement edilecek
--- 1. Sipariş kalemi eklendiğinde stok çıkışı yap
-CREATE TRIGGER trg_after_order_item_insert
-AFTER INSERT ON order_items_materials
+-- Trigger: Sipariş hazır durumuna geçtiğinde stok düşümü yapılır
+CREATE TRIGGER IF NOT EXISTS trg_order_status_ready 
+AFTER UPDATE ON orders
+WHEN NEW.status = 'ready' AND OLD.status != 'ready' AND NEW.deleted_at IS NULL
 BEGIN
+    -- Atölyede kaydedilmiş malzeme kullanımlarını stoktan düş
+    INSERT INTO stock_movements (
+        material_id, movement_type, quantity,
+        source_type, source_id, notes, created_by, created_at
+    )
+    SELECT 
+        oim.material_id, 'out', oim.quantity,
+        'sale', NEW.id, 'Sipariş malzeme kullanımı',
+        NEW.updated_by, datetime('now')
+    FROM order_items_materials oim
+    WHERE oim.order_id = NEW.id
+    AND oim.deleted_at IS NULL;
+    
+    -- Sipariş hazırlandı bilgisini güncelle
+    UPDATE orders
+    SET preparation_end = datetime('now'),
+        prepared_by = NEW.updated_by
+    WHERE id = NEW.id;
+END;
+
+-- Trigger: Sipariş iptal edildiğinde stokları geri al (hazır, yolda veya teslim edildi durumları)
+CREATE TRIGGER IF NOT EXISTS trg_order_status_cancelled
+AFTER UPDATE ON orders
+WHEN NEW.status = 'cancelled' AND OLD.status IN ('ready', 'delivering', 'delivered') AND NEW.deleted_at IS NULL
+BEGIN
+    -- Stok hareketlerini geri al - ters yönde kayıt oluştur
     INSERT INTO stock_movements (
         material_id,
         movement_type,
@@ -14,47 +36,21 @@ BEGIN
         source_type,
         source_id,
         notes,
-        created_by
-    ) VALUES (
-        NEW.material_id,
-        'out',
-        NEW.quantity,
-        'sale',
-        NEW.order_id,
-        'Sipariş stok çıkışı',
-        (SELECT created_by FROM orders WHERE id = NEW.order_id)
-    );
-END;
-
--- 2. Sipariş ödemesi alındığında transaction oluştur
-CREATE TRIGGER trg_after_order_payment_update 
-AFTER UPDATE OF payment_status, paid_amount ON orders
-WHEN NEW.payment_status != OLD.payment_status 
-   OR (NEW.paid_amount IS NOT NULL AND NEW.paid_amount != COALESCE(OLD.paid_amount, 0))
-BEGIN
-    INSERT INTO transactions (
-        account_id,
-        category_id,
-        type,
-        amount,
-        date,
-        related_type,
-        related_id,
-        payment_method,
-        description,
-        status,
-        created_by
-    ) VALUES (
-        NEW.account_id,
-        (SELECT id FROM transaction_categories WHERE name = 'Satış' LIMIT 1),
-        'in',
-        NEW.paid_amount - COALESCE(OLD.paid_amount, 0),
-        datetime('now'),
-        'sale',
+        created_by,
+        created_at
+    )
+    SELECT 
+        sm.material_id,
+        'in', -- Tersine hareket
+        sm.quantity,
+        'adjustment',
         NEW.id,
-        NEW.payment_method,
-        'Sipariş ödemesi #' || NEW.id,
-        'completed',
-        NEW.created_by
-    );
+        'İptal edilen sipariş stok iadesi',
+        NEW.updated_by,
+        datetime('now')
+    FROM stock_movements sm
+    WHERE sm.source_type = 'sale'
+    AND sm.source_id = NEW.id
+    AND sm.movement_type = 'out'
+    AND sm.deleted_at IS NULL;
 END;

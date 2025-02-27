@@ -370,7 +370,7 @@ router.put('/:id/cancel', async (c) => {
   }
 })
 
-// Yeni sipariş oluşturma - tenant_id ve diğer gereksiz alanlar kaldırıldı
+// Yeni sipariş oluşturma - ödeme ve sipariş alanları düzeltildi
 router.post('/', async (c) => {
   const db = c.get('db')
   
@@ -395,7 +395,7 @@ router.post('/', async (c) => {
     const recipient_id = recipientResult.meta?.last_row_id
     if (!recipient_id) throw new Error('Alıcı kaydedilemedi')
 
-    // 2. Siparişi kaydet - tablo şemasına uygun alanlar
+    // 2. Siparişi kaydet - updated field names
     const orderResult = await db.prepare(`
       INSERT INTO orders (
         customer_id,          -- 1
@@ -407,9 +407,9 @@ router.post('/', async (c) => {
         delivery_fee,         -- 7
         status,               -- 8
         total_amount,         -- 9
-        paid_amount,          -- 10 
-        payment_status,       -- 11
-        custom_card_message,  -- 12
+        payment_status,       -- 10
+        custom_card_message,  -- 11
+        customer_notes,       -- 12
         created_by,           -- 13
         created_at,
         updated_at
@@ -420,14 +420,14 @@ router.post('/', async (c) => {
       body.address_id,             // 3
       body.delivery_date,          // 4
       body.delivery_time,          // 5
-      "Istanbul",                  // 6 - default value
-      body.delivery_fee || 0,      // 7
-      'new',                       // 8
+      "Istanbul",                  // 6 - default delivery region
+      body.delivery_fee || 0,      // 7 - default delivery fee
+      'new',                       // 8 - default status
       body.total_amount,           // 9
-      0,                           // 10 - paid_amount default 0
-      body.payment_status || 'pending', // 11
-      body.card_message || null,   // 12
-      1                            // 13 - created_by (admin user ID)
+      'pending',                   // 10 - default payment_status
+      body.card_message || null,   // 11
+      body.recipient_note || null, // 12 - customer/recipient notes
+      1                            // 13 - created_by (default to admin for now)
     ).run()
 
     const order_id = orderResult.meta?.last_row_id
@@ -446,7 +446,7 @@ router.post('/', async (c) => {
         item.product_id,
         item.quantity,
         item.unit_price,
-        item.quantity * item.unit_price,
+        item.total_amount || (item.quantity * item.unit_price),
         item.notes || null
       ).run()
     }

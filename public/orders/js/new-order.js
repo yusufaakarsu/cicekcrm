@@ -11,7 +11,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Adres tipi değişikliği dinleyicisi
     setupAddressTypeListeners();
+
+    // Bugünün tarihini ayarla
+    setupDateDefaults();
 });
+
+// Bugünün tarihini ayarla
+function setupDateDefaults() {
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0];
+    document.getElementById('deliveryDate').value = formattedDate;
+}
 
 // Müşteri arama işlemlerini ayarla
 function setupCustomerSearch() {
