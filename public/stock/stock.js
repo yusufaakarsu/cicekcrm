@@ -57,32 +57,13 @@ async function loadStock() {
 // Birimleri yükle
 async function loadUnits() {
     try {
-        // Endpoint değişikliği
         const response = await fetch(`${API_URL}/settings/units`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
         units = data.units || [];
-        
-        // Birim filtresini doldur
-        const unitFilter = document.getElementById('unitFilter');
-        unitFilter.innerHTML = `
-            <option value="">Tümü</option>
-            ${units.map(unit => `
-                <option value="${unit.id}">${unit.name}</option>
-            `).join('')}
-        `;
-        
-        // Form select'lerini doldur
-        const unitSelects = document.querySelectorAll('select[name="unit_id"]');
-        unitSelects.forEach(select => {
-            select.innerHTML = `
-                <option value="">Seçiniz</option>
-                ${units.map(unit => `
-                    <option value="${unit.id}">${unit.name}</option>
-                `).join('')}
-            `;
-        });
     } catch (error) {
         console.error('Units loading error:', error);
         showError('Birimler yüklenemedi');
@@ -232,7 +213,47 @@ async function saveMovement() {
 
 // Filtreleri uygula
 function applyFilters() {
-    loadStock();
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const category = document.getElementById('categoryFilter').value;
+    const status = document.getElementById('statusFilter').value;
+
+    const tbody = document.querySelector('#stockTable tbody');
+    const rows = tbody.getElementsByTagName('tr');
+
+    Array.from(rows).forEach(row => {
+        const name = row.cells[0].textContent.toLowerCase();
+        const categoryName = row.cells[1].textContent;
+        const stock = parseFloat(row.cells[3].textContent);
+        
+        let show = true;
+
+        // İsim filtresi
+        if (search && !name.includes(search)) {
+            show = false;
+        }
+
+        // Kategori filtresi
+        if (category && !categoryName.includes(category)) {
+            show = false;
+        }
+
+        // Stok durum filtresi
+        if (status) {
+            switch (status) {
+                case 'ok':
+                    if (stock <= 0) show = false;
+                    break;
+                case 'low':
+                    if (stock > 5 || stock <= 0) show = false;
+                    break;
+                case 'critical':
+                    if (stock > 0) show = false;
+                    break;
+            }
+        }
+
+        row.style.display = show ? '' : 'none';
+    });
 }
 
 function getStockBadgeClass(stock) {
@@ -261,4 +282,59 @@ async function loadCategories() {
         console.error('Categories loading error:', error);
         showError('Kategoriler yüklenemedi');
     }
+}
+
+// Detay görüntüleme fonksiyonunu ekle
+async function showStockDetail(id, name) {
+    try {
+        document.getElementById('detail-material-name').textContent = name;
+        
+        const response = await fetch(`${API_URL}/stock/movements/${id}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        const tbody = document.getElementById('stockMovementsTable');
+        const movements = data.movements || [];
+        
+        if (movements.length > 0) {
+            tbody.innerHTML = movements.map(mov => `
+                <tr>
+                    <td>${formatDateTime(mov.created_at)}</td>
+                    <td>${getMovementTypeBadge(mov.movement_type)}</td>
+                    <td>${mov.quantity} ${mov.unit_code}</td>
+                    <td>${getSourceTypeLabel(mov.source_type)}</td>
+                    <td>${mov.notes || '-'}</td>
+                    <td>${mov.created_by_name || '-'}</td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Hareket bulunamadı</td></tr>';
+        }
+
+        stockDetailModal.show();
+    } catch (error) {
+        console.error('Stok hareketleri yüklenirken hata:', error);
+        showError('Stok hareketleri yüklenemedi!');
+    }
+}
+
+// Helper fonksiyonlar
+function getMovementTypeBadge(type) {
+    const badges = {
+        'in': '<span class="badge bg-success">Giriş</span>',
+        'out': '<span class="badge bg-danger">Çıkış</span>'
+    };
+    return badges[type] || type;
+}
+
+function getSourceTypeLabel(type) {
+    const labels = {
+        'purchase': 'Satın Alma',
+        'sale': 'Satış',
+        'waste': 'Fire',
+        'adjustment': 'Düzeltme'
+    };
+    return labels[type] || type;
 }
