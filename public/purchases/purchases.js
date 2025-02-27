@@ -325,27 +325,39 @@ async function savePurchase() {
 
     try {
         const formData = new FormData(form);
-        const data = {
-            supplier_id: parseInt(formData.get('supplier_id')),
-            order_date: formData.get('order_date'),
-            notes: formData.get('notes'),
-            items: []
-        };
+        const items = [];
+        let total_amount = 0;
 
-        // Kalem verilerini topla
+        // Kalem verilerini topla ve toplam tutarı hesapla
         document.querySelectorAll('#itemsTable tbody tr').forEach(row => {
             const material_id = parseInt(row.querySelector('[name$="[material_id]"]').value);
             const quantity = parseFloat(row.querySelector('[name$="[quantity]"]').value);
             const unit_price = parseFloat(row.querySelector('[name$="[unit_price]"]').value);
             
             if (material_id && quantity && unit_price) {
-                data.items.push({ material_id, quantity, unit_price });
+                const item_total = quantity * unit_price;
+                total_amount += item_total;
+                
+                items.push({ 
+                    material_id, 
+                    quantity, 
+                    unit_price,
+                    total: item_total 
+                });
             }
         });
 
-        if (!data.items.length) {
+        if (!items.length) {
             throw new Error('En az bir kalem eklemelisiniz');
         }
+
+        const data = {
+            supplier_id: parseInt(formData.get('supplier_id')),
+            order_date: formData.get('order_date'),
+            notes: formData.get('notes'),
+            total_amount: total_amount,
+            items: items
+        };
 
         const response = await fetch(`${API_URL}/purchase/orders`, {
             method: 'POST',
