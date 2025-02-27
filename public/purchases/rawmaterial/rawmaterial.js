@@ -172,7 +172,6 @@ async function saveMaterial() {
         unit_id: parseInt(formData.get('unit_id')),
         category_id: formData.get('category_id') ? parseInt(formData.get('category_id')) : null,
         description: formData.get('description')?.trim() || null,
-        status: formData.get('status') || 'active',
         notes: formData.get('notes')?.trim() || null
     };
 
@@ -265,6 +264,7 @@ async function editMaterial(id) {
         form.elements['description'].value = material.description || '';
         form.elements['unit_id'].value = material.unit_id || '';
         form.elements['category_id'].value = material.category_id || '';
+        form.elements['status'].value = material.status || 'active';
         form.elements['notes'].value = material.notes || '';
         
         materialModal.show();
