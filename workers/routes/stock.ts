@@ -13,7 +13,10 @@ router.get('/materials', async (c) => {
                 c.name as category_name,
                 u.name as unit_name,
                 u.code as unit_code,
-                COALESCE(s.total_in, 0) - COALESCE(s.total_out, 0) as current_stock
+                COALESCE(s.total_in, 0) - COALESCE(s.total_out, 0) as current_stock,
+                lm.created_at as last_movement_date,
+                lm.movement_type as last_movement_type,
+                lm.quantity as last_movement_quantity
             FROM raw_materials m
             LEFT JOIN raw_material_categories c ON m.category_id = c.id
             LEFT JOIN units u ON m.unit_id = u.id
@@ -26,6 +29,13 @@ router.get('/materials', async (c) => {
                 WHERE deleted_at IS NULL
                 GROUP BY material_id
             ) s ON m.id = s.material_id
+            LEFT JOIN (
+                SELECT material_id, created_at, movement_type, quantity
+                FROM stock_movements
+                WHERE deleted_at IS NULL
+                GROUP BY material_id
+                HAVING MAX(created_at)
+            ) lm ON m.id = lm.material_id
             WHERE m.deleted_at IS NULL
             ORDER BY c.display_order, m.name
         `).all()
