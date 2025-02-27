@@ -382,3 +382,44 @@ async function savePurchase() {
         showError(error.message || 'Sipariş kaydedilemedi');
     }
 }
+
+// Tarih filtresini kontrol et
+document.getElementById('dateFilter').addEventListener('change', function(e) {
+    const customDateDiv = document.getElementById('customDateRange');
+    customDateDiv.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+});
+
+// Filtreleri uygula
+async function applyFilters() {
+    try {
+        const filters = {
+            supplier_id: document.getElementById('supplierFilter').value,
+            payment_status: document.getElementById('paymentStatusFilter').value,
+            date_filter: document.getElementById('dateFilter').value,
+            min_amount: document.getElementById('minAmount').value,
+            max_amount: document.getElementById('maxAmount').value
+        };
+
+        // Özel tarih seçilmişse ekle
+        if (filters.date_filter === 'custom') {
+            filters.start_date = document.getElementById('startDate').value;
+            filters.end_date = document.getElementById('endDate').value;
+        }
+
+        // URL parametrelerini oluştur
+        const params = new URLSearchParams();
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value) params.append(key, value);
+        });
+
+        const response = await fetch(`${API_URL}/purchase/orders?${params}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        renderPurchaseTable(data.orders);
+
+    } catch (error) {
+        console.error('Filtreleme hatası:', error);
+        showError('Filtreleme yapılamadı');
+    }
+}

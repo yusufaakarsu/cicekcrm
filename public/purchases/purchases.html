@@ -27,16 +27,66 @@
             <div class="card">
                 <div class="card-body">
                     <!-- Filtreler -->
-                    <div class="row mb-3">
+                    <div class="row mb-3 align-items-end">
+                        <!-- Tedarikçi Filtresi -->
                         <div class="col-md-3">
+                            <label class="form-label">Tedarikçi</label>
                             <select id="supplierFilter" class="form-select">
-                                <option value="">Tedarikçi Seçin...</option>
+                                <option value="">Tümü</option>
                             </select>
                         </div>
+
+                        <!-- Tarih Filtresi -->
                         <div class="col-md-3">
-                            <select id="categoryFilter" class="form-select">
-                                <option value="">Kategori Seçin...</option>
+                            <label class="form-label">Tarih Aralığı</label>
+                            <select id="dateFilter" class="form-select">
+                                <option value="">Tüm Tarihler</option>
+                                <option value="today">Bugün</option>
+                                <option value="week">Son 7 Gün</option>
+                                <option value="month">Bu Ay</option>
+                                <option value="custom">Özel Aralık</option>
                             </select>
+                        </div>
+
+                        <!-- Ödeme Durumu -->
+                        <div class="col-md-2">
+                            <label class="form-label">Ödeme Durumu</label>
+                            <select id="paymentStatusFilter" class="form-select">
+                                <option value="">Tümü</option>
+                                <option value="pending">Bekleyen</option>
+                                <option value="partial">Kısmi Ödeme</option>
+                                <option value="paid">Ödendi</option>
+                                <option value="cancelled">İptal</option>
+                            </select>
+                        </div>
+
+                        <!-- Tutar Aralığı -->
+                        <div class="col-md-3">
+                            <label class="form-label">Tutar Aralığı</label>
+                            <div class="input-group">
+                                <input type="number" id="minAmount" class="form-control" placeholder="Min">
+                                <span class="input-group-text">-</span>
+                                <input type="number" id="maxAmount" class="form-control" placeholder="Max">
+                            </div>
+                        </div>
+
+                        <!-- Filtre Butonları -->
+                        <div class="col-md-1">
+                            <button class="btn btn-primary w-100" onclick="applyFilters()">
+                                <i class="bi bi-funnel"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Özel Tarih Seçici (Başlangıçta gizli) -->
+                    <div id="customDateRange" class="row mb-3" style="display:none;">
+                        <div class="col-md-3">
+                            <label class="form-label">Başlangıç</label>
+                            <input type="date" id="startDate" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Bitiş</label>
+                            <input type="date" id="endDate" class="form-control">
                         </div>
                     </div>
                     
