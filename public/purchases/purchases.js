@@ -2,6 +2,7 @@ let createModal, detailModal;
 let currentPurchaseId = null;
 let materials = [];
 let suppliers = [];
+let currentOrder = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
@@ -252,7 +253,7 @@ async function showPurchaseDetail(id) {
         const data = await response.json();
         if (!data.success) throw new Error(data.error);
 
-        const order = data.order;
+        currentOrder = data.order; // Order bilgisini saklayalım
         
         // Detay alanlarını doldur
         document.getElementById('detail-id').textContent = order.id;
@@ -299,13 +300,17 @@ function showCreatePurchaseModal() {
 }
 
 async function updateStatus(status) {
-    if (!currentPurchaseId) return;
+    if (!currentPurchaseId || status !== 'cancelled') return;
+
+    if (!confirm('Bu siparişi iptal etmek istediğinize emin misiniz?')) {
+        return;
+    }
     
     try {
         const response = await fetch(`${API_URL}/purchase/orders/${currentPurchaseId}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status })
+            body: JSON.stringify({ status: 'cancelled' })
         });
 
         if (!response.ok) throw new Error('API Hatası');
@@ -315,10 +320,10 @@ async function updateStatus(status) {
 
         detailModal.hide();
         await loadPurchases();
-        showSuccess('Sipariş durumu güncellendi');
+        showSuccess('Sipariş iptal edildi');
     } catch (error) {
         console.error('Durum güncelleme hatası:', error);
-        showError('Durum güncellenemedi!');
+        showError('Sipariş iptal edilemedi!');
     }
 }
 
@@ -393,18 +398,21 @@ async function makePayment() {
             notes: formData.get('notes')
         };
 
+        // URL'i düzeltelim
         const response = await fetch(`${API_URL}/purchase/orders/${currentPurchaseId}/payment`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
 
+        if (!response.ok) throw new Error('API Hatası');
+        
         const result = await response.json();
         if (!result.success) throw new Error(result.error);
 
-        // Modal'ı kapat
-        const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
-        modal.hide();
+        // Modalları kapatalım
+        bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+        bootstrap.Modal.getInstance(document.getElementById('purchaseDetailModal')).hide();
 
         // Listeyi güncelle
         await loadPurchases();

@@ -173,11 +173,12 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-success" onclick="updateStatus('paid')">Ödendi</button>
-                        <button type="button" class="btn btn-warning" onclick="updateStatus('partial')">Kısmi Ödeme</button>
-                        <button type="button" class="btn btn-danger" onclick="updateStatus('cancelled')">İptal</button>
-                    </div>
+                    <button type="button" class="btn btn-success" onclick="showPaymentModal(currentOrder)">
+                        <i class="bi bi-cash"></i> Ödeme Yap
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="updateStatus('cancelled')">
+                        <i class="bi bi-x-circle"></i> İptal Et
+                    </button>
                 </div>
             </div>
         </div>
