@@ -3,6 +3,9 @@ let materials = []; // Ham maddelerin listesi
 let suppliers = []; // Tedarikçilerin listesi
 let categories = []; // Ham madde kategorileri
 let filteredMaterials = []; // Filtrelenmiş ham maddeler
+let createModal, detailModal, paymentModal;
+let currentPurchaseId = null;
+let currentOrder = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
@@ -16,19 +19,28 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadSuppliers() {
     try {
         const response = await fetch(`${API_URL}/suppliers`);
+        if (!response.ok) throw new Error('API Hatası');
+        
         const data = await response.json();
         suppliers = data.suppliers || [];
         
-        // Supplier filtresini doldur (eğer element varsa)
+        // Supplier filtresini doldur
         const supplierFilter = document.getElementById('supplierFilter');
-        if (supplierFilter) {
-            supplierFilter.innerHTML = `
-                <option value="">Tüm Tedarikçiler</option>
-                ${suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-            `;
-        }
+        const supplierSelect = document.querySelector('select[name="supplier_id"]');
+        
+        const options = `
+            <option value="">Seçiniz</option>
+            ${suppliers.map(s => `
+                <option value="${s.id}">${s.name}</option>
+            `).join('')}
+        `;
+        
+        supplierFilter.innerHTML = options;
+        supplierSelect.innerHTML = options;
+        
     } catch (error) {
         console.error('Suppliers loading error:', error);
+        showError('Tedarikçiler yüklenemedi');
     }
 }
 
@@ -50,19 +62,22 @@ async function loadMaterials() {
 async function loadCategories() {
     try {
         const response = await fetch(`${API_URL}/materials/categories`);
+        if (!response.ok) throw new Error('API Hatası');
+        
         const data = await response.json();
         categories = data.categories || [];
         
-        // Kategori filtresini doldur (eğer element varsa)
+        // Kategori filtresini doldur
         const categoryFilter = document.getElementById('categoryFilter');
-        if (categoryFilter) {
-            categoryFilter.innerHTML = `
-                <option value="">Tüm Kategoriler</option>
-                ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
-            `;
-        }
+        categoryFilter.innerHTML = `
+            <option value="">Tüm Kategoriler</option>
+            ${categories.map(c => `
+                <option value="${c.id}">${c.name}</option>
+            `).join('')}
+        `;
     } catch (error) {
         console.error('Categories loading error:', error);
+        showError('Kategoriler yüklenemedi');
     }
 }
 
@@ -186,8 +201,7 @@ async function loadPurchases() {
 // Tabloyu render et
 function renderPurchaseTable(orders) {
     const tbody = document.getElementById('purchaseTable');
-    if (!tbody) return;
-
+    
     if (!orders || orders.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center">Kayıt bulunamadı</td></tr>';
         return;
@@ -254,6 +268,9 @@ async function toggleOrderDetails(orderId, button) {
                             `).join('')}
                         </tbody>
                     </table>
+                </div>
+                <div class="d-flex justify-content-end mt-3">
+                    <button class="btn btn-success" onclick="showPaymentModal(${orderId})">Ödeme Yap</button>
                 </div>
             `;
 
@@ -463,4 +480,132 @@ function showNewPurchaseModal() {
     // Ham madde listesini hazırla
     filterMaterials();
     purchaseModal.show();
+}
+
+// Sipariş detaylarını göster/gizle
+async function showPurchaseDetail(id) {
+    try {
+        currentPurchaseId = id;
+        const response = await fetch(`${API_URL}/purchase/orders/${id}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        currentOrder = data.order;
+        
+        // Detay alanlarını doldur
+        document.getElementById('detail-order-id').textContent = currentOrder.id;
+        document.getElementById('detail-supplier-name').textContent = currentOrder.supplier_name;
+        document.getElementById('detail-total-amount').textContent = formatPrice(currentOrder.total_amount);
+        document.getElementById('detail-paid-amount').textContent = formatPrice(currentOrder.paid_amount || 0);
+        document.getElementById('detail-remaining').textContent = 
+            formatPrice(currentOrder.total_amount - (currentOrder.paid_amount || 0));
+        
+        // Durum badge'i
+        document.getElementById('detail-status').innerHTML = getPaymentStatusBadge(currentOrder.payment_status);
+
+        // Ürün listesi
+        document.getElementById('detail-items-table').innerHTML = `
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Hammadde</th>
+                        <th class="text-end">Miktar</th>
+                        <th class="text-end">Birim Fiyat</th>
+                        <th class="text-end">Toplam</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${currentOrder.items.map(item => `
+                        <tr>
+                            <td>${item.material_name}</td>
+                            <td class="text-end">${item.quantity} ${item.unit_code}</td>
+                            <td class="text-end">${formatPrice(item.unit_price)}</td>
+                            <td class="text-end">${formatPrice(item.quantity * item.unit_price)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        // Ödeme formu için max tutar ayarla
+        const remainingAmount = currentOrder.total_amount - (currentOrder.paid_amount || 0);
+        document.querySelector('#paymentForm [name="amount"]').value = remainingAmount;
+
+        // Önceki ödeme modalını kaldır
+        const paymentModal = document.getElementById('paymentModal');
+        if (paymentModal) paymentModal.remove();
+
+        // Detay modalını göster
+        detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+        detailModal.show();
+
+    } catch (error) {
+        console.error('Sipariş detayı yüklenirken hata:', error);
+        showError('Sipariş detayları yüklenemedi!');
+    }
+}
+
+// Ödeme modalını göster
+async function showPaymentModal(order) {
+    try {
+        // Modal içeriğini doldur
+        document.getElementById('payment-order-id').textContent = order.id;
+        document.getElementById('payment-supplier').textContent = order.supplier_name;
+        document.getElementById('payment-total').textContent = formatPrice(order.total_amount);
+        document.getElementById('payment-paid').textContent = formatPrice(order.paid_amount || 0);
+        
+        const remainingAmount = order.total_amount - (order.paid_amount || 0);
+        document.getElementById('payment-remaining').textContent = formatPrice(remainingAmount);
+
+        // Ödeme tutarını max olarak ayarla
+        const amountInput = document.querySelector('[name="amount"]');
+        amountInput.max = remainingAmount;
+        amountInput.value = remainingAmount;
+
+        paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        paymentModal.show();
+    } catch (error) {
+        console.error('Ödeme modalı açılırken hata:', error);
+        showError('Ödeme modalı açılamadı!');
+    }
+}
+
+// Ödeme yap
+async function makePayment() {
+    const form = document.getElementById('paymentForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    try {
+        const formData = new FormData(form);
+        const data = {
+            amount: parseFloat(formData.get('amount')),
+            payment_method: formData.get('payment_method'),
+            account_id: parseInt(formData.get('account_id'))
+        };
+
+        const response = await fetch(`${API_URL}/purchase/orders/${currentPurchaseId}/payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
+        // Başarılı ödeme sonrası:
+        detailModal.hide();      // Detay modalını kapat
+        await loadPurchases();   // Tabloyu güncelle
+        showSuccess('Ödeme başarıyla kaydedildi');
+
+    } catch (error) {
+        console.error('Ödeme hatası:', error);
+        showError(error.message || 'Ödeme yapılamadı');
+    }
 }

@@ -122,64 +122,75 @@
     </div>
 
     <!-- Detay Modal -->
-    <div class="modal fade" id="purchaseDetailModal" tabindex="-1">
+    <div class="modal fade" id="detailModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
+                <!-- Header -->
                 <div class="modal-header">
-                    <h5 class="modal-title">Sipariş Detayı #<span id="detail-id"></span></h5>
+                    <h5 class="modal-title">Sipariş Detayı #<span id="detail-order-id"></span></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
+
+                <!-- Body -->
                 <div class="modal-body">
-                    <!-- Tedarikçi Bilgileri -->
+                    <!-- Sipariş Özeti -->
                     <div class="card mb-3">
-                        <div class="card-header">Tedarikçi Bilgileri</div>
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <p class="mb-1"><strong>Firma:</strong> <span id="detail-supplier-name"></span></p>
-                                    <p class="mb-1"><strong>Telefon:</strong> <span id="detail-supplier-phone"></span></p>
+                                    <p><strong>Tedarikçi:</strong> <span id="detail-supplier-name"></span></p>
+                                    <p><strong>Tutar:</strong> <span id="detail-total-amount"></span></p>
                                 </div>
                                 <div class="col-md-6">
-                                    <p class="mb-1"><strong>Email:</strong> <span id="detail-supplier-email"></span></p>
-                                    <p class="mb-1"><strong>Oluşturan:</strong> <span id="detail-created-by"></span></p>
+                                    <p><strong>Ödenen:</strong> <span id="detail-paid-amount"></span></p>
+                                    <p><strong>Kalan:</strong> <span id="detail-remaining"></span></p>
+                                    <p><strong>Durum:</strong> <span id="detail-status"></span></p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Sipariş Kalemleri -->
+                    <!-- Ürün Listesi -->
+                    <div id="detail-items-table" class="table-responsive mb-3"></div>
+
+                    <!-- Ödeme Formu -->
                     <div class="card">
-                        <div class="card-header">Sipariş Kalemleri</div>
-                        <div class="table-responsive">
-                            <table class="table table-sm mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Hammadde</th>
-                                        <th>Miktar</th>
-                                        <th>Birim</th>
-                                        <th>Birim Fiyat</th>
-                                        <th>Toplam</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="detail-items"></tbody>
-                                <tfoot>
-                                    <tr class="fw-bold">
-                                        <td colspan="4" class="text-end">Genel Toplam:</td>
-                                        <td id="detail-total"></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Yeni Ödeme</span>
+                            <span id="detail-payment-status" class="badge"></span>
+                        </div>
+                        <div class="card-body">
+                            <form id="paymentForm">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Tutar</label>
+                                        <input type="number" class="form-control" name="amount" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Hesap</label>
+                                        <select class="form-select" name="account_id" required>
+                                            <option value="1">Ana Kasa</option>
+                                            <option value="2">Kredi Kartı</option>
+                                            <option value="3">Banka</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Ödeme Yöntemi</label>
+                                        <select class="form-select" name="payment_method" required>
+                                            <option value="cash">Nakit</option>
+                                            <option value="credit_card">Kredi Kartı</option>
+                                            <option value="bank_transfer">Havale/EFT</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="button" class="btn btn-success" onclick="makePayment()">
+                                            Ödeme Yap
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
-                    <button type="button" class="btn btn-success" onclick="showPaymentModal(currentOrder)">
-                        <i class="bi bi-cash"></i> Ödeme Yap
-                    </button>
-                    <button type="button" class="btn btn-danger" onclick="updateStatus('cancelled')">
-                        <i class="bi bi-x-circle"></i> İptal Et
-                    </button>
                 </div>
             </div>
         </div>
