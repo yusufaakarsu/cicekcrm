@@ -58,7 +58,7 @@ function showCreateModal() {
 
 async function editSupplier(id) {
     try {
-        currentSupplierId = id;
+        currentSupplierId = id; // ID'yi global değişkende sakla
         document.getElementById('modalTitle').textContent = 'Tedarikçi Düzenle';
         
         const response = await fetch(`${API_URL}/suppliers/${id}`);
@@ -67,12 +67,17 @@ async function editSupplier(id) {
         const data = await response.json();
         if (!data.success) throw new Error(data.error);
 
+        // Form alanlarını doldur
         const form = document.getElementById('supplierForm');
-        Object.keys(data.supplier).forEach(key => {
-            if (form.elements[key]) {
-                form.elements[key].value = data.supplier[key];
-            }
-        });
+        const supplier = data.supplier;
+
+        form.elements['name'].value = supplier.name || '';
+        form.elements['contact_name'].value = supplier.contact_name || '';
+        form.elements['phone'].value = supplier.phone || '';
+        form.elements['email'].value = supplier.email || '';
+        form.elements['address'].value = supplier.address || '';
+        form.elements['notes'].value = supplier.notes || '';
+        form.elements['status'].value = supplier.status || 'active';
         
         supplierModal.show();
     } catch (error) {

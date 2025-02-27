@@ -144,38 +144,43 @@ router.put('/:id', async (c) => {
     try {
         const body = await c.req.json();
         
-        // Status kontrolü
-        if (body.status && !['active', 'passive', 'blacklist'].includes(body.status)) {
+        // Basit validasyon
+        if (!body.name || !body.phone) {
             return c.json({
                 success: false,
-                error: 'Invalid status'
+                error: 'Name and phone are required'
             }, 400);
         }
 
-        await db.prepare(`
+        // updated_at kolonumuz yok, kaldırdık
+        const result = await db.prepare(`
             UPDATE suppliers 
             SET 
-                name = COALESCE(?, name),
+                name = ?,
                 contact_name = ?,
-                phone = COALESCE(?, phone),
+                phone = ?,
                 email = ?,
                 address = ?,
                 notes = ?,
-                status = COALESCE(?, status),
-                updated_at = datetime('now')
-            WHERE id = ? AND deleted_at IS NULL
+                status = ?
+            WHERE id = ? 
+            AND deleted_at IS NULL
         `).bind(
             body.name,
-            body.contact_name,
+            body.contact_name || null,
             body.phone,
-            body.email,
-            body.address,
-            body.notes,
-            body.status,
+            body.email || null,
+            body.address || null,
+            body.notes || null,
+            body.status || 'active',
             id
         ).run();
 
-        return c.json({ success: true });
+        if (result.success) {
+            return c.json({ success: true });
+        } else {
+            throw new Error('Update failed');
+        }
 
     } catch (error) {
         console.error('Update supplier error:', error);
