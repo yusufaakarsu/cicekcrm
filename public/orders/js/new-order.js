@@ -240,32 +240,32 @@ function setupNewCustomerForm() {
     }
 }
 
-// Yeni müşteri kaydetme fonksiyonu - müşteri tipini kaldırma seçeneği eklendi
+// Yeni müşteri kaydetme fonksiyonu - Veritabanı şemasına uyumlu hale getirildi
 async function saveNewCustomer() {
     try {
         const form = document.getElementById('newCustomerForm');
         
-        // Temel veriler
+        // Sadece veritabanındaki alanlara uygun veri hazırla
         const formData = {
-            name: form.querySelector('[name="new_customer_name"]')?.value,
+            name: form.querySelector('[name="new_customer_name"]')?.value?.trim(),
             phone: form.querySelector('[name="new_customer_phone"]')?.value?.replace(/\D/g, ''),
-            email: form.querySelector('[name="new_customer_email"]')?.value || null,
-            city: form.querySelector('[name="new_customer_city"]')?.value || 'İstanbul',
-            district: form.querySelector('[name="new_customer_district"]')?.value,
-            special_dates: form.querySelector('[name="new_customer_special_dates"]')?.value || null,
-            notes: form.querySelector('[name="new_customer_notes"]')?.value || null
+            email: form.querySelector('[name="new_customer_email"]')?.value?.trim() || null,
+            notes: form.querySelector('[name="new_customer_notes"]')?.value?.trim() || null
         };
 
-        // Müşteri tipi seçimi varsa ve kurumsal seçildiyse
-        const customerTypeInput = form.querySelector('input[name="new_customer_type"]:checked');
-        if (customerTypeInput) {
-            formData.customer_type = customerTypeInput.value;
+        // İlçe ve özel günler gibi bilgileri notes alanına ekleyelim (opsiyonel)
+        const district = form.querySelector('[name="new_customer_district"]')?.value?.trim();
+        const specialDates = form.querySelector('[name="new_customer_special_dates"]')?.value?.trim();
+        
+        if (district || specialDates) {
+            let additionalNotes = "";
+            if (district) additionalNotes += `İlçe: ${district}\n`;
+            if (specialDates) additionalNotes += `Özel Günler: ${specialDates}\n`;
             
-            // Kurumsal müşteri ek bilgileri
-            if (formData.customer_type === 'corporate') {
-                formData.tax_number = form.querySelector('[name="new_customer_tax_number"]')?.value;
-                formData.company_name = form.querySelector('[name="new_customer_company_name"]')?.value;
-            }
+            // Mevcut notlara ekle
+            formData.notes = formData.notes 
+                ? formData.notes + "\n\n" + additionalNotes 
+                : additionalNotes;
         }
 
         console.log('Gönderilen veri:', formData);
@@ -283,9 +283,18 @@ async function saveNewCustomer() {
         console.log('API yanıtı:', data);
 
         if (data.success) {
+            // API'den dönen ID'yi kullan
+            const customerId = data.customer_id;
+            
             showSuccess('Müşteri başarıyla kaydedildi');
-            document.getElementById('customerId').value = data.id;
-            showCustomerDetails(data.customer);
+            document.getElementById('customerId').value = customerId;
+            
+            // Temel müşteri bilgilerini göster
+            showBasicCustomerDetails({
+                id: customerId,
+                name: formData.name,
+                phone: formData.phone
+            });
             document.getElementById('newCustomerForm').classList.add('d-none');
         } else {
             throw new Error(data.error || 'Müşteri kaydedilemedi');
@@ -295,6 +304,24 @@ async function saveNewCustomer() {
         console.error('Müşteri kayıt hatası:', error);
         showError(error.message);
     }
+}
+
+// Müşteri detayları yetersizse temel bilgileri göster
+function showBasicCustomerDetails(basicInfo) {
+    // Detay alanını göster
+    const detailsDiv = document.getElementById('customerDetails');
+    detailsDiv.classList.remove('d-none');
+    
+    // Müşteri ID'sini sakla
+    document.getElementById('customerId').value = basicInfo.id;
+    
+    // Müşteri bilgilerini doldur
+    document.getElementById('customerName').textContent = basicInfo.name;
+    document.getElementById('customerPhone').textContent = formatPhoneNumber(basicInfo.phone);
+    
+    // Diğer panelleri gizle
+    document.getElementById('addressSelectionCard').classList.add('d-none');
+    document.getElementById('deliveryForm').classList.add('d-none');
 }
 
 // Adres tipine göre panel değişimi

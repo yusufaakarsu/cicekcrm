@@ -62,10 +62,10 @@
                             </div>
                         </div>
 
-                        <!-- Yeni Müşteri Formu - Müşteri tipi kaldırıldı -->
+                        <!-- Yeni Müşteri Formu - Veritabanı alanlarına uyumlu hale getirilmiş -->
                         <div id="newCustomerForm" class="d-none">
                             <div class="row g-3">
-                                <!-- Temel Bilgiler -->
+                                <!-- Ana Alanlar (Veritabanında olanlar) -->
                                 <div class="col-sm-6">
                                     <label class="form-label">İsim <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" name="new_customer_name" required>
@@ -79,22 +79,25 @@
                                     <input type="email" class="form-control" name="new_customer_email">
                                 </div>
 
-                                <!-- Adres Bilgileri -->
-                                <div class="col-sm-4">
-                                    <label class="form-label">Şehir <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="new_customer_city" 
-                                           value="İstanbul" readonly>
+                                <!-- Ek Bilgiler (Notes alanında saklanacak) -->
+                                <div class="col-12">
+                                    <hr>
+                                    <p class="text-muted small">Aşağıdaki bilgiler müşteri bilgileri ile birlikte kaydedilecektir</p>
                                 </div>
-                                <div class="col-sm-4">
-                                    <label class="form-label">İlçe <span class="text-danger">*</span></label>
-                                    <select class="form-select" name="new_customer_district" required>
+                                
+                                <div class="col-sm-6">
+                                    <label class="form-label">Şehir</label>
+                                    <input type="text" class="form-control" name="new_customer_city" value="İstanbul" readonly>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label">İlçe</label>
+                                    <select class="form-select" name="new_customer_district">
                                         <option value="">İlçe seçin...</option>
                                     </select>
                                 </div>
-                                <div class="col-sm-4">
+                                <div class="col-sm-12">
                                     <label class="form-label">Özel Günler</label>
-                                    <input type="text" class="form-control" name="new_customer_special_dates" 
-                                           placeholder="Örn: Doğum günü: 15.05">
+                                    <input type="text" class="form-control" name="new_customer_special_dates" placeholder="Örn: Doğum günü: 15.05">
                                 </div>
 
                                 <!-- Not Alanı -->

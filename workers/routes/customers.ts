@@ -65,37 +65,55 @@ router.get('/phone/:phone', async (c) => {
             details: error.message
         }, 500);
     }
-});
+})
 
-// Yeni müşteri kaydet
+// Yeni müşteri ekleme endpoint'i - Şemaya uygun düzeltildi
 router.post('/', async (c) => {
   const db = c.get('db')
-  const body = await c.req.json()
   
   try {
-    // 1. Müşteri kaydet
+    const body = await c.req.json()
+    
+    // Şemaya uygun veri hazırlama - sadece veritabanında olan alanlar
+    const data = {
+      name: body.name,
+      phone: body.phone,
+      email: body.email || null,
+      notes: body.notes || null
+    }
+    
+    // Müşteri ekle
     const result = await db.prepare(`
       INSERT INTO customers (name, phone, email, notes)
       VALUES (?, ?, ?, ?)
     `).bind(
-      body.name,
-      body.phone,
-      body.email || null,
-      body.notes || null
+      data.name,
+      data.phone,
+      data.email,
+      data.notes
     ).run()
 
-    const customerId = result.meta?.last_row_id
+    const customer_id = result.meta?.last_row_id
+    
+    if (!customer_id) {
+      return c.json({
+        success: false,
+        error: 'Müşteri eklenirken bir hata oluştu'
+      }, 500)
+    }
     
     return c.json({
       success: true,
-      customer_id: customerId
+      customer_id: customer_id
     })
+
   } catch (error) {
-    console.error('Customer create error:', error)
+    console.error('Customer creation error:', error)
+    
     return c.json({ 
       success: false, 
-      error: 'Database error',
-      message: error.message 
+      error: 'Müşteri eklenirken bir hata oluştu',
+      details: error.message
     }, 500)
   }
 })
