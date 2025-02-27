@@ -659,7 +659,7 @@ router.post('/payments', async (c) => {
     }
 
     // 2. Category ID bul
-    const { id: category_id } = await db.prepare(`
+    const category = await db.prepare(`
       SELECT id FROM transaction_categories 
       WHERE tenant_id = ? AND reporting_code = ?
       LIMIT 1
@@ -675,11 +675,11 @@ router.post('/payments', async (c) => {
         type, amount, date,
         payment_method, description, related_type, 
         related_id, status, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
     `).bind(
       tenant_id,
       body.account_id,
-      category_id,
+      category.id,
       body.type,
       body.amount,
       body.date || new Date().toISOString(),
@@ -688,6 +688,32 @@ router.post('/payments', async (c) => {
       body.related_type,
       body.related_id,
       1 // TODO: gerçek user_id gelecek
+    ).run()
+
+    // 4. İlgili kaydı güncelle
+    const updateQuery = body.related_type === 'purchase' ? `
+      UPDATE purchase_orders 
+      SET paid_amount = paid_amount + ?,
+          payment_status = CASE 
+            WHEN paid_amount + ? >= total_amount THEN 'paid'
+            WHEN paid_amount + ? > 0 THEN 'partial'
+            ELSE payment_status 
+          END
+      WHERE id = ? AND tenant_id = ?
+    ` : `
+      UPDATE orders
+      SET paid_amount = paid_amount + ?,
+          payment_status = CASE 
+            WHEN paid_amount + ? >= total_amount THEN 'paid'
+            WHEN paid_amount + ? > 0 THEN 'partial'
+            ELSE payment_status 
+          END
+      WHERE id = ? AND tenant_id = ?
+    `
+
+    await db.prepare(updateQuery).bind(
+      body.amount, body.amount, body.amount,
+      body.related_id, tenant_id
     ).run()
 
     return c.json({ 

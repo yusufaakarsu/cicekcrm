@@ -135,18 +135,21 @@ async function savePayment() {
         const formData = new FormData(form)
         const data = Object.fromEntries(formData)
 
-        const response = await fetch(`${API_URL}/finance/payments`, {
+        // Validasyon ekle
+        if (!data.account_id || !data.amount || !data.related_type || !data.related_id) {
+            throw new Error('Tüm zorunlu alanları doldurun')
+        }
+
+        const response = await fetch(getApiUrl('/finance/payments'), {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 account_id: parseInt(data.account_id),
                 amount: parseFloat(data.amount),
                 type: data.type,
                 date: data.date,
                 payment_method: data.payment_method,
-                description: data.notes,
+                description: data.notes || '',
                 related_type: data.related_type,
                 related_id: parseInt(data.related_id)
             })
@@ -154,7 +157,7 @@ async function savePayment() {
 
         if (!response.ok) {
             const error = await response.json()
-            throw new Error(error.error || 'API Error') 
+            throw new Error(error.error || 'API Error')
         }
 
         const result = await response.json()
@@ -164,8 +167,11 @@ async function savePayment() {
 
         // Modal'ı kapat ve sayfayı yenile
         bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide()
-        loadPendingPayments()
-        loadFinanceData()
+        await Promise.all([
+            loadPendingPayments(),
+            loadFinanceData()
+        ])
+        showSuccess('Ödeme başarıyla kaydedildi')
 
     } catch (error) {
         console.error('Save payment error:', error)

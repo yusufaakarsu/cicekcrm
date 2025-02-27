@@ -117,61 +117,46 @@ router.post('/orders', async (c) => {
         const data = await c.req.json();
         const { supplier_id, order_date, items } = data;
 
-        console.log('Processing purchase order:', { supplier_id, order_date, items });
-
-        // Validasyon
+        // Validasyonlar
         if (!supplier_id || !order_date || !Array.isArray(items) || items.length === 0) {
             return c.json({
                 success: false,
-                error: 'Eksik ya da hatalı alanlar mevcut'
+                error: 'Eksik ya da hatalı veriler'
             }, 400);
         }
 
-        // 1. Ana siparişi oluştur
+        // 1. Ana siparişi oluştur ve ID'sini al 
         const orderResult = await db.prepare(`
             INSERT INTO purchase_orders (
-                tenant_id, supplier_id, order_date, created_by, created_at
-            ) VALUES (?, ?, ?, ?, datetime('now'))
+                tenant_id, supplier_id, order_date, created_by,
+                created_at, updated_at, payment_status
+            ) VALUES (?, ?, ?, ?, datetime('now'), datetime('now'), 'pending')
+            RETURNING id
         `).bind(
             tenant_id,
             supplier_id,
             order_date,
             user_id
-        ).run();
+        ).first();
 
-        if (!orderResult.success) {
-            throw new Error('Sipariş kaydı oluşturulamadı');
-        }
+        const order_id = orderResult.id;
 
-        const order_id = orderResult.meta?.last_row_id;
-        console.log('Created purchase order:', order_id);
-
-        // 2. Kalemleri tek tek ekle
-        for (const item of items) {
-            console.log('Processing item:', item);
-
-            if (!item.material_id || !item.quantity || !item.unit_price) {
-                console.warn('Invalid item data:', item);
-                continue;
-            }
-
-            await db.prepare(`
+        // 2. Kalemleri batch olarak ekle
+        const itemInserts = items.map(item => 
+            db.prepare(`
                 INSERT INTO purchase_order_items (
-                    order_id, 
-                    material_id, 
-                    quantity, 
-                    unit_price,
-                    created_at
+                    order_id, material_id, quantity, unit_price, created_at
                 ) VALUES (?, ?, ?, ?, datetime('now'))
             `).bind(
-                order_id,
+                order_id, 
                 item.material_id,
                 item.quantity,
                 item.unit_price
-            ).run();
-        }
+            )
+        );
 
-        // 3. Başarılı sonuç dön
+        await db.batch(itemInserts);
+
         return c.json({
             success: true,
             order_id: order_id,
@@ -183,7 +168,7 @@ router.post('/orders', async (c) => {
         return c.json({ 
             success: false, 
             error: 'İşlem başarısız',
-            message: error.message
+            details: error.message
         }, 500);
     }
 });
