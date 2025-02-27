@@ -21,37 +21,86 @@ async function loadStock() {
         const data = await response.json();
         if (!data.success) throw new Error(data.error);
 
-        // Burada tbody seçicisini düzelttik
         const tbody = document.querySelector('#stockTable tbody');
-        if (!tbody) throw new Error('Stock table tbody not found');
         
         if (data.materials?.length > 0) {
-            tbody.innerHTML = data.materials.map(material => `
+            tbody.innerHTML = data.materials.map(material => {
+                const stockStatus = getStockStatus(material);
+                
+                return `
                 <tr>
-                    <td>${material.name}</td>
-                    <td>${material.category_name || '-'}</td>
-                    <td>${material.unit_code}</td>
                     <td>
-                        <span class="badge ${getStockBadgeClass(material.current_stock)}">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle ${stockStatus.bgColor} me-2" 
+                                 style="width: 8px; height: 8px; display: inline-block;"></div>
+                            <div>
+                                <div class="fw-bold">${material.name}</div>
+                                <small class="text-muted">#${material.id}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${material.category_name || '-'}</td>
+                    <td>
+                        <div>${material.unit_name}</div>
+                        <small class="text-muted">${material.unit_code}</small>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge ${stockStatus.badge}">
                             ${material.current_stock} ${material.unit_code}
                         </span>
                     </td>
-                    <td>${formatDateTime(material.last_movement)}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-info" 
-                                onclick="showStockDetail(${material.id}, '${material.name}')">
-                            <i class="bi bi-info-circle"></i> Detay
-                        </button>
+                    <td class="text-center">${material.min_stock || '-'}</td>
+                    <td class="text-center">
+                        ${formatDateTime(material.last_movement)}
                     </td>
-                </tr>
-            `).join('');
+                    <td class="text-end">
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary" onclick="showStockDetail(${material.id})">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="addStockMovement(${material.id})">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
         } else {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Stok bilgisi bulunamadı</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Kayıt bulunamadı</td></tr>';
         }
+
     } catch (error) {
         console.error('Stock loading error:', error);
         showError('Stok bilgileri yüklenemedi!');
     }
+}
+
+// Stok durumu helper fonksiyonu
+function getStockStatus(material) {
+    const stock = material.current_stock || 0;
+    const minStock = material.min_stock || 0;
+
+    if (stock <= 0) {
+        return {
+            badge: 'bg-danger',
+            bgColor: 'bg-danger',
+            text: 'Stok Yok'
+        };
+    }
+
+    if (stock <= minStock) {
+        return {
+            badge: 'bg-warning',
+            bgColor: 'bg-warning',
+            text: 'Kritik'
+        };
+    }
+
+    return {
+        badge: 'bg-success',
+        bgColor: 'bg-success',
+        text: 'Normal'
+    };
 }
 
 // Birimleri yükle
