@@ -172,28 +172,34 @@ async function saveMaterial() {
 
     const formData = new FormData(form);
     const data = {
-        name: formData.get('name'),
+        name: formData.get('name').trim(),
         unit_id: parseInt(formData.get('unit_id')),
         category_id: formData.get('category_id') ? parseInt(formData.get('category_id')) : null,
-        description: formData.get('description') || '',
+        description: formData.get('description')?.trim() || null,
         status: formData.get('status') || 'active',
-        notes: formData.get('notes') || ''
+        notes: formData.get('notes')?.trim() || null
     };
+
+    // Validation
+    if (!data.name || !data.unit_id) {
+        showError('Hammadde adı ve birim seçimi zorunludur!');
+        return;
+    }
     
     try {
+        console.log('Saving material:', data); // Debug log
+
         const response = await fetch(`${API_URL}/materials`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'API Hatası');
-        }
-        
         const result = await response.json();
-        if (!result.success) throw new Error(result.error);
+        
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'API Hatası');
+        }
 
         // Modal'ı kapat ve verileri yenile
         materialModal.hide();
@@ -206,7 +212,7 @@ async function saveMaterial() {
         showSuccess('Hammadde başarıyla eklendi');
     } catch (error) {
         console.error('Hammadde kaydedilirken hata:', error);
-        showError(error.message);
+        showError(error.message || 'Bir hata oluştu');
     }
 }
 

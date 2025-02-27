@@ -144,7 +144,7 @@ router.get('/:id', async (c) => {
     }
 });
 
-// Yeni hammadde ekle
+// Hammadde ekle
 router.post('/', async (c) => {
     const db = c.get('db');
     
@@ -159,33 +159,50 @@ router.post('/', async (c) => {
             }, 400);
         }
 
-        // Hammadde ekle
+        // Debug log ekleyelim
+        console.log('Adding new material:', body);
+
+        // RETURNING * kaldırıldı çünkü D1'de desteklenmiyor
         const result = await db.prepare(`
             INSERT INTO raw_materials (
                 name, description, unit_id,
                 category_id, status, notes,
                 created_at
             ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-            RETURNING *
         `).bind(
             body.name,
-            body.description || null,
+            body.description,
             body.unit_id,
-            body.category_id || null,
+            body.category_id,
             body.status || 'active',
-            body.notes || null
+            body.notes
         ).run();
 
+        // Insert başarılı mı kontrol et
         if (!result.success) {
-            throw new Error('Failed to insert material');
+            throw new Error('Insert failed');
         }
+
+        // Eklenen kaydın detaylarını getir
+        const material = await db.prepare(`
+            SELECT 
+                m.*,
+                c.name as category_name,
+                u.name as unit_name,
+                u.code as unit_code
+            FROM raw_materials m
+            LEFT JOIN raw_material_categories c ON m.category_id = c.id
+            LEFT JOIN units u ON m.unit_id = u.id
+            WHERE m.id = ?
+        `).bind(result.meta?.last_row_id).first();
 
         return c.json({
             success: true,
-            material: result.meta?.last_row_id
+            material: material
         });
 
     } catch (error) {
+        // Hata detaylarını loglayalım
         console.error('Create material error:', error);
         return c.json({
             success: false,
