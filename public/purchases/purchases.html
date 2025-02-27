@@ -203,7 +203,10 @@
                                 <div class="col-md-6">
                                     <p><strong>Ödenen:</strong> <span id="detail-paid-amount"></span></p>
                                     <p><strong>Kalan:</strong> <span id="detail-remaining"></span></p>
-                                    <p><strong>Durum:</strong> <span id="detail-status"></span></p>
+                                    <p>
+                                        <strong>Durum:</strong> 
+                                        <span class="badge" id="detail-status"></span>
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -242,12 +245,20 @@
                                         </select>
                                     </div>
                                     <div class="col-12">
-                                        <button type="button" class="btn btn-success" onclick="makePayment()">
-                                            Ödeme Yap
+                                        <button type="button" class="btn btn-success" onclick="makePayment()" id="paymentButton">
+                                            <i class="bi bi-cash"></i> Ödeme Yap
                                         </button>
                                     </div>
                                 </div>
                             </form>
+                        </div>
+                        <div class="card-footer d-flex justify-content-between">
+                            <button type="button" class="btn btn-danger" onclick="cancelPurchase()" id="cancelButton">
+                                <i class="bi bi-x-circle"></i> Siparişi İptal Et
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="makePayment()" id="paymentButton">
+                                <i class="bi bi-cash"></i> Ödeme Yap
+                            </button>
                         </div>
                     </div>
                 </div>

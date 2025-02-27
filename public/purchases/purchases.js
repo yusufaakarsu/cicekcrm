@@ -178,6 +178,30 @@ async function showPurchaseDetail(id) {
         document.querySelector('[name="amount"]').value = remainingAmount;
         document.querySelector('[name="amount"]').max = remainingAmount;
 
+        // Status badge'ini düzgün göster
+        const statusBadge = document.getElementById('detail-status');
+        statusBadge.className = `badge ${getStatusBadge(currentOrder.payment_status)}`;
+        statusBadge.textContent = getStatusText(currentOrder.payment_status);
+
+        // İptal/Ödeme butonlarını duruma göre göster/gizle
+        const cancelButton = document.getElementById('cancelButton');
+        const paymentButton = document.getElementById('paymentButton');
+        const paymentForm = document.getElementById('paymentForm');
+
+        if (currentOrder.payment_status === 'cancelled') {
+            cancelButton.style.display = 'none';
+            paymentButton.style.display = 'none';
+            paymentForm.style.display = 'none';
+        } else if (currentOrder.payment_status === 'paid') {
+            cancelButton.style.display = 'block';
+            paymentButton.style.display = 'none';
+            paymentForm.style.display = 'none';
+        } else {
+            cancelButton.style.display = 'block';
+            paymentButton.style.display = 'block';
+            paymentForm.style.display = 'block';
+        }
+
         // Modal göster
         detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
         detailModal.show();
@@ -421,5 +445,34 @@ async function applyFilters() {
     } catch (error) {
         console.error('Filtreleme hatası:', error);
         showError('Filtreleme yapılamadı');
+    }
+}
+
+// İptal fonksiyonunu ekle
+async function cancelPurchase() {
+    if (!confirm('Siparişi iptal etmek istediğinize emin misiniz?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/purchase/orders/${currentPurchaseId}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'cancelled' })
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+        const result = await response.json();
+
+        if (result.success) {
+            detailModal.hide();
+            await loadPurchases();
+            showSuccess('Sipariş başarıyla iptal edildi');
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        console.error('Sipariş iptal hatası:', error);
+        showError('Sipariş iptal edilemedi');
     }
 }
