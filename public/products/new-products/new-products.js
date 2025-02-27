@@ -148,29 +148,28 @@ async function saveProduct() {
             return;
         }
 
-        // DOM seçicilerini iyileştir ve daha güvenli hale getir
+        // DOM seçicilerini düzelt - materialsTableBody ID'sini kullan
         const materials = [];
-        const materialRows = document.querySelectorAll('#materialsList .material-row');
+        const materialRows = document.querySelectorAll('#materialsTableBody tr');
         
-        // Debug için bilgi
         console.log(`Bulunan malzeme satırı sayısı: ${materialRows.length}`);
         
         if (materialRows.length > 0) {
             materialRows.forEach(row => {
                 try {
-                    const material_id = row.getAttribute('data-id');
+                    // Hidden input'tan material_id al
+                    const materialIdInput = row.querySelector('input[name="materials[][material_id]"]');
+                    const quantityInput = row.querySelector('input[name="materials[][quantity]"]');
+                    const notesInput = row.querySelector('input[name="materials[][notes]"]');
                     
-                    // Null kontrolü ekle
-                    const quantityElement = row.querySelector('.material-quantity');
-                    const notesElement = row.querySelector('.material-notes');
-                    
-                    if (!material_id || !quantityElement) {
+                    if (!materialIdInput || !quantityInput) {
                         console.warn('Eksik malzeme verisi:', row);
                         return; // Bu satırı atla
                     }
                     
-                    const quantity = parseFloat(quantityElement.value);
-                    const notes = notesElement ? notesElement.value : '';
+                    const material_id = materialIdInput.value;
+                    const quantity = parseFloat(quantityInput.value);
+                    const notes = notesInput ? notesInput.value : '';
                     
                     console.log(`Malzeme ekleniyor: ID=${material_id}, Miktar=${quantity}`);
                     
@@ -194,7 +193,7 @@ async function saveProduct() {
             description,
             base_price,
             status,
-            materials // Artık güvenli bir şekilde dolu
+            materials // Artık doğru elemanlardan toplanan malzemeler
         };
         
         console.log('Gönderilen veri:', payload); // Debug için

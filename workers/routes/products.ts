@@ -87,7 +87,7 @@ router.get('/categories/:id', async (c) => {
   }
 })
 
-// Kategori güncelle 
+// Kategori güncelleme - updated_at kaldırıldı
 router.put('/categories/:id', async (c) => {
   const { id } = c.req.param()
   const body = await c.req.json()
@@ -98,8 +98,7 @@ router.put('/categories/:id', async (c) => {
       UPDATE product_categories SET
         name = ?,
         description = ?,
-        status = ?,
-        updated_at = datetime('now')
+        status = ?
       WHERE id = ? AND deleted_at IS NULL
     `).bind(
       body.name,
@@ -150,15 +149,15 @@ router.get('/low-stock', async (c) => {
   }
 })
 
-// Yeni kategori ekle
+// Yeni kategori ekle - created_at, updated_at kaldırıldı
 router.post('/categories', async (c) => {
   const body = await c.req.json()
   const db = c.get('db')
   
   try {
     const result = await db.prepare(`
-      INSERT INTO product_categories (name, description, status, created_at, updated_at)
-      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+      INSERT INTO product_categories (name, description, status)
+      VALUES (?, ?, ?)
     `).bind(
       body.name, 
       body.description, 
@@ -278,13 +277,13 @@ router.get('/', async (c) => {
   }
 })
 
-// Yeni ürün ekle
+// Yeni ürün ekle - created_at ve updated_at kaldırıldı
 router.post('/', async (c) => {
   const body = await c.req.json()
   const db = c.get('db')
   
   try {
-    console.log('Ürün kaydetme isteği:', body); // Debugging için
+    console.log('Ürün kaydetme isteği:', body);
 
     // Gerekli alan kontrolü
     if (!body.name || !body.category_id || !body.base_price) {
@@ -295,12 +294,12 @@ router.post('/', async (c) => {
       }, 400);
     }
 
-    // 1. Ürünü kaydet
+    // 1. Ürünü kaydet - created_at ve updated_at alanlarını kaldır
     const result = await db.prepare(`
       INSERT INTO products (
         category_id, name, description,
-        base_price, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        base_price, status
+      ) VALUES (?, ?, ?, ?, ?)
     `).bind(
       parseInt(body.category_id) || null,
       body.name,
@@ -312,7 +311,7 @@ router.post('/', async (c) => {
     const product_id = result.meta?.last_row_id
     if (!product_id) throw new Error('Ürün ID alınamadı')
 
-    // 2. Malzemeleri kaydet - created_at sütunu kaldırıldı 
+    // 2. Malzemeleri kaydet - created_at kaldırıldı, is_required yerine notes kullanıldı
     if (Array.isArray(body.materials) && body.materials.length > 0) {
       for (const material of body.materials) {
         try {
@@ -330,7 +329,6 @@ router.post('/', async (c) => {
           ).run()
         } catch (materialError) {
           console.error('Malzeme ekleme hatası:', materialError, 'Malzeme:', material);
-          // Malzeme hatası olsa bile diğerlerine devam et
         }
       }
     }
@@ -344,13 +342,13 @@ router.post('/', async (c) => {
     console.error('Ürün kaydetme hatası:', error);
     return c.json({ 
       success: false, 
-      error: 'Database error',
-      message: error.message || 'Bilinmeyen bir hata oluştu'
+      error: error.message,
+      details: 'Veritabanı işlemi sırasında bir hata oluştu'
     }, 500)
   }
 })
 
-// Ürün güncelle
+// Ürün güncelleme - updated_at kaldırıldı
 router.put('/:id', async (c) => {
   const { id } = c.req.param()
   const body = await c.req.json()
@@ -364,8 +362,7 @@ router.put('/:id', async (c) => {
         name = ?,
         description = ?,
         base_price = ?,
-        status = ?,
-        updated_at = datetime('now')
+        status = ?
       WHERE id = ? AND deleted_at IS NULL
     `).bind(
       body.category_id,

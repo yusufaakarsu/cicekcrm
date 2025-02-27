@@ -2,10 +2,9 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// Hesapları listele
+// Hesapları listele - tenant_id kaldırıldı
 router.get('/accounts', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   
   try {
     const { results } = await db.prepare(`
@@ -15,15 +14,14 @@ router.get('/accounts', async (c) => {
           (SELECT SUM(CASE WHEN type = 'in' THEN amount ELSE -amount END) 
            FROM transactions 
            WHERE account_id = a.id 
-           AND status = 'completed'
+           AND status = 'paid'
            AND deleted_at IS NULL
           ), 0
         ) as total_movement
       FROM accounts a
-      WHERE a.tenant_id = ?
-      AND a.deleted_at IS NULL
+      WHERE a.deleted_at IS NULL
       ORDER BY a.name ASC
-    `).bind(tenant_id).all()
+    `).all()
 
     return c.json({ success: true, accounts: results })
   } catch (error) {
@@ -32,17 +30,16 @@ router.get('/accounts', async (c) => {
   }
 })
 
-// Hesap detayı
+// Hesap detayı - tenant_id kaldırıldı
 router.get('/accounts/:id', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   const id = c.req.param('id')
 
   try {
     const account = await db.prepare(`
       SELECT * FROM accounts
-      WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL
-    `).bind(id, tenant_id).first()
+      WHERE id = ? AND deleted_at IS NULL
+    `).bind(id).first()
 
     if (!account) {
       return c.json({ success: false, error: 'Account not found' }, 404)
@@ -55,10 +52,9 @@ router.get('/accounts/:id', async (c) => {
   }
 })
 
-// Hesap hareketleri
+// Hesap hareketleri - tenant_id kaldırıldı, status='paid' düzeltildi
 router.get('/accounts/:id/movements', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   const id = c.req.param('id')
 
   try {
@@ -70,17 +66,16 @@ router.get('/accounts/:id/movements', async (c) => {
            FROM transactions 
            WHERE account_id = ? 
            AND id <= t.id
-           AND status = 'completed'
+           AND status = 'paid'
            AND deleted_at IS NULL
           ), 0
         ) as balance_after
       FROM transactions t
       WHERE t.account_id = ?
-      AND t.tenant_id = ?
       AND t.deleted_at IS NULL
       ORDER BY t.date DESC, t.id DESC
       LIMIT 100
-    `).bind(id, id, tenant_id).all()
+    `).bind(id, id).all()
 
     return c.json({ success: true, movements: results })
   } catch (error) {
@@ -89,31 +84,23 @@ router.get('/accounts/:id/movements', async (c) => {
   }
 })
 
-// Hesap ekle
+// Hesap ekle - tenant_id ve gereksiz alanlar kaldırıldı
 router.post('/accounts', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   const body = await c.req.json()
 
   try {
     const result = await db.prepare(`
       INSERT INTO accounts (
-        tenant_id, name, type, currency, initial_balance, 
-        current_balance, bank_name, bank_branch, bank_account_no,
-        iban, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        name, type, initial_balance, balance_calculated,
+        status
+      ) VALUES (?, ?, ?, ?, ?)
     `).bind(
-      tenant_id,
       body.name,
       body.type,
-      body.currency || 'TRY',
       body.initial_balance || 0,
       body.initial_balance || 0,
-      body.bank_name || null,
-      body.bank_branch || null, 
-      body.bank_account_no || null,
-      body.iban || null,
-      body.notes || null
+      body.status || 'active'
     ).run()
 
     if (!result.success) {
@@ -129,10 +116,9 @@ router.post('/accounts', async (c) => {
   }
 })
 
-// İşlemleri listele
+// İşlemleri listele - tenant_id kaldırıldı, status='paid' düzeltildi
 router.get('/transactions', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
 
   try {
     const result = await db.prepare(`
@@ -143,11 +129,10 @@ router.get('/transactions', async (c) => {
       FROM transactions t
       LEFT JOIN accounts a ON t.account_id = a.id
       LEFT JOIN transaction_categories tc ON t.category_id = tc.id
-      WHERE t.tenant_id = ?
-      AND t.deleted_at IS NULL
+      WHERE t.deleted_at IS NULL
       ORDER BY t.date DESC, t.id DESC
       LIMIT 100
-    `).bind(tenant_id).all()
+    `).all()
 
     return c.json({
       success: true,
@@ -164,10 +149,9 @@ router.get('/transactions', async (c) => {
   }
 })
 
-// Filtrelenmiş işlemler listesi
+// Filtrelenmiş işlemler listesi - tenant_id kaldırıldı
 router.get('/transactions/filtered', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   const { 
     account_id, 
     category_id, 
@@ -188,10 +172,9 @@ router.get('/transactions/filtered', async (c) => {
       FROM transactions t
       LEFT JOIN accounts a ON t.account_id = a.id
       LEFT JOIN transaction_categories c ON t.category_id = c.id
-      WHERE t.tenant_id = ?
-      AND t.deleted_at IS NULL
+      WHERE t.deleted_at IS NULL
     `
-    const params: any[] = [tenant_id]
+    const params: any[] = []
 
     // Filtreler
     if (account_id) {
@@ -245,30 +228,28 @@ router.get('/transactions/filtered', async (c) => {
   }
 })
 
-// İşlem ekle
+// İşlem ekle - tenant_id kaldırıldı, related_type ve related_id olarak düzeltildi
 router.post('/transactions', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   const body = await c.req.json()
 
   try {
     const result = await db.prepare(`
       INSERT INTO transactions (
-        tenant_id, account_id, category_id, type,
-        amount, date, description, reference_type,
-        reference_id, payment_method, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        account_id, category_id, type,
+        amount, date, description, related_type,
+        related_id, payment_method, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
-      tenant_id,
       body.account_id,
       body.category_id,
       body.type,
       body.amount,
       body.date || new Date().toISOString(),
       body.description,
-      body.reference_type || null,
-      body.reference_id || null,
-      body.payment_method || null,
+      body.related_type || null,
+      body.related_id || null,
+      body.payment_method || 'cash',
       1 // TODO: Aktif kullanıcı ID'si
     ).run()
 
@@ -285,28 +266,28 @@ router.post('/transactions', async (c) => {
   }
 })
 
-// Kategorileri listele
+// Kategorileri listele - tenant_id kaldırıldı
 router.get('/categories', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
 
   try {
     const { results } = await db.prepare(`
       SELECT * FROM transaction_categories
-      WHERE tenant_id = ?
       ORDER BY type, name
-    `).bind(tenant_id).all()
+    `).all()
 
-    return c.json(results)
+    return c.json({
+      success: true,
+      categories: results || []
+    })
   } catch (error) {
     return c.json({ error: 'Database error' }, 500)
   }
 })
 
-// İstatistikler
+// İstatistikler - tenant_id kaldırıldı, status='paid' düzeltildi
 router.get('/stats', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
 
   try {
     // Hesap bakiyeleri
@@ -315,10 +296,9 @@ router.get('/stats', async (c) => {
         SUM(balance_calculated) as total_balance,
         COUNT(*) as total_accounts
       FROM accounts 
-      WHERE tenant_id = ? 
-      AND deleted_at IS NULL
+      WHERE deleted_at IS NULL
       AND status = 'active'
-    `).bind(tenant_id).first()
+    `).first()
 
     // Günlük işlemler
     const dailyStats = await db.prepare(`
@@ -327,11 +307,10 @@ router.get('/stats', async (c) => {
         COALESCE(SUM(CASE WHEN type = 'out' THEN amount ELSE 0 END), 0) as expense,
         COUNT(*) as transaction_count
       FROM transactions
-      WHERE tenant_id = ?
-      AND DATE(date) = DATE('now')
-      AND status = 'completed'
+      WHERE DATE(date) = DATE('now')
+      AND status = 'paid'
       AND deleted_at IS NULL
-    `).bind(tenant_id).first()
+    `).first()
 
     // Aylık özet
     const monthlyStats = await db.prepare(`
@@ -339,21 +318,19 @@ router.get('/stats', async (c) => {
         COALESCE(SUM(CASE WHEN type = 'in' THEN amount ELSE 0 END), 0) as income,
         COALESCE(SUM(CASE WHEN type = 'out' THEN amount ELSE 0 END), 0) as expense
       FROM transactions
-      WHERE tenant_id = ?
-      AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
-      AND status = 'completed'
+      WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
+      AND status = 'paid'
       AND deleted_at IS NULL
-    `).bind(tenant_id).first()
+    `).first()
 
     // Bekleyen tahsilatlar
     const pendingPayments = await db.prepare(`
       SELECT COALESCE(SUM(amount), 0) as total
       FROM transactions
-      WHERE tenant_id = ?
-      AND type = 'in'
+      WHERE type = 'in'
       AND status = 'pending'
       AND deleted_at IS NULL
-    `).bind(tenant_id).first()
+    `).first()
 
     return c.json({
       success: true,
@@ -368,10 +345,9 @@ router.get('/stats', async (c) => {
   }
 })
 
-// Gelir/Gider grafiği için veri
+// Gelir/Gider grafiği için veri - tenant_id kaldırıldı, status='paid' düzeltildi
 router.get('/reports/income-expense', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
 
   try {
     const { results } = await db.prepare(`
@@ -388,12 +364,11 @@ router.get('/reports/income-expense', async (c) => {
         COALESCE(SUM(CASE WHEN t.type = 'out' THEN t.amount ELSE 0 END), 0) as expense
       FROM dates
       LEFT JOIN transactions t ON strftime('%Y-%m', t.date) = strftime('%Y-%m', dates.date)
-        AND t.tenant_id = ?
-        AND t.status = 'completed'
+        AND t.status = 'paid'
         AND t.deleted_at IS NULL
       GROUP BY strftime('%Y-%m', dates.date)
       ORDER BY month ASC
-    `).bind(tenant_id).all()
+    `).all()
 
     // Ayları ve verileri ayır
     const labels = results.map(r => r.month)
@@ -412,15 +387,9 @@ router.get('/reports/income-expense', async (c) => {
   }
 })
 
-// Gelir özeti
-router.get('/income/summary', async (c) => {
-  // ... implementation ...
-})
-
-// Gider özeti
+// Gider özeti - tenant_id kaldırıldı, status='paid' düzeltildi
 router.get('/expense/summary', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
 
   try {
     // Bugünkü giderler
@@ -429,12 +398,11 @@ router.get('/expense/summary', async (c) => {
         COALESCE(SUM(amount), 0) as total,
         COUNT(*) as count
       FROM transactions
-      WHERE tenant_id = ?
-      AND type = 'out'
+      WHERE type = 'out'
       AND DATE(date) = DATE('now')
-      AND status = 'completed'
+      AND status = 'paid'
       AND deleted_at IS NULL
-    `).bind(tenant_id).first()
+    `).first()
 
     // Bekleyen ödemeler
     const upcomingStats = await db.prepare(`
@@ -442,11 +410,10 @@ router.get('/expense/summary', async (c) => {
         COALESCE(SUM(amount), 0) as total,
         COUNT(*) as count
       FROM transactions
-      WHERE tenant_id = ?
-      AND type = 'out'
+      WHERE type = 'out'
       AND status = 'pending'
       AND deleted_at IS NULL
-    `).bind(tenant_id).first()
+    `).first()
 
     // Aylık toplam
     const monthlyStats = await db.prepare(`
@@ -454,12 +421,11 @@ router.get('/expense/summary', async (c) => {
         COALESCE(SUM(amount), 0) as total,
         COUNT(*) as count
       FROM transactions
-      WHERE tenant_id = ?
-      AND type = 'out'
+      WHERE type = 'out'
       AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
-      AND status = 'completed'
+      AND status = 'paid'
       AND deleted_at IS NULL
-    `).bind(tenant_id).first()
+    `).first()
 
     return c.json({
       success: true,
@@ -482,29 +448,25 @@ router.get('/expense/summary', async (c) => {
   }
 })
 
-// Gider listesi
+// Gider listesi - tenant_id kaldırıldı, supplier_name kaldırıldı
 router.get('/expenses', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   
   try {
     const { results } = await db.prepare(`
       SELECT 
         t.*,
         a.name as account_name,
-        s.name as supplier_name,
         c.name as category_name,
-        c.color as category_color
+        c.reporting_code as category_code
       FROM transactions t
       LEFT JOIN accounts a ON t.account_id = a.id
-      LEFT JOIN suppliers s ON t.supplier_id = s.id
       LEFT JOIN transaction_categories c ON t.category_id = c.id
-      WHERE t.tenant_id = ?
-      AND t.type = 'out'
+      WHERE t.type = 'out'
       AND t.deleted_at IS NULL
       ORDER BY t.date DESC
       LIMIT 100
-    `).bind(tenant_id).all()
+    `).all()
 
     return c.json({
       success: true,
@@ -516,24 +478,20 @@ router.get('/expenses', async (c) => {
   }
 })
 
-// Ödeme onaylama
+// Ödeme onaylama - tenant_id kaldırıldı, status='paid' düzeltildi
 router.post('/expenses/:id/approve', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   const id = c.req.param('id')
 
   try {
     const result = await db.prepare(`
       UPDATE transactions
-      SET status = 'completed',
-          completed_at = datetime('now'),
-          updated_at = datetime('now')
+      SET status = 'paid'
       WHERE id = ?
-      AND tenant_id = ?
       AND type = 'out'
       AND status = 'pending'
       AND deleted_at IS NULL
-    `).bind(id, tenant_id).run()
+    `).bind(id).run()
 
     if (!result.success) {
       throw new Error('Expense approval failed')
@@ -546,10 +504,9 @@ router.post('/expenses/:id/approve', async (c) => {
   }
 })
 
-// Bekleyen ödemeler (Satın alma ve Siparişler)
+// Bekleyen ödemeler (Satın alma ve Siparişler) - tenant_id kaldırıldı
 router.get('/pending', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
 
   try {
     // Bekleyen satın alma ödemeleri
@@ -564,10 +521,9 @@ router.get('/pending', async (c) => {
         'purchase' as type
       FROM purchase_orders po
       JOIN suppliers s ON s.id = po.supplier_id
-      WHERE po.tenant_id = ?
-      AND po.payment_status = 'pending'
+      WHERE po.payment_status = 'pending'
       AND po.deleted_at IS NULL
-    `).bind(tenant_id).all();
+    `).all();
 
     // Bekleyen sipariş tahsilatları
     const orders = await db.prepare(`
@@ -581,10 +537,9 @@ router.get('/pending', async (c) => {
         'order' as type
       FROM orders o
       JOIN customers c ON c.id = o.customer_id
-      WHERE o.tenant_id = ?
-      AND o.payment_status = 'pending'
+      WHERE o.payment_status = 'pending'
       AND o.deleted_at IS NULL
-    `).bind(tenant_id).all();
+    `).all();
 
     return c.json({
       success: true,
@@ -600,10 +555,9 @@ router.get('/pending', async (c) => {
   }
 })
 
-// Ödeme işlemleri endpoint'leri
+// Ödeme işlemleri endpoint'leri - tenant_id kaldırıldı
 router.get('/payments/:type/:id', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   const type = c.req.param('type')
   const id = c.req.param('id')
 
@@ -613,18 +567,18 @@ router.get('/payments/:type/:id', async (c) => {
       `SELECT po.*, s.name as supplier_name, s.phone as supplier_phone, s.contact_name as supplier_contact
        FROM purchase_orders po
        JOIN suppliers s ON s.id = po.supplier_id 
-       WHERE po.id = ? AND po.tenant_id = ? AND po.deleted_at IS NULL` :
+       WHERE po.id = ? AND po.deleted_at IS NULL` :
       `SELECT o.*, c.name as customer_name, c.phone as customer_phone
        FROM orders o
        JOIN customers c ON c.id = o.customer_id 
-       WHERE o.id = ? AND o.tenant_id = ? AND o.deleted_at IS NULL`;
+       WHERE o.id = ? AND po.deleted_at IS NULL`;
 
     // Ana kaydı ve hesapları getir
-    const details = await db.prepare(query).bind(id, tenant_id).first()
+    const details = await db.prepare(query).bind(id).first()
     const { results: accounts } = await db.prepare(`
       SELECT id, name, type FROM accounts 
-      WHERE tenant_id = ? AND status = 'active' AND deleted_at IS NULL
-    `).bind(tenant_id).all()
+      WHERE status = 'active' AND deleted_at IS NULL
+    `).all()
 
     if (!details) {
       return c.json({ success: false, error: 'Record not found' }, 404)
@@ -641,15 +595,9 @@ router.get('/payments/:type/:id', async (c) => {
   }
 })
 
-// Endpoint'i düzelt
-router.post('/payments/:type/:id', async (c) => {
-  // ...existing code...
-})
-
-// Payment endpoint'ini düzelt
+// Payment endpoint - tenant_id ve gereksiz alan kaldırıldı
 router.post('/payments', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   const body = await c.req.json()
 
   try {
@@ -661,23 +609,21 @@ router.post('/payments', async (c) => {
     // 2. Category ID bul
     const category = await db.prepare(`
       SELECT id FROM transaction_categories 
-      WHERE tenant_id = ? AND reporting_code = ?
+      WHERE reporting_code = ?
       LIMIT 1
     `).bind(
-      tenant_id,
       body.related_type === 'purchase' ? 'SUPPLIER' : 'SALES_CASH'
     ).first() as any
 
     // 3. Transaction ekle
     const result = await db.prepare(`
       INSERT INTO transactions (
-        tenant_id, account_id, category_id,
+        account_id, category_id,
         type, amount, date,
         payment_method, description, related_type, 
         related_id, status, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
     `).bind(
-      tenant_id,
       body.account_id,
       category.id,
       body.type,
@@ -699,7 +645,7 @@ router.post('/payments', async (c) => {
             WHEN paid_amount + ? > 0 THEN 'partial'
             ELSE payment_status 
           END
-      WHERE id = ? AND tenant_id = ?
+      WHERE id = ?
     ` : `
       UPDATE orders
       SET paid_amount = paid_amount + ?,
@@ -708,17 +654,17 @@ router.post('/payments', async (c) => {
             WHEN paid_amount + ? > 0 THEN 'partial'
             ELSE payment_status 
           END
-      WHERE id = ? AND tenant_id = ?
+      WHERE id = ?
     `
 
     await db.prepare(updateQuery).bind(
       body.amount, body.amount, body.amount,
-      body.related_id, tenant_id
+      body.related_id
     ).run()
 
     return c.json({ 
       success: true, 
-      transaction_id: result.lastRowId 
+      transaction_id: result.meta?.last_row_id 
     })
 
   } catch (error) {
