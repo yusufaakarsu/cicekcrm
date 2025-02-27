@@ -253,17 +253,18 @@ async function showPurchaseDetail(id) {
         const data = await response.json();
         if (!data.success) throw new Error(data.error);
 
-        currentOrder = data.order; // Order bilgisini saklayalım
+        // 1. Önce order bilgisini saklayalım
+        currentOrder = data.order;
         
-        // Detay alanlarını doldur
-        document.getElementById('detail-id').textContent = order.id;
-        document.getElementById('detail-supplier-name').textContent = order.supplier_name;
-        document.getElementById('detail-supplier-phone').textContent = order.supplier_phone;
-        document.getElementById('detail-supplier-email').textContent = order.supplier_email || '-';
-        document.getElementById('detail-created-by').textContent = order.created_by_name;
+        // 2. Detay alanlarını doldururken currentOrder kullanalım
+        document.getElementById('detail-id').textContent = currentOrder.id;
+        document.getElementById('detail-supplier-name').textContent = currentOrder.supplier_name;
+        document.getElementById('detail-supplier-phone').textContent = currentOrder.supplier_phone;
+        document.getElementById('detail-supplier-email').textContent = currentOrder.supplier_email || '-';
+        document.getElementById('detail-created-by').textContent = currentOrder.created_by_name;
 
-        // Ürün listesi
-        document.getElementById('detail-items').innerHTML = order.items.map(item => `
+        // 3. Ürün listesinde de currentOrder kullanalım
+        document.getElementById('detail-items').innerHTML = currentOrder.items.map(item => `
             <tr>
                 <td>${item.material_name}</td>
                 <td>${item.quantity}</td>
@@ -274,18 +275,11 @@ async function showPurchaseDetail(id) {
         `).join('');
 
         document.getElementById('detail-total').textContent = 
-            `${formatPrice(order.total_amount)} ₺`;
+            `${formatPrice(currentOrder.total_amount)} ₺`;
 
-        // Ödemeleri göster butonu ekle
-        const paymentBtn = document.createElement('button');
-        paymentBtn.className = 'btn btn-success';
-        paymentBtn.innerHTML = '<i class="bi bi-cash"></i> Ödeme İşlemleri';
-        paymentBtn.onclick = () => showPaymentModal(order);
-        
-        const footer = document.querySelector('#purchaseDetailModal .modal-footer');
-        footer.appendChild(paymentBtn);
-
+        // 4. Modalı açalım
         detailModal.show();
+
     } catch (error) {
         console.error('Sipariş detayı yüklenirken hata:', error);
         showError('Sipariş detayları yüklenemedi!');
