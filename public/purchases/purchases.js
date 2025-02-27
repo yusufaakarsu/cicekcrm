@@ -316,15 +316,18 @@ async function updateStatus(status) {
 // Ödeme işlemleri için yeni fonksiyonlar
 async function showPaymentModal(orderId) {
     try {
-        const response = await fetch(`${API_URL}/purchase/orders/${orderId}`);
-        if (!response.ok) throw new Error('API Hatası');
+        currentPurchaseId = orderId;
         
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error);
+        // Sipariş detaylarını yükle
+        const orderResponse = await fetch(`${API_URL}/purchase/orders/${orderId}`);
+        if (!orderResponse.ok) throw new Error('API Hatası');
+        
+        const orderData = await orderResponse.json();
+        if (!orderData.success) throw new Error(orderData.error);
 
-        const order = data.order;
+        const order = orderData.order;
         
-        // Payment modal içeriğini doldur
+        // Modal içeriğini doldur
         document.getElementById('payment-order-id').textContent = order.id;
         document.getElementById('payment-supplier').textContent = order.supplier_name;
         document.getElementById('payment-total').textContent = formatPrice(order.total_amount);
@@ -332,34 +335,80 @@ async function showPaymentModal(orderId) {
         document.getElementById('payment-remaining').textContent = 
             formatPrice(order.total_amount - (order.paid_amount || 0));
 
-        // Payment status'a göre butonları ayarla
-        const paymentButtons = document.getElementById('paymentButtons');
-        if (order.payment_status === 'paid') {
-            paymentButtons.innerHTML = `
-                <button type="button" class="btn btn-success" disabled>Ödendi</button>
-                <button type="button" class="btn btn-warning" onclick="updatePaymentStatus(${order.id}, 'partial')">
-                    Kısmi Öde
-                </button>
-            `;
-        } else {
-            paymentButtons.innerHTML = `
-                <button type="button" class="btn btn-success" onclick="updatePaymentStatus(${order.id}, 'paid')">
-                    Tamamını Öde
-                </button>
-                <button type="button" class="btn btn-warning" onclick="updatePaymentStatus(${order.id}, 'partial')">
-                    Kısmi Öde
-                </button>
-                <button type="button" class="btn btn-danger" onclick="updatePaymentStatus(${order.id}, 'cancelled')">
-                    İptal
-                </button>
-            `;
-        }
+        // Kalan tutarı input'a set et
+        const amountInput = document.querySelector('#paymentForm input[name="amount"]');
+        amountInput.value = (order.total_amount - (order.paid_amount || 0)).toFixed(2);
+        amountInput.max = (order.total_amount - (order.paid_amount || 0)).toString();
+
+        // Hesapları yükle
+        const accountsResponse = await fetch(`${API_URL}/finance/accounts`);
+        if (!accountsResponse.ok) throw new Error('API Hatası');
+        
+        const accountsData = await accountsResponse.json();
+        if (!accountsData.success) throw new Error(accountsData.error);
+
+        const accountSelect = document.querySelector('#paymentForm select[name="account_id"]');
+        accountSelect.innerHTML = accountsData.accounts.map(acc => `
+            <option value="${acc.id}">${acc.name} (${formatPrice(acc.balance_calculated)} ₺)</option>
+        `).join('');
+
+        // Ödeme geçmişini yükle
+        const historyResponse = await fetch(`${API_URL}/purchase/orders/${orderId}/payments`);
+        if (!historyResponse.ok) throw new Error('API Hatası');
+        
+        const historyData = await historyResponse.json();
+        if (!historyData.success) throw new Error(historyData.error);
+
+        const historyTable = document.getElementById('payment-history');
+        historyTable.innerHTML = historyData.payments.map(payment => `
+            <tr>
+                <td>${formatDateTime(payment.date)}</td>
+                <td>${formatPrice(payment.amount)} ₺</td>
+                <td>${getPaymentMethodLabel(payment.payment_method)}</td>
+                <td>${getPaymentStatusBadge(payment.status)}</td>
+            </tr>
+        `).join('') || '<tr><td colspan="4" class="text-center">Ödeme bulunamadı</td></tr>';
 
         const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
         paymentModal.show();
     } catch (error) {
         console.error('Ödeme detayları yüklenirken hata:', error);
         showError('Ödeme detayları yüklenemedi!');
+    }
+}
+
+async function makePayment() {
+    const form = document.getElementById('paymentForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const formData = new FormData(form);
+    const data = {
+        amount: parseFloat(formData.get('amount')),
+        payment_method: formData.get('payment_method'),
+        account_id: parseInt(formData.get('account_id')),
+        notes: formData.get('notes')
+    };
+
+    try {
+        const response = await fetch(`${API_URL}/purchase/orders/${currentPurchaseId}/payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
+        // Modal'ı kapat ve listeyi güncelle
+        bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+        await loadPurchases();
+        showSuccess('Ödeme başarıyla kaydedildi');
+    } catch (error) {
+        console.error('Ödeme hatası:', error);
+        showError(error.message || 'Ödeme yapılamadı');
     }
 }
 

@@ -192,6 +192,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- Sipariş Özeti -->
                     <div class="card mb-3">
                         <div class="card-body">
                             <dl class="row mb-0">
@@ -210,9 +211,58 @@
                         </div>
                     </div>
 
-                    <div id="paymentButtons" class="d-flex gap-2">
-                        <!-- Butonlar JavaScript ile doldurulacak -->
+                    <!-- Ödeme Formu -->
+                    <form id="paymentForm">
+                        <div class="mb-3">
+                            <label class="form-label">Ödeme Tutarı</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="amount" step="0.01" required>
+                                <span class="input-group-text">₺</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Ödeme Yöntemi</label>
+                            <select class="form-select" name="payment_method" required>
+                                <option value="cash">Nakit</option>
+                                <option value="bank_transfer">Havale/EFT</option>
+                                <option value="credit_card">Kredi Kartı</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Hesap</label>
+                            <select class="form-select" name="account_id" required>
+                                <!-- JavaScript ile doldurulacak -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notlar</label>
+                            <textarea class="form-control" name="notes" rows="2"></textarea>
+                        </div>
+                    </form>
+
+                    <!-- Ödeme Geçmişi -->
+                    <div class="card mt-3">
+                        <div class="card-header">Ödeme Geçmişi</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Tarih</th>
+                                        <th>Tutar</th>
+                                        <th>Yöntem</th>
+                                        <th>Durum</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payment-history">
+                                    <!-- JavaScript ile doldurulacak -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    <button type="button" class="btn btn-primary" onclick="makePayment()">Ödeme Yap</button>
                 </div>
             </div>
         </div>
