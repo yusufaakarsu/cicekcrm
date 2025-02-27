@@ -165,10 +165,9 @@ router.post('/', async (c) => {
                 name, 
                 description,
                 unit_id, 
-                category_id, 
-                status,
+                category_id,
                 notes
-            ) VALUES (?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?)
         `).bind(
             body.name,
             body.description || null,

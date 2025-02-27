@@ -265,7 +265,6 @@ async function editMaterial(id) {
         form.elements['description'].value = material.description || '';
         form.elements['unit_id'].value = material.unit_id || '';
         form.elements['category_id'].value = material.category_id || '';
-        form.elements['status'].value = material.status || 'active';
         form.elements['notes'].value = material.notes || '';
         
         materialModal.show();
