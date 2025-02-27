@@ -490,8 +490,6 @@ async function showPurchaseDetail(id) {
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
-        if (!data.success) throw new Error(data.error);
-
         currentOrder = data.order;
         
         // Detay alanlarını doldur
@@ -499,43 +497,13 @@ async function showPurchaseDetail(id) {
         document.getElementById('detail-supplier-name').textContent = currentOrder.supplier_name;
         document.getElementById('detail-total-amount').textContent = formatPrice(currentOrder.total_amount);
         document.getElementById('detail-paid-amount').textContent = formatPrice(currentOrder.paid_amount || 0);
-        document.getElementById('detail-remaining').textContent = 
-            formatPrice(currentOrder.total_amount - (currentOrder.paid_amount || 0));
         
-        // Durum badge'i
-        document.getElementById('detail-status').innerHTML = getPaymentStatusBadge(currentOrder.payment_status);
-
-        // Ürün listesi
-        document.getElementById('detail-items-table').innerHTML = `
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Hammadde</th>
-                        <th class="text-end">Miktar</th>
-                        <th class="text-end">Birim Fiyat</th>
-                        <th class="text-end">Toplam</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${currentOrder.items.map(item => `
-                        <tr>
-                            <td>${item.material_name}</td>
-                            <td class="text-end">${item.quantity} ${item.unit_code}</td>
-                            <td class="text-end">${formatPrice(item.unit_price)}</td>
-                            <td class="text-end">${formatPrice(item.quantity * item.unit_price)}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
-
-        // Ödeme formu için max tutar ayarla
         const remainingAmount = currentOrder.total_amount - (currentOrder.paid_amount || 0);
-        document.querySelector('#paymentForm [name="amount"]').value = remainingAmount;
+        document.getElementById('detail-remaining').textContent = formatPrice(remainingAmount);
 
-        // Önceki ödeme modalını kaldır
-        const paymentModal = document.getElementById('paymentModal');
-        if (paymentModal) paymentModal.remove();
+        // Ödeme formu için max tutar
+        document.querySelector('[name="amount"]').value = remainingAmount;
+        document.querySelector('[name="amount"]').max = remainingAmount;
 
         // Detay modalını göster
         detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
