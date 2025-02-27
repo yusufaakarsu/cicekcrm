@@ -2,121 +2,28 @@ import { Hono } from 'hono';
 
 const router = new Hono();
 
-// Ham maddeleri getir (filtreleme destekli)
-router.get('/', async (c) => {
-    const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
-
-    try {
-        const url = new URL(c.req.url);
-        const search = url.searchParams.get('search') || '';
-        const category = url.searchParams.get('category') || '';
-        const status = url.searchParams.get('status') || '';
-
-        let sql = `
-            SELECT 
-                m.*,
-                c.name as category_name,
-                u.name as unit_name,
-                u.code as unit_code,
-                COALESCE(
-                    (SELECT SUM(
-                        CASE WHEN movement_type = 'in' THEN quantity
-                        ELSE -quantity END
-                    ) FROM stock_movements 
-                    WHERE material_id = m.id AND deleted_at IS NULL
-                    ), 0
-                ) as current_stock
-            FROM raw_materials m
-            LEFT JOIN raw_material_categories c ON m.category_id = c.id
-            LEFT JOIN units u ON m.unit_id = u.id
-            WHERE m.tenant_id = ?
-            AND m.deleted_at IS NULL
-        `;
-
-        const params = [tenant_id];
-
-        if (search) {
-            sql += ` AND m.name LIKE ?`;
-            params.push(`%${search}%`);
-        }
-
-        if (category) {
-            sql += ` AND m.category_id = ?`;
-            params.push(category);
-        }
-
-        if (status) {
-            sql += ` AND m.status = ?`;
-            params.push(status);
-        }
-
-        sql += ` ORDER BY m.name ASC`;
-
-        const { results } = await db.prepare(sql).bind(...params).all();
-
-        return c.json({
-            success: true,
-            materials: results
-        });
-
-    } catch (error) {
-        console.error('Materials error:', error);
-        return c.json({
-            success: false,
-            error: 'Database error',
-            details: error.message
-        }, 500);
-    }
-});
-
-// Birimleri getir detayını getir
-router.get('/units', async (c) => {
-    const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
-    const id = c.req.param('id');
-    try {
-        const { results } = await db.prepare(`
-            SELECT id, name, code 
-            FROM units 
-            WHERE tenant_id = ? 
-            AND deleted_at IS NULL
-            ORDER BY name ASC
-        `).bind(tenant_id).all();
-        return c.json({
-            success: true,
-            units: results
-        });
-    } catch (error) {
-        console.error('Units error:', error);
-        return c.json({
-            success: false,
-            error: 'Database error'
-        }, 500);
-    }
-});
-
-// Kategorileri getir
+// Hammadde kategorileri
 router.get('/categories', async (c) => {
     const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
-
+    
     try {
         const { results } = await db.prepare(`
-            SELECT id, name, description, display_order, status
-            FROM raw_material_categories 
-            WHERE tenant_id = ? 
-            AND deleted_at IS NULL
-            ORDER BY display_order ASC, name ASC
-        `).bind(tenant_id).all();
-
+            SELECT 
+                c.*,
+                COUNT(m.id) as material_count
+            FROM raw_material_categories c
+            LEFT JOIN raw_materials m ON c.id = m.category_id 
+                AND m.deleted_at IS NULL
+            WHERE c.deleted_at IS NULL
+            GROUP BY c.id
+            ORDER BY c.display_order, c.name
+        `).all();
+        
         return c.json({
             success: true,
-            categories: results
+            categories: results || []
         });
-
     } catch (error) {
-        console.error('Categories error:', error);
         return c.json({
             success: false,
             error: 'Database error',
@@ -125,71 +32,10 @@ router.get('/categories', async (c) => {
     }
 });
 
-// Yeni ham madde ekle
-router.post('/', async (c) => {
+// Hammadde listesi
+router.get('/', async (c) => {
     const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
-    const user_id = c.get('user_id');
-
-    try {
-        const body = await c.req.json();
-        const { name, unit_id, category_id, description, notes } = body;
-
-        // Validasyon
-        if (!name || !unit_id) {
-            return c.json({
-                success: false,
-                error: 'Validation error - Required fields missing'
-            }, 400);
-        }
-
-        // Kategori kontrolü
-        if (category_id) {
-            const { count } = await db.prepare(`
-                SELECT COUNT(*) as count 
-                FROM raw_material_categories 
-                WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL
-            `).bind(category_id, tenant_id).first();
-
-            if (!count) {
-                return c.json({
-                    success: false,
-                    error: 'Invalid category'
-                }, 400);
-            }
-        }
-
-        // Hammadde ekle
-        const { success } = await db.prepare(`
-            INSERT INTO raw_materials (
-                tenant_id, name, unit_id, category_id,
-                description, notes, status, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP)
-        `).bind(tenant_id, name, unit_id, category_id, description, notes).run();
-
-        if (!success) throw new Error('Insert failed');
-
-        return c.json({
-            success: true,
-            message: 'Material added successfully'
-        });
-
-    } catch (error) {
-        console.error('Material insert error:', error);
-        return c.json({
-            success: false,
-            error: 'Database error',
-            details: error.message
-        }, 500);
-    }
-});
-
-// Tekil ham madde detayını getir
-router.get('/:id', async (c) => {
-    const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
-    const id = c.req.param('id');
-
+    
     try {
         const { results } = await db.prepare(`
             SELECT 
@@ -197,37 +43,99 @@ router.get('/:id', async (c) => {
                 c.name as category_name,
                 u.name as unit_name,
                 u.code as unit_code,
-                COALESCE(
-                    (SELECT SUM(
-                        CASE WHEN movement_type = 'in' THEN quantity
-                        ELSE -quantity END
-                    ) FROM stock_movements 
-                    WHERE material_id = m.id AND deleted_at IS NULL
-                    ), 0
-                ) as current_stock
+                COALESCE(s.total_in, 0) - COALESCE(s.total_out, 0) as current_stock
             FROM raw_materials m
             LEFT JOIN raw_material_categories c ON m.category_id = c.id
             LEFT JOIN units u ON m.unit_id = u.id
-            WHERE m.id = ?
-            AND m.tenant_id = ?
-            AND m.deleted_at IS NULL
-            LIMIT 1
-        `).bind(id, tenant_id).all();
+            LEFT JOIN (
+                SELECT 
+                    material_id,
+                    SUM(CASE WHEN movement_type = 'in' THEN quantity ELSE 0 END) as total_in,
+                    SUM(CASE WHEN movement_type = 'out' THEN quantity ELSE 0 END) as total_out
+                FROM stock_movements
+                WHERE deleted_at IS NULL
+                GROUP BY material_id
+            ) s ON m.id = s.material_id
+            WHERE m.deleted_at IS NULL
+            ORDER BY c.display_order, m.name
+        `).all();
+        
+        return c.json({
+            success: true,
+            materials: results || []
+        });
+    } catch (error) {
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
+        }, 500);
+    }
+});
 
-        if (!results?.length) {
+// Hammadde detayı
+router.get('/:id', async (c) => {
+    const db = c.get('db');
+    const { id } = c.req.param();
+    
+    try {
+        // Temel bilgiler
+        const material = await db.prepare(`
+            SELECT 
+                m.*,
+                c.name as category_name,
+                u.name as unit_name,
+                u.code as unit_code
+            FROM raw_materials m
+            LEFT JOIN raw_material_categories c ON m.category_id = c.id
+            LEFT JOIN units u ON m.unit_id = u.id
+            WHERE m.id = ? AND m.deleted_at IS NULL
+        `).bind(id).first();
+
+        if (!material) {
             return c.json({
                 success: false,
                 error: 'Material not found'
             }, 404);
         }
 
+        // Stok hareketleri
+        const { results: movements } = await db.prepare(`
+            SELECT 
+                sm.*,
+                u.name as created_by_name
+            FROM stock_movements sm
+            LEFT JOIN users u ON sm.created_by = u.id
+            WHERE sm.material_id = ? 
+            AND sm.deleted_at IS NULL
+            ORDER BY sm.created_at DESC
+            LIMIT 10
+        `).bind(id).all();
+
+        // Kullanıldığı ürünler
+        const { results: products } = await db.prepare(`
+            SELECT 
+                p.id,
+                p.name,
+                pm.default_quantity,
+                u.code as unit_code
+            FROM product_materials pm
+            LEFT JOIN products p ON pm.product_id = p.id
+            LEFT JOIN raw_materials m ON pm.material_id = m.id
+            LEFT JOIN units u ON m.unit_id = u.id
+            WHERE pm.material_id = ?
+            AND pm.deleted_at IS NULL
+            AND p.deleted_at IS NULL
+        `).bind(id).all();
+
         return c.json({
             success: true,
-            material: results[0]
+            material,
+            movements: movements || [],
+            products: products || []
         });
 
     } catch (error) {
-        console.error('Material detail error:', error);
         return c.json({
             success: false,
             error: 'Database error',
@@ -236,44 +144,42 @@ router.get('/:id', async (c) => {
     }
 });
 
-// Ham madde durumunu güncelle
-router.put('/:id/status', async (c) => {
+// Yeni hammadde ekle
+router.post('/', async (c) => {
     const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
-    const id = c.req.param('id');
     
     try {
         const body = await c.req.json();
-        const { status } = body;
-
-        // Durum validasyonu
-        if (!['active', 'passive', 'archived'].includes(status)) {
+        
+        // Temel validasyon
+        if (!body.name || !body.unit_id) {
             return c.json({
                 success: false,
-                error: 'Invalid status'
+                error: 'Name and unit are required'
             }, 400);
         }
 
         const result = await db.prepare(`
-            UPDATE raw_materials 
-            SET status = ?,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ? 
-            AND tenant_id = ?
-            AND deleted_at IS NULL
-        `).bind(status, id, tenant_id).run();
-
-        if (!result.success) {
-            throw new Error('Update failed');
-        }
+            INSERT INTO raw_materials (
+                name, description, unit_id,
+                category_id, status, notes,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        `).bind(
+            body.name,
+            body.description || null,
+            body.unit_id,
+            body.category_id || null,
+            body.status || 'active',
+            body.notes || null
+        ).run();
 
         return c.json({
             success: true,
-            message: 'Status updated successfully'
+            id: result.meta?.last_row_id
         });
 
     } catch (error) {
-        console.error('Status update error:', error);
         return c.json({
             success: false,
             error: 'Database error',
@@ -282,73 +188,37 @@ router.put('/:id/status', async (c) => {
     }
 });
 
-// Ham madde güncelle
+// Hammadde güncelle
 router.put('/:id', async (c) => {
     const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
-    const id = c.req.param('id');
-
+    const { id } = c.req.param();
+    
     try {
         const body = await c.req.json();
-        const { name, unit_id, category_id, description, notes, status } = body;
 
-        // Validasyon
-        if (!name || !unit_id || !category_id) {
-            return c.json({
-                success: false,
-                error: 'Validation error - Required fields missing'
-            }, 400);
-        }
-
-        // Kategori kontrolü
-        const { count } = await db.prepare(`
-            SELECT COUNT(*) as count 
-            FROM raw_material_categories 
-            WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL
-        `).bind(category_id, tenant_id).first();
-
-        if (!count) {
-            return c.json({
-                success: false,
-                error: 'Invalid category'
-            }, 400);
-        }
-
-        // Ham maddeyi güncelle
-        const result = await db.prepare(`
+        await db.prepare(`
             UPDATE raw_materials 
-            SET name = ?,
-                unit_id = ?,
-                category_id = ?,
+            SET 
+                name = COALESCE(?, name),
                 description = ?,
-                notes = ?,
+                unit_id = COALESCE(?, unit_id),
+                category_id = ?,
                 status = COALESCE(?, status),
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ? 
-            AND tenant_id = ?
-            AND deleted_at IS NULL
+                notes = ?
+            WHERE id = ? AND deleted_at IS NULL
         `).bind(
-            name, 
-            unit_id, 
-            category_id, 
-            description, 
-            notes,
-            status,
-            id, 
-            tenant_id
+            body.name,
+            body.description,
+            body.unit_id,
+            body.category_id,
+            body.status,
+            body.notes,
+            id
         ).run();
 
-        if (!result.success) {
-            throw new Error('Update failed');
-        }
-
-        return c.json({
-            success: true,
-            message: 'Material updated successfully'
-        });
+        return c.json({ success: true });
 
     } catch (error) {
-        console.error('Material update error:', error);
         return c.json({
             success: false,
             error: 'Database error',

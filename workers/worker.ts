@@ -31,9 +31,6 @@ app.use('*', async (c, next) => {
     // DB bağlantısı
     c.set('db', c.env.DB)
     
-    // TODO: Token'dan tenant_id çekilecek
-    c.set('tenant_id', 1)
-    
     await next()
 })
 
@@ -81,7 +78,13 @@ app.get('*', (c) => {
 
 // Global error handler
 app.onError((err, c) => {
-    console.error('Application Error:', err)
+    console.error('[Application Error]:', {
+        url: c.req.url,
+        method: c.req.method,
+        error: err.message,
+        stack: err.stack
+    })
+    
     return c.json({
         success: false,
         error: err.message || 'Internal Server Error',

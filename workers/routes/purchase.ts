@@ -5,56 +5,36 @@ const router = new Hono();
 // Satın alma listesi
 router.get('/orders', async (c) => {
     const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
     
     try {
-        const supplier_id = c.req.query('supplier_id');
-        const date = c.req.query('date');
-        
-        let sql = `
+        const { results } = await db.prepare(`
             SELECT 
                 po.*,
                 s.name as supplier_name,
+                s.phone as supplier_phone,
                 u.name as created_by_name,
-                (
-                    SELECT COALESCE(SUM(quantity * unit_price), 0) 
-                    FROM purchase_order_items 
-                    WHERE order_id = po.id 
-                    AND deleted_at IS NULL
-                ) as total_amount
+                COUNT(poi.id) as item_count,
+                COALESCE(SUM(poi.quantity * poi.unit_price), 0) as calculated_total
             FROM purchase_orders po
             LEFT JOIN suppliers s ON po.supplier_id = s.id
             LEFT JOIN users u ON po.created_by = u.id
-            WHERE po.tenant_id = ? 
-            AND po.deleted_at IS NULL
-        `;
-        
-        const params = [tenant_id];
-        
-        if (supplier_id) {
-            sql += ' AND po.supplier_id = ?';
-            params.push(supplier_id);
-        }
-        
-        if (date) {
-            sql += ' AND DATE(po.order_date) = DATE(?)';
-            params.push(date);
-        }
-        
-        sql += ' ORDER BY po.order_date DESC, po.id DESC';
-        
-        const { results } = await db.prepare(sql).bind(...params).all();
+            LEFT JOIN purchase_order_items poi ON po.id = poi.order_id 
+                AND poi.deleted_at IS NULL
+            WHERE po.deleted_at IS NULL
+            GROUP BY po.id
+            ORDER BY po.order_date DESC
+        `).all();
         
         return c.json({
             success: true,
-            orders: results || []
+            orders: results
         });
     } catch (error) {
-        console.error('Database error:', error);
-        return c.json({ 
-            success: false, 
+        console.error('Purchase orders error:', error);
+        return c.json({
+            success: false,
             error: 'Database error',
-            message: error.message 
+            details: error.message
         }, 500);
     }
 });
@@ -62,8 +42,7 @@ router.get('/orders', async (c) => {
 // Satın alma detayı
 router.get('/orders/:id', async (c) => {
     const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
-    const id = c.req.param('id');
+    const { id } = c.req.param();
     
     try {
         // Ana sipariş bilgileri
@@ -71,103 +50,148 @@ router.get('/orders/:id', async (c) => {
             SELECT 
                 po.*,
                 s.name as supplier_name,
+                s.phone as supplier_phone,
+                s.email as supplier_email,
                 u.name as created_by_name
             FROM purchase_orders po
-            JOIN suppliers s ON po.supplier_id = s.id
+            LEFT JOIN suppliers s ON po.supplier_id = s.id
             LEFT JOIN users u ON po.created_by = u.id
-            WHERE po.id = ? AND po.tenant_id = ?
-        `).bind(id, tenant_id).first();
+            WHERE po.id = ? AND po.deleted_at IS NULL
+        `).bind(id).first();
+
+        if (!order) {
+            return c.json({
+                success: false,
+                error: 'Purchase order not found'
+            }, 404);
+        }
 
         // Sipariş kalemleri
         const { results: items } = await db.prepare(`
             SELECT 
                 poi.*,
                 rm.name as material_name,
-                rmc.name as category_name,
-                u.name as unit_name,
+                rm.description as material_description,
                 u.code as unit_code
             FROM purchase_order_items poi
-            JOIN raw_materials rm ON poi.material_id = rm.id
-            LEFT JOIN raw_material_categories rmc ON rm.category_id = rmc.id
+            LEFT JOIN raw_materials rm ON poi.material_id = rm.id
             LEFT JOIN units u ON rm.unit_id = u.id
-            WHERE poi.order_id = ?
+            WHERE poi.order_id = ? 
             AND poi.deleted_at IS NULL
         `).bind(id).all();
 
         return c.json({
             success: true,
-            order,
-            items
+            order: {
+                ...order,
+                items: items || []
+            }
         });
+
     } catch (error) {
-        return c.json({ 
-            success: false, 
-            error: 'Database error' 
+        console.error('Purchase order detail error:', error);
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
         }, 500);
     }
 });
 
-// Yeni satın alma ekle
+// Yeni satın alma siparişi oluştur
 router.post('/orders', async (c) => {
     const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
-    const user_id = c.get('user_id') || 1;
     
     try {
-        const data = await c.req.json();
-        const { supplier_id, order_date, items } = data;
-
-        // Validasyonlar
-        if (!supplier_id || !order_date || !Array.isArray(items) || items.length === 0) {
+        const body = await c.req.json();
+        
+        // Temel validasyon
+        if (!body.supplier_id || !body.items?.length) {
             return c.json({
                 success: false,
-                error: 'Eksik ya da hatalı veriler'
+                error: 'Missing required fields'
             }, 400);
         }
 
-        // 1. Ana siparişi oluştur ve ID'sini al 
-        const orderResult = await db.prepare(`
+        // Siparişi oluştur
+        const result = await db.prepare(`
             INSERT INTO purchase_orders (
-                tenant_id, supplier_id, order_date, created_by,
-                created_at, updated_at, payment_status
-            ) VALUES (?, ?, ?, ?, datetime('now'), datetime('now'), 'pending')
-            RETURNING id
+                supplier_id, order_date, notes,
+                payment_status, total_amount,
+                created_by, created_at, updated_at
+            ) VALUES (?, date('now'), ?, ?, ?, ?, datetime('now'), datetime('now'))
         `).bind(
-            tenant_id,
-            supplier_id,
-            order_date,
-            user_id
-        ).first();
+            body.supplier_id,
+            body.notes || null,
+            body.payment_status || 'pending',
+            body.total_amount || 0,
+            1 // TODO: Gerçek user ID
+        ).run();
 
-        const order_id = orderResult.id;
+        const order_id = result.meta?.last_row_id;
+        if (!order_id) throw new Error('Order could not be created');
 
-        // 2. Kalemleri batch olarak ekle
-        const itemInserts = items.map(item => 
-            db.prepare(`
+        // Sipariş kalemlerini ekle
+        for (const item of body.items) {
+            await db.prepare(`
                 INSERT INTO purchase_order_items (
-                    order_id, material_id, quantity, unit_price, created_at
-                ) VALUES (?, ?, ?, ?, datetime('now'))
+                    order_id, material_id, quantity,
+                    unit_price, notes, created_at
+                ) VALUES (?, ?, ?, ?, ?, datetime('now'))
             `).bind(
-                order_id, 
+                order_id,
                 item.material_id,
                 item.quantity,
-                item.unit_price
-            )
-        );
-
-        await db.batch(itemInserts);
+                item.unit_price,
+                item.notes || null
+            ).run();
+        }
 
         return c.json({
             success: true,
-            order_id: order_id,
-            message: 'Satın alma kaydı oluşturuldu'
+            order_id: order_id
         });
 
     } catch (error) {
-        console.error('Purchase order error:', error);
-        return c.json({ 
-            success: false, 
-            error: 'İşlem başarısız',
+        console.error('Create purchase order error:', error);
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
+        }, 500);
+    }
+});
+
+// Satın alma durumunu güncelle
+router.put('/orders/:id/status', async (c) => {
+    const db = c.get('db');
+    const { id } = c.req.param();
+    const { status } = await c.req.json();
+
+    try {
+        const validStatuses = ['pending', 'partial', 'paid', 'cancelled'];
+        if (!validStatuses.includes(status)) {
+            return c.json({
+                success: false,
+                error: 'Invalid status'
+            }, 400);
+        }
+
+        await db.prepare(`
+            UPDATE purchase_orders 
+            SET 
+                payment_status = ?,
+                updated_at = datetime('now')
+            WHERE id = ? AND deleted_at IS NULL
+        `).bind(status, id).run();
+
+        return c.json({ success: true });
+
+    } catch (error) {
+        console.error('Update purchase status error:', error);
+        return c.json({
+            success: false,
+            error: 'Database error',
             details: error.message
         }, 500);
     }
