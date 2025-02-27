@@ -168,72 +168,89 @@ async function loadCustomerAddresses(customerId) {
     }
 }
 
-// Yeni müşteri formu gösterme fonksiyonu güncellendi
-function showNewCustomerForm(phone = '') { // phone parametresi eklendi, varsayılan değeri boş string
+// Yeni müşteri formu gösterme fonksiyonu - telefon alanı problemini düzelt
+function showNewCustomerForm(phone = '') {
     document.getElementById('customerDetails').classList.add('d-none');
     document.getElementById('newCustomerForm').classList.remove('d-none');
     
     // İlçe listesini doldur
     const districtSelect = document.querySelector('[name="new_customer_district"]');
-    districtSelect.innerHTML = '<option value="">İlçe seçin...</option>' +
-        ISTANBUL_DISTRICTS.map(district => 
-            `<option value="${district}">${district}</option>`
-        ).join('');
+    if (districtSelect) {
+        districtSelect.innerHTML = '<option value="">İlçe seçin...</option>' +
+            ISTANBUL_DISTRICTS.map(district => 
+                `<option value="${district}">${district}</option>`
+            ).join('');
+    }
 
-    // Form alanlarını resetle
+    // Form alanlarını resetle - Hata yönetimi eklendi
     const form = document.getElementById('newCustomerForm');
-    form.querySelector('[name="new_customer_name"]').value = '';
-    form.querySelector('[name="new_customer_phone"]').value = phone; // Aranan numarayı otomatik doldur
-    form.querySelector('[name="new_customer_email"]').value = '';
-    form.querySelector('[name="new_customer_district"]').value = '';
-    form.querySelector('[name="new_customer_notes"]').value = '';
-    form.querySelector('[name="new_customer_special_dates"]').value = '';
-    form.querySelector('[name="new_customer_tax_number"]').value = '';
-    form.querySelector('[name="new_customer_company_name"]').value = '';
-
-    // Bireysel müşteri tipini seç
-    document.getElementById('customerTypeRetail').checked = true;
-    document.getElementById('customerTypeCorporate').checked = false;
-
-    // Kurumsal alanları gizle
-    document.querySelectorAll('.corporate-fields').forEach(field => {
-        field.classList.add('d-none');
-    });
+    
+    // Form elemanlarına güvenli erişim
+    const safeSetValue = (selector, value) => {
+        const element = form.querySelector(selector);
+        if (element) element.value = value;
+    };
+    
+    safeSetValue('[name="new_customer_name"]', '');
+    safeSetValue('[name="new_customer_phone"]', phone); // Telefon numarasını güvenli şekilde ayarla
+    safeSetValue('[name="new_customer_email"]', '');
+    safeSetValue('[name="new_customer_district"]', '');
+    safeSetValue('[name="new_customer_notes"]', '');
+    safeSetValue('[name="new_customer_special_dates"]', '');
 }
 
-// Müşteri tipi değişikliğini dinle
+// Müşteri tipi değişikliğini dinle - updateNewCustomerForm olarak yeniden adlandırıldı
 function setupNewCustomerForm() {
+    // Eğer müşteri tipi seçimi kaldırıldıysa, bu fonksiyonu basitleştirelim
     const customerTypeInputs = document.querySelectorAll('input[name="new_customer_type"]');
-    customerTypeInputs.forEach(input => {
-        input.addEventListener('change', (e) => {
-            const corporateFields = document.querySelectorAll('.corporate-fields');
-            corporateFields.forEach(field => {
-                field.classList.toggle('d-none', e.target.value !== 'corporate');
+    
+    // Eğer müşteri tipi seçenekleri varsa olayları ayarla
+    if (customerTypeInputs && customerTypeInputs.length > 0) {
+        customerTypeInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                const corporateFields = document.querySelectorAll('.corporate-fields');
+                corporateFields.forEach(field => {
+                    field.classList.toggle('d-none', e.target.value !== 'corporate');
+                });
             });
         });
-    });
+    }
 }
 
-// Yeni müşteri kaydetme fonksiyonu
+// Yeni müşteri kaydetme fonksiyonu - müşteri tipini kaldırma seçeneği eklendi
 async function saveNewCustomer() {
     try {
+        const form = document.getElementById('newCustomerForm');
+        
+        // Temel veriler
         const formData = {
-            name: document.querySelector('[name="new_customer_name"]').value,
-            phone: document.querySelector('[name="new_customer_phone"]').value.replace(/\D/g, ''),
-            email: document.querySelector('[name="new_customer_email"]').value || null,
-            city: document.querySelector('[name="new_customer_city"]').value || 'İstanbul',
-            district: document.querySelector('[name="new_customer_district"]').value,
-            customer_type: document.querySelector('input[name="new_customer_type"]:checked').value,
-            special_dates: document.querySelector('[name="new_customer_special_dates"]').value || null,
-            notes: document.querySelector('[name="new_customer_notes"]').value || null
+            name: form.querySelector('[name="new_customer_name"]')?.value,
+            phone: form.querySelector('[name="new_customer_phone"]')?.value?.replace(/\D/g, ''),
+            email: form.querySelector('[name="new_customer_email"]')?.value || null,
+            city: form.querySelector('[name="new_customer_city"]')?.value || 'İstanbul',
+            district: form.querySelector('[name="new_customer_district"]')?.value,
+            special_dates: form.querySelector('[name="new_customer_special_dates"]')?.value || null,
+            notes: form.querySelector('[name="new_customer_notes"]')?.value || null
         };
 
-        if (formData.customer_type === 'corporate') {
-            formData.tax_number = document.querySelector('[name="new_customer_tax_number"]').value;
-            formData.company_name = document.querySelector('[name="new_customer_company_name"]').value;
+        // Müşteri tipi seçimi varsa ve kurumsal seçildiyse
+        const customerTypeInput = form.querySelector('input[name="new_customer_type"]:checked');
+        if (customerTypeInput) {
+            formData.customer_type = customerTypeInput.value;
+            
+            // Kurumsal müşteri ek bilgileri
+            if (formData.customer_type === 'corporate') {
+                formData.tax_number = form.querySelector('[name="new_customer_tax_number"]')?.value;
+                formData.company_name = form.querySelector('[name="new_customer_company_name"]')?.value;
+            }
         }
 
         console.log('Gönderilen veri:', formData);
+
+        // Gerekli alanların dolu olduğundan emin ol
+        if (!formData.name || !formData.phone) {
+            throw new Error('İsim ve telefon alanları zorunludur');
+        }
 
         const data = await fetchAPI('/customers', {
             method: 'POST',
@@ -403,7 +420,7 @@ function confirmAddressAndContinue() {
     }
 }
 
-// Teslimat bilgilerini kaydet ve ürün seçimine geç
+// Teslimat bilgilerini kaydet ve ürün seçimine geç - Yeni backend yapısına uyarlandı
 async function saveDeliveryInfo() {
     try {
         // Form validasyonu yap
@@ -429,8 +446,24 @@ async function saveDeliveryInfo() {
             return;
         }
 
-        // Teslimat bilgilerini kaydet - recipientAlternativePhone kaldırıldı
-        const deliveryInfo = {
+        // Teslimat bilgilerini kaydet
+        const customerId = document.getElementById('customerId').value;
+        const selectedAddress = JSON.parse(sessionStorage.getItem('selectedAddress'));
+
+        // Adres bilgisi hazırla
+        const addressData = {
+            customer_id: Number(customerId),
+            address_id: selectedAddress.id || null,
+            new_address: selectedAddress.id ? null : {
+                district: selectedAddress.district,
+                street: selectedAddress.street,
+                building_no: selectedAddress.building_no,
+                floor: selectedAddress.floor,
+                door_no: selectedAddress.apartment_no,
+                neighborhood: selectedAddress.neighborhood || null,
+                directions: selectedAddress.directions || null,
+                label: selectedAddress.label || 'Teslimat Adresi'
+            },
             delivery_date: document.getElementById('deliveryDate').value,
             delivery_time_slot: timeSlot.value,
             recipient_name: document.getElementById('recipientName').value,
@@ -439,7 +472,15 @@ async function saveDeliveryInfo() {
             card_message: document.getElementById('cardMessage').value || null
         };
 
-        // Session storage'a kaydet
+        // Session storage'a da kaydet
+        const deliveryInfo = {
+            delivery_date: addressData.delivery_date,
+            delivery_time_slot: addressData.delivery_time_slot,
+            recipient_name: addressData.recipient_name,
+            recipient_phone: addressData.recipient_phone,
+            recipient_note: addressData.recipient_note,
+            card_message: addressData.card_message
+        };
         sessionStorage.setItem('deliveryInfo', JSON.stringify(deliveryInfo));
 
         // Ürün seçim panelini göster
@@ -622,7 +663,7 @@ function updateSelectedProducts() {
     subtotalEl.textContent = formatCurrency(subtotal);
 }
 
-// Ürünleri onayla - Başarı durumunda yönlendirme eklendi
+// Ürünleri onayla - Yeni API yapısına göre güncellendi
 async function confirmProducts() {
     try {
         const deliveryInfo = JSON.parse(sessionStorage.getItem('deliveryInfo'));
@@ -640,26 +681,19 @@ async function confirmProducts() {
             const addressResponse = await fetchAPI('/addresses', {
                 method: 'POST',
                 body: JSON.stringify({
-                    tenant_id: 1,
                     customer_id: Number(customerId),
                     label: selectedAddress.label || 'Teslimat Adresi',
                     district: selectedAddress.district,
                     street: selectedAddress.street,
-                    here_place_id: selectedAddress.here_place_id,
+                    here_place_id: selectedAddress.here_place_id || null,
                     building_no: selectedAddress.building_no,
-                    floor_no: selectedAddress.floor,      // floor -> floor_no olarak değiştirildi
-                    door_no: selectedAddress.apartment_no, // apartment_no -> door_no olarak değiştirildi
-                    lat: selectedAddress.lat,
-                    lng: selectedAddress.lng,
-                    neighborhood: selectedAddress.address?.neighborhood || null,
+                    floor_no: selectedAddress.floor || null,
+                    door_no: selectedAddress.apartment_no || null,
+                    lat: selectedAddress.lat || null,
+                    lng: selectedAddress.lng || null,
+                    neighborhood: selectedAddress.neighborhood || null,
                     directions: selectedAddress.directions || null
                 })
-            });
-
-            // Debug log ekleyelim
-            console.log('Address Request:', {
-                selectedAddress,
-                addressResponse
             });
 
             if (!addressResponse.success) {
@@ -673,9 +707,8 @@ async function confirmProducts() {
         const subtotal = Array.from(selectedProducts.values())
             .reduce((sum, p) => sum + p.unit_price * p.quantity, 0);
 
-        // Sipariş verilerini hazırla
+        // Sipariş verilerini hazırla - Yeni modele göre
         const orderData = {
-            tenant_id: 1,
             customer_id: Number(customerId),
             address_id: addressId,
             delivery_date: deliveryInfo.delivery_date,
@@ -684,32 +717,23 @@ async function confirmProducts() {
             recipient_phone: deliveryInfo.recipient_phone,
             recipient_note: deliveryInfo.recipient_note || null,
             card_message: deliveryInfo.card_message || null,
-            status: 'new',
-            payment_method: document.getElementById('paymentMethod').value,
-            payment_status: 'pending',
-            subtotal: subtotal,
             total_amount: subtotal,
             items: Array.from(selectedProducts.values()).map(product => ({
                 product_id: product.id,
                 quantity: product.quantity,
-                unit_price: product.base_price,
-                total_amount: product.quantity * product.base_price
+                unit_price: product.base_price || product.unit_price,
+                total_amount: product.quantity * (product.base_price || product.unit_price)
             }))
         };
 
-        // Debug log ekleyelim
-        console.log('Selected Address:', selectedAddress);
-        console.log('Delivery Info:', deliveryInfo);
-        console.log('Order Data:', orderData);
-
-        // Siparişi kaydet
+        // Siparişi kaydet - Yeni API endpoint'i kullanımı
         const result = await fetchAPI('/orders', {
             method: 'POST',
             body: JSON.stringify(orderData)
         });
 
         if (result.success) {
-            // Başarı sayfasına yönlendir
+            // Başarılı kayıt sonrası sipariş detayına yönlendir
             window.location.href = `/orders/order-detail.html?id=${result.order.id}`;
         } else {
             throw new Error(result.error || 'Sipariş kaydedilemedi');

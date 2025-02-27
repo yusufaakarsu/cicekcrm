@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { createOrder, saveDeliveryInfo } from './new-order'
 
 const router = new Hono()
 
@@ -370,101 +371,15 @@ router.put('/:id/cancel', async (c) => {
   }
 })
 
-// Yeni sipariş oluşturma - ödeme ve sipariş alanları düzeltildi
+// Sipariş oluşturma endpoint'i - createOrder fonksiyonunu kullanır
 router.post('/', async (c) => {
   const db = c.get('db')
   
   try {
     const body = await c.req.json()
-    console.log('Order request body:', body)
-
-    // 1. Önce alıcı (recipient) kaydı yap
-    const recipientResult = await db.prepare(`
-      INSERT INTO recipients (
-        customer_id, name, phone, 
-        notes, special_dates
-      ) VALUES (?, ?, ?, ?, ?)
-    `).bind(
-      body.customer_id,
-      body.recipient_name,
-      body.recipient_phone,
-      body.recipient_note || null,
-      null // special_dates - gerekirse doldurulabilir
-    ).run()
-
-    const recipient_id = recipientResult.meta?.last_row_id
-    if (!recipient_id) throw new Error('Alıcı kaydedilemedi')
-
-    // 2. Siparişi kaydet - updated field names
-    const orderResult = await db.prepare(`
-      INSERT INTO orders (
-        customer_id,          -- 1
-        recipient_id,         -- 2 
-        address_id,           -- 3
-        delivery_date,        -- 4 
-        delivery_time,        -- 5
-        delivery_region,      -- 6
-        delivery_fee,         -- 7
-        status,               -- 8
-        total_amount,         -- 9
-        payment_status,       -- 10
-        custom_card_message,  -- 11
-        customer_notes,       -- 12
-        created_by,           -- 13
-        created_at,
-        updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-    `).bind(
-      body.customer_id,            // 1
-      recipient_id,                // 2 
-      body.address_id,             // 3
-      body.delivery_date,          // 4
-      body.delivery_time,          // 5
-      "Istanbul",                  // 6 - default delivery region
-      body.delivery_fee || 0,      // 7 - default delivery fee
-      'new',                       // 8 - default status
-      body.total_amount,           // 9
-      'pending',                   // 10 - default payment_status
-      body.card_message || null,   // 11
-      body.recipient_note || null, // 12 - customer/recipient notes
-      1                            // 13 - created_by (default to admin for now)
-    ).run()
-
-    const order_id = orderResult.meta?.last_row_id
-    if (!order_id) throw new Error('Sipariş kaydedilemedi')
-
-    // 3. Sipariş kalemlerini ekle
-    for (const item of body.items) {
-      await db.prepare(`
-        INSERT INTO order_items (
-          order_id, product_id, 
-          quantity, unit_price, total_amount,
-          notes
-        ) VALUES (?, ?, ?, ?, ?, ?)
-      `).bind(
-        order_id,
-        item.product_id,
-        item.quantity,
-        item.unit_price,
-        item.total_amount || (item.quantity * item.unit_price),
-        item.notes || null
-      ).run()
-    }
-
-    return c.json({
-      success: true,
-      order: {
-        id: order_id
-      }
-    })
-
+    const result = await createOrder(c, db, body)
+    return c.json(result)
   } catch (error) {
-    // Hata detaylarını logla
-    console.error('[Order Error]:', {
-      message: error.message,
-      stack: error.stack
-    })
-    
     return c.json({
       success: false,
       error: 'Sipariş oluşturulamadı',
@@ -473,75 +388,26 @@ router.post('/', async (c) => {
   }
 })
 
-// Stok düşüm işlemi - bu fonksiyon status ready olduğunda çağrılır
-async function processStockMovements(db: D1Database, orderId: number) {
+// Sipariş teslimat bilgilerini kaydet
+router.post("/delivery", async (c) => {
+  const db = c.get("db")
+  
   try {
-    // 1. Sipariş kalemlerini ve kullanılan malzemeleri al
-    const { results: materials } = await db.prepare(`
-      SELECT oim.* 
-      FROM order_items_materials oim
-      WHERE oim.order_id = ?
-      AND oim.deleted_at IS NULL
-    `).bind(orderId).all();
-
-    // 2. Eğer malzeme kayıtları varsa stoktan düş
-    if (materials && materials.length > 0) {
-      for (const material of materials) {
-        await db.prepare(`
-          INSERT INTO stock_movements (
-            material_id, movement_type, quantity,
-            source_type, source_id, notes, created_by
-          ) VALUES (?, 'out', ?, 'sale', ?, ?, ?)
-        `).bind(
-          material.material_id,
-          material.quantity,
-          orderId,
-          'Sipariş malzeme kullanımı',
-          1 // created_by = admin user
-        ).run();
-      }
-    } else {
-      // 3. Eğer malzeme kaydı yoksa, order_items'lardan ürünleri al ve
-      // ürünlerin varsayılan reçetesini kullan
-      const { results: orderItems } = await db.prepare(`
-        SELECT oi.*, p.id as product_id
-        FROM order_items oi
-        JOIN products p ON oi.product_id = p.id
-        WHERE oi.order_id = ? AND oi.deleted_at IS NULL
-      `).bind(orderId).all();
-
-      for (const item of orderItems) {
-        // Her ürün için malzeme kullanımını al
-        const { results: productMaterials } = await db.prepare(`
-          SELECT pm.material_id, pm.default_quantity * ? as quantity, pm.notes
-          FROM product_materials pm
-          WHERE pm.product_id = ?
-          AND pm.deleted_at IS NULL
-        `).bind(item.quantity, item.product_id).all();
-
-        // Stok hareketlerini kaydet
-        for (const material of productMaterials) {
-          await db.prepare(`
-            INSERT INTO stock_movements (
-              material_id, movement_type, quantity,
-              source_type, source_id, notes, created_by
-            ) VALUES (?, 'out', ?, 'sale', ?, ?, ?)
-          `).bind(
-            material.material_id,
-            material.quantity,
-            orderId,
-            'Otomatik stok düşümü: ' + (material.notes || ''),
-            1 // created_by = admin user
-          ).run();
-        }
-      }
+    const body = await c.req.json()
+    const result = await saveDeliveryInfo(c, db, body)
+    
+    if (!result.success) {
+      return c.json(result, 400)
     }
-
-    return true;
+    
+    return c.json(result)
   } catch (error) {
-    console.error('Stock movement processing error:', error);
-    throw new Error('Stok düşüm işlemi başarısız: ' + error.message);
+    return c.json({
+      success: false,
+      error: "Teslimat bilgileri kaydedilemedi",
+      details: error.message
+    }, 500)
   }
-}
+})
 
 export default router
