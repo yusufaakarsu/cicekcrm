@@ -1,29 +1,109 @@
--- Core System Data
---------------------------------------------------------------------------------
--- 1. Tenant
-INSERT INTO tenants (id, name, company_name, contact_email, logo_url, primary_color) VALUES 
-(1, 'Shirin Flower', 'Shirin Çiçekçilik Ltd. Şti.', 'info@shirinflower.com', 'https://shirinflower.com/logo.png', '#FF69B4');
+PRAGMA foreign_keys=ON;
 
--- 2. Users (password_hash'ler gerçek uygulamada hash'lenmiş olmalı)
+-- 1. Önce tenant'ı ekle
+INSERT INTO tenants (name, company_name, contact_email, logo_url, primary_color) VALUES 
+('Shirin Flower', 'Shirin Çiçekçilik Ltd. Şti.', 'info@shirinflower.com', 'https://shirinflower.com/logo.png', '#FF69B4');
+
+-- 2. Temel kategorileri ekle (tenant_id'yi sorguyla al)
+INSERT INTO accounts (tenant_id, name, type, initial_balance, status) VALUES
+(1, 'Ana Kasa', 'cash', 0, 'active'),
+(1, 'Kredi Kartı', 'pos', 0, 'active'),
+(1, 'Banka', 'bank', 0, 'active');
+
+-- 3. Temel Birimler
+INSERT INTO units (tenant_id, name, code, description) VALUES
+(1, 'Adet', 'ADET', 'Tek parça ürünler'),
+(1, 'Dal', 'DAL', 'Tek dal çiçekler'),
+(1, 'Demet', 'DEMET', '10-12 dallık demetler'),
+(1, 'Kutu', 'KUTU', 'Ambalaj malzemeleri'),
+(1, 'Metre', 'METRE', 'Kurdele, şerit vb.'),
+(1, 'Gram', 'GRAM', 'Toz/granül malzemeler'),
+(1, 'Paket', 'PAKET', 'Paketli ürünler');
+
+-- 4. Ham Madde Kategorileri (Genişletilmiş)
+INSERT INTO raw_material_categories (tenant_id, name) VALUES
+-- Çiçekler
+(1, 'Kesme Çiçekler'),
+(1, 'İthal Çiçekler'),
+(1, 'Yeşillikler'),
+(1, 'Saksı Çiçekleri'),
+-- Ambalaj
+(1, 'Kutular'),
+(1, 'Vazolar'),
+(1, 'Seramikler'),
+(1, 'Sepetler'),
+-- Süsleme
+(1, 'Kurdeleler'),
+(1, 'Spreyler'),
+(1, 'Aksesuarlar'),
+(1, 'Kartlar'),
+-- Bakım
+(1, 'Topraklar'),
+(1, 'Gübreler'),
+(1, 'Bakım Ürünleri');
+
+-- 5. Ürün Kategorileri (Genişletilmiş)
+INSERT INTO product_categories (tenant_id, name, description) VALUES
+(1, 'Buketler', 'El buketleri ve demet çiçekler'),
+(1, 'Kutuda Çiçekler', 'Özel tasarım kutu aranjmanları'),
+(1, 'Vazoda Çiçekler', 'Cam vazolu aranjmanlar'),
+(1, 'Saksı Çiçekleri', 'Dekoratif bitkiler'),
+(1, 'Teraryum', 'Minyatür bahçeler'),
+(1, 'VIP Tasarımlar', 'Özel tasarım çiçekler'),
+(1, 'Mevsimseller', 'Mevsimlik özel ürünler'),
+(1, 'Cenaze Çelenkleri', 'Taziye çelenkleri');
+
+-- 6. İşlem Kategorileri (Genişletilmiş)
+INSERT INTO transaction_categories (tenant_id, name, type, reporting_code) VALUES
+-- Kasa İşlemleri
+(1, 'Kasa Açılış', 'in', 'CASH_OPEN'),
+(1, 'Kasa Sayım Farkı (+)', 'in', 'CASH_COUNT_PLUS'),
+(1, 'Kasa Sayım Farkı (-)', 'out', 'CASH_COUNT_MINUS'),
+-- Ortaklık İşlemleri
+(1, 'Ortak Para Girişi', 'in', 'PARTNER_IN'),
+(1, 'Ortak Para Çıkışı', 'out', 'PARTNER_OUT'),
+-- Satışlar
+(1, 'Nakit Satış', 'in', 'SALES_CASH'),
+(1, 'Kredi Kartı Satış', 'in', 'SALES_CARD'),
+(1, 'Havale/EFT Satış', 'in', 'SALES_BANK'),
+(1, 'Online Satış', 'in', 'SALES_ONLINE'),
+-- Giderler
+(1, 'Tedarikçi Ödemesi', 'out', 'SUPPLIER'),
+(1, 'Personel Maaş', 'out', 'SALARY'),
+(1, 'Kira Gideri', 'out', 'RENT'),
+(1, 'Elektrik Faturası', 'out', 'ELECTRIC'),
+(1, 'Su Faturası', 'out', 'WATER'),
+(1, 'Doğalgaz Faturası', 'out', 'GAS'),
+(1, 'İnternet Faturası', 'out', 'INTERNET'),
+(1, 'Telefon Faturası', 'out', 'PHONE'),
+(1, 'Vergi Ödemesi', 'out', 'TAX'),
+(1, 'SGK Ödemesi', 'out', 'INSURANCE'),
+(1, 'Genel Giderler', 'out', 'GENERAL');
+
+-- 7. Hazır Kart Mesajları
+INSERT INTO card_messages (tenant_id, category, title, content, display_order) VALUES
+(1, 'birthday', 'Doğum Günü', 'Nice mutlu, sağlıklı yıllara...', 10),
+(1, 'birthday', 'Yaş Günü - 2', 'Yeni yaşınız kutlu olsun...', 20),
+(1, 'anniversary', 'Yıldönümü', 'Nice mutlu yıllara...', 30),
+(1, 'get_well', 'Geçmiş Olsun', 'Acil şifalar dileriz...', 40),
+(1, 'love', 'Sevgiliye', 'Seni seviyorum...', 50);
+
+-- 3. Users
 INSERT INTO users (tenant_id, email, password_hash, name, role, is_active) VALUES
 (1, 'yusufaakarsu@gmail.com', 'hash123', 'Yusuf Akarsu', 'admin', 1),
 (1, 'aktasshilall@outlook.com', 'hash456', 'Hilal Akarsu', 'admin', 1),
 (1, 'humeyraktas@gmail.com', 'hash789', 'Hümeyra Aktaş', 'admin', 1);
 
--- 3. Tedarikçiler
-INSERT INTO suppliers (
-    tenant_id, name, contact_name, phone, email, tax_number, address, notes, status
-) VALUES
+-- 4. Tedarikçiler
+INSERT INTO suppliers (tenant_id, name, contact_name, phone, email, tax_number, address, notes, status) VALUES
 (1, 'Anadolu Çiçekçilik', 'Mehmet Yılmaz', '05321234567', 'info@anadoluflower.com', '1234567890', 
  'Çiçekçiler Hali No:123 İstanbul', 'Toptan kesme çiçek tedarikçisi', 'active'),
-
 (1, 'Flora Ambalaj', 'Ayşe Demir', '0533987654', 'satis@floraambalaj.com', '9876543210', 
  'Sanayi Sitesi B Blok No:45 İstanbul', 'Ambalaj malzemeleri tedarikçisi', 'active'),
-
 (1, 'Yeşil Aksesuar', 'Ali Kaya', '0535246813', 'info@yesilaksesuar.com', '4567891230', 
  'Çiçekçiler Çarşısı No:78 İstanbul', 'Çiçekçilik aksesuarları tedarikçisi', 'active');
 
--- 4. Müşteriler
+-- 5. Müşteriler
 INSERT INTO customers (
     tenant_id, name, phone, email, notes
 ) VALUES
@@ -31,7 +111,7 @@ INSERT INTO customers (
 (1, 'Ahmet Kara', '0543234567', 'ahmet.k@outlook.com', 'Düzenli kurumsal müşteri'),
 (1, 'Zeynep Ak', '0544345678', 'zeynep@gmail.com', 'Ayda bir buket siparişi verir');
 
--- 5. Alıcılar
+-- 6. Alıcılar
 INSERT INTO recipients (
     tenant_id, customer_id, name, phone, relationship, notes, special_dates, preferences
 ) VALUES
@@ -47,7 +127,7 @@ INSERT INTO recipients (
     '{"anniversary": "08-12", "birthday": "11-23"}',
     '{"flower": "orkide", "color": "beyaz"}');
 
--- 6. Adresler
+-- 7. Adresler
 INSERT INTO addresses (
     tenant_id, customer_id, recipient_id, 
     here_place_id, label, district, neighborhood, street,
@@ -62,18 +142,7 @@ INSERT INTO addresses (
 (1, 3, 3, 'here789', 'Acıbadem Mahallesi No:789', 'Üsküdar', 'Acıbadem', 'Şair Arşi Caddesi',
  41.004957, 29.045298, '789', '2', '5', 'Acıbadem Hastanesi karşısı');
 
--- 7. İlk bakiyeler
-INSERT INTO transactions (
-    tenant_id, account_id, category_id, type, amount, date,
-    related_type, related_id, payment_method, description, status, created_by
-) VALUES
-(1, 
-   (SELECT id FROM accounts WHERE tenant_id = 1 AND type = 'cash' LIMIT 1),
-   (SELECT id FROM transaction_categories WHERE tenant_id = 1 AND reporting_code = 'CASH_OPEN' LIMIT 1),
-   'in', 10000, CURRENT_TIMESTAMP, 'balance', 1, 'cash', 'İlk kasa açılış bakiyesi',
-   'paid', -- 'completed' yerine 'paid' kullanılmalı
-   1);
-
+-- Raw materials and products data remain the same as they are business-specific
 -- Ham maddeler
 INSERT INTO raw_materials (tenant_id, name, unit_id, category_id, description) VALUES
 -- Kesme Çiçekler
@@ -381,7 +450,7 @@ SELECT
         WHEN 'Saksı Toprağı' THEN 1
         WHEN 'Çiçek Koruyucu' THEN 1
     END,
-    1,
+     1,
     'Standart reçete',
     CURRENT_TIMESTAMP
 FROM products p
@@ -390,3 +459,55 @@ WHERE p.name = 'Sukulent Teraryum'
 AND m.name IN ('Cam Silindir Vazo', 'Saksı Toprağı', 'Çiçek Koruyucu')
 AND p.tenant_id = 1;
 
+WITH cash_category AS (
+    SELECT id 
+    FROM transaction_categories 
+    WHERE tenant_id = 1 
+    AND reporting_code = 'CASH_OPEN'
+    LIMIT 1
+),
+-- 2. Ana kasayı bul
+main_account AS (
+    SELECT id 
+    FROM accounts 
+    WHERE tenant_id = 1 
+    AND type = 'cash' 
+    AND name = 'Ana Kasa'
+    LIMIT 1
+),
+-- 3. Admin kullanıcıyı bul
+admin_user AS (
+    SELECT id 
+    FROM users 
+    WHERE tenant_id = 1 
+    AND email = 'yusufaakarsu@gmail.com'
+    LIMIT 1
+)
+-- 4. Kasa açılış kaydını ekle
+INSERT INTO transactions (
+    tenant_id,
+    account_id,
+    category_id,
+    type,
+    amount,
+    date,
+    related_type,
+    related_id,
+    payment_method,
+    description,
+    status,
+    created_by
+)
+SELECT 
+    1,
+    (SELECT id FROM main_account),
+    (SELECT id FROM cash_category),
+    'in',
+    10000,
+    CURRENT_TIMESTAMP,
+    'cash_open',
+    0,
+    'cash',
+    'Kasa açılış bakiyesi',
+    'paid',
+    (SELECT id FROM admin_user);
