@@ -1,4 +1,4 @@
-let materialModal, movementModal;
+let materialModal, movementModal, stockDetailModal;
 let units = []; // Global birimler listesi
 let stockTable;
 let currentMaterialId = null;
@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
     loadUnits();
     loadStock();
+    loadCategories();
+    
+    stockDetailModal = new bootstrap.Modal(document.getElementById('stockDetailModal'));
 });
 
 // Ham madde listesini yükle
@@ -25,31 +28,25 @@ async function loadStock() {
         if (data.materials?.length > 0) {
             tbody.innerHTML = data.materials.map(material => `
                 <tr>
-                    <td>
-                        <div class="fw-bold">${material.name}</div>
-                        <small class="text-muted">${material.category_name || '-'}</small>
-                    </td>
+                    <td>${material.name}</td>
+                    <td>${material.category_name || '-'}</td>
                     <td>${material.unit_code}</td>
                     <td>
                         <span class="badge ${getStockBadgeClass(material.current_stock)}">
                             ${material.current_stock} ${material.unit_code}
                         </span>
                     </td>
-                    <td>${material.status === 'active' ? 'Aktif' : 'Pasif'}</td>
+                    <td>${formatDateTime(material.last_movement)}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary" 
-                                onclick="showMovements(${material.id}, '${material.name}')">
-                            <i class="bi bi-clock-history"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-success" 
-                                onclick="showAddMovement(${material.id}, '${material.name}')">
-                            <i class="bi bi-plus-lg"></i>
+                        <button class="btn btn-sm btn-outline-info" 
+                                onclick="showStockDetail(${material.id}, '${material.name}')">
+                            <i class="bi bi-info-circle"></i> Detay
                         </button>
                     </td>
                 </tr>
             `).join('');
         } else {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center">Stok bilgisi bulunamadı</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Stok bilgisi bulunamadı</td></tr>';
         }
     } catch (error) {
         console.error('Stock loading error:', error);
@@ -242,4 +239,26 @@ function getStockBadgeClass(stock) {
     if (stock <= 0) return 'bg-danger';
     if (stock <= 5) return 'bg-warning';
     return 'bg-success';
+}
+
+// Stock kategorilerini yükle
+async function loadCategories() {
+    try {
+        const response = await fetch(`${API_URL}/materials/categories`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        const select = document.getElementById('categoryFilter');
+        select.innerHTML = `
+            <option value="">Tümü</option>
+            ${data.categories.map(c => `
+                <option value="${c.id}">${c.name}</option>
+            `).join('')}
+        `;
+    } catch (error) {
+        console.error('Categories loading error:', error);
+        showError('Kategoriler yüklenemedi');
+    }
 }
