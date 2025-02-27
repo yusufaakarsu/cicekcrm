@@ -24,7 +24,8 @@ async function loadStock() {
 // Birimleri yükle
 async function loadUnits() {
     try {
-        const response = await fetch(`${API_URL}/stock/units`);
+        // Endpoint değişikliği
+        const response = await fetch(`${API_URL}/settings/units`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();

@@ -16,6 +16,15 @@ INSERT INTO units (name, code, description) VALUES
 ('Gram', 'GRAM', 'Toz/granül malzemeler'),
 ('Paket', 'PAKET', 'Paketli ürünler');
 
+-- Birim verileri
+INSERT INTO units (name, code, description) VALUES 
+('Adet', 'AD', 'Tekil ürün sayısı'),
+('Demet', 'DM', 'Çiçek demeti'),
+('Gram', 'GR', 'Gram cinsinden ağırlık'),
+('Kilogram', 'KG', 'Kilogram cinsinden ağırlık'),
+('Metre', 'MT', 'Uzunluk ölçüsü'),
+('Santimetre', 'CM', 'Santimetre cinsinden uzunluk');
+
 -- 3. Ham Madde Kategorileri
 INSERT INTO raw_material_categories (name, description) VALUES
 ('Kesme Çiçekler', 'Taze kesme çiçekler'),

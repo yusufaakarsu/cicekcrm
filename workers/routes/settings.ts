@@ -432,4 +432,67 @@ router.delete('/regions/:id', async (c) => {
   }
 })
 
+// Birim listesi
+router.get('/units', async (c) => {
+  const db = c.get('db')
+  
+  try {
+    const { results } = await db.prepare(`
+      SELECT id, name, code, description
+      FROM units 
+      WHERE deleted_at IS NULL
+      ORDER BY name
+    `).all()
+    
+    return c.json({
+      success: true,
+      units: results || []
+    })
+  } catch (error) {
+    console.error('Units list error:', error)
+    return c.json({
+      success: false,
+      error: 'Database error',
+      details: error.message
+    }, 500)
+  }
+})
+
+// Birim ekle
+router.post('/units', async (c) => {
+  const db = c.get('db')
+  
+  try {
+    const body = await c.req.json()
+    
+    if (!body.name || !body.code) {
+      return c.json({
+        success: false,
+        error: 'Name and code are required'
+      }, 400)
+    }
+
+    const result = await db.prepare(`
+      INSERT INTO units (
+        name, code, description, created_at
+      ) VALUES (?, ?, ?, datetime('now'))
+    `).bind(
+      body.name,
+      body.code,
+      body.description || null
+    ).run()
+
+    return c.json({
+      success: true,
+      id: result.meta?.last_row_id
+    })
+  } catch (error) {
+    return c.json({
+      success: false,
+      error: 'Database error',
+      details: error.message
+    }, 500)
+  }
+})
+
 export default router

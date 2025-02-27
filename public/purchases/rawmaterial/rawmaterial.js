@@ -60,6 +60,7 @@ async function loadCategories() {
 
 async function loadUnits() {
     try {
+        // Endpoint değişikliği
         const response = await fetch(`${API_URL}/settings/units`);
         if (!response.ok) throw new Error('API Hatası');
         
