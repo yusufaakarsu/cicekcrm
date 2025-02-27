@@ -115,13 +115,9 @@ async function loadMaterials() {
                                 onclick="showStockDetail(${material.id}, '${material.name}')">
                             <i class="bi bi-graph-up"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-primary me-1" 
+                        <button class="btn btn-sm btn-outline-primary" 
                                 onclick="editMaterial(${material.id})">
                             <i class="bi bi-pencil"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" 
-                                onclick="toggleStatus(${material.id}, '${material.status === 'active' ? 'passive' : 'active'}')">
-                            <i class="bi bi-power"></i>
                         </button>
                     </td>
                 </tr>
@@ -180,39 +176,33 @@ async function saveMaterial() {
         notes: formData.get('notes')?.trim() || null
     };
 
-    // Validation
-    if (!data.name || !data.unit_id) {
-        showError('Hammadde adı ve birim seçimi zorunludur!');
-        return;
-    }
-    
     try {
-        console.log('Saving material:', data); // Debug log
+        // Endpoint ve method seçimi
+        const method = currentMaterialId ? 'PUT' : 'POST';
+        const url = currentMaterialId ? 
+            `${API_URL}/materials/${currentMaterialId}` : 
+            `${API_URL}/materials`;
 
-        const response = await fetch(`${API_URL}/materials`, {
-            method: 'POST',
+        const response = await fetch(url, {
+            method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
 
-        const result = await response.json();
+        if (!response.ok) throw new Error('API Hatası');
         
-        if (!response.ok || !result.success) {
-            throw new Error(result.error || 'API Hatası');
-        }
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
 
-        // Modal'ı kapat ve verileri yenile
         materialModal.hide();
         form.reset();
-        await Promise.all([
-            loadMaterials(),
-            loadCategories()
-        ]);
+        currentMaterialId = null; // ID'yi temizle
+        await loadMaterials();
         
-        showSuccess('Hammadde başarıyla eklendi');
+        showSuccess(`Hammadde başarıyla ${method === 'PUT' ? 'güncellendi' : 'eklendi'}`);
     } catch (error) {
-        console.error('Hammadde kaydedilirken hata:', error);
-        showError(error.message || 'Bir hata oluştu');
+        console.error('Hammadde işlemi hatası:', error);
+        showError(error.message);
     }
 }
 
@@ -258,7 +248,7 @@ async function saveCategory() {
 
 async function editMaterial(id) {
     try {
-        currentMaterialId = id;
+        currentMaterialId = id; // Güncelleme için ID'yi sakla
         document.getElementById('materialModalTitle').textContent = 'Hammadde Düzenle';
         
         const response = await fetch(`${API_URL}/materials/${id}`);
@@ -270,11 +260,13 @@ async function editMaterial(id) {
         const form = document.getElementById('materialForm');
         const material = data.material;
         
-        Object.keys(material).forEach(key => {
-            if (form.elements[key]) {
-                form.elements[key].value = material[key];
-            }
-        });
+        // Form alanlarını doldur
+        form.elements['name'].value = material.name || '';
+        form.elements['description'].value = material.description || '';
+        form.elements['unit_id'].value = material.unit_id || '';
+        form.elements['category_id'].value = material.category_id || '';
+        form.elements['status'].value = material.status || 'active';
+        form.elements['notes'].value = material.notes || '';
         
         materialModal.show();
     } catch (error) {

@@ -151,7 +151,7 @@ router.post('/', async (c) => {
     try {
         const body = await c.req.json();
         
-        // Validasyon
+        // Basit validasyon
         if (!body.name || !body.unit_id) {
             return c.json({
                 success: false,
@@ -159,55 +159,35 @@ router.post('/', async (c) => {
             }, 400);
         }
 
-        // Debug log ekleyelim
-        console.log('Adding new material:', body);
-
-        // RETURNING * kaldırıldı çünkü D1'de desteklenmiyor
+        // Sadece var olan kolonları kullan
         const result = await db.prepare(`
             INSERT INTO raw_materials (
-                name, description, unit_id,
-                category_id, status, notes,
-                created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                name, 
+                description,
+                unit_id, 
+                category_id, 
+                status,
+                notes
+            ) VALUES (?, ?, ?, ?, ?, ?)
         `).bind(
             body.name,
-            body.description,
+            body.description || null,
             body.unit_id,
-            body.category_id,
-            body.status || 'active',
-            body.notes
+            body.category_id || null,
+            'active',
+            body.notes || null
         ).run();
-
-        // Insert başarılı mı kontrol et
-        if (!result.success) {
-            throw new Error('Insert failed');
-        }
-
-        // Eklenen kaydın detaylarını getir
-        const material = await db.prepare(`
-            SELECT 
-                m.*,
-                c.name as category_name,
-                u.name as unit_name,
-                u.code as unit_code
-            FROM raw_materials m
-            LEFT JOIN raw_material_categories c ON m.category_id = c.id
-            LEFT JOIN units u ON m.unit_id = u.id
-            WHERE m.id = ?
-        `).bind(result.meta?.last_row_id).first();
 
         return c.json({
             success: true,
-            material: material
+            id: result.meta?.last_row_id
         });
 
     } catch (error) {
-        // Hata detaylarını loglayalım
         console.error('Create material error:', error);
         return c.json({
             success: false,
-            error: 'Database error',
-            details: error.message
+            error: 'Database error'
         }, 500);
     }
 });
