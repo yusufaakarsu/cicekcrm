@@ -151,7 +151,7 @@ router.post('/', async (c) => {
     try {
         const body = await c.req.json();
         
-        // Temel validasyon
+        // Validasyon
         if (!body.name || !body.unit_id) {
             return c.json({
                 success: false,
@@ -166,6 +166,7 @@ router.post('/', async (c) => {
                 category_id, status, notes,
                 created_at
             ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+            RETURNING *
         `).bind(
             body.name,
             body.description || null,
@@ -175,26 +176,59 @@ router.post('/', async (c) => {
             body.notes || null
         ).run();
 
-        // Yeni eklenen hammaddenin detaylarını getir
-        const material = await db.prepare(`
-            SELECT 
-                m.*,
-                c.name as category_name,
-                u.name as unit_name,
-                u.code as unit_code
-            FROM raw_materials m
-            LEFT JOIN raw_material_categories c ON m.category_id = c.id
-            LEFT JOIN units u ON m.unit_id = u.id
-            WHERE m.id = ?
-        `).bind(result.meta?.last_row_id).first();
+        if (!result.success) {
+            throw new Error('Failed to insert material');
+        }
 
         return c.json({
             success: true,
-            material: material
+            material: result.meta?.last_row_id
         });
 
     } catch (error) {
         console.error('Create material error:', error);
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
+        }, 500);
+    }
+});
+
+// Kategori ekle
+router.post('/categories', async (c) => {
+    const db = c.get('db');
+    
+    try {
+        const body = await c.req.json();
+        
+        if (!body.name) {
+            return c.json({
+                success: false,
+                error: 'Name is required'
+            }, 400);
+        }
+
+        const result = await db.prepare(`
+            INSERT INTO raw_material_categories (
+                name, description, display_order, status,
+                created_at
+            ) VALUES (?, ?, ?, ?, datetime('now'))
+            RETURNING *
+        `).bind(
+            body.name,
+            body.description || null,
+            body.display_order || 0,
+            body.status || 'active'
+        ).run();
+
+        return c.json({
+            success: true,
+            category: result.meta?.last_row_id
+        });
+
+    } catch (error) {
+        console.error('Create category error:', error);
         return c.json({
             success: false,
             error: 'Database error',

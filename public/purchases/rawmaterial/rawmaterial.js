@@ -218,7 +218,12 @@ async function saveCategory() {
     }
 
     const formData = new FormData(form);
-    const data = Object.fromEntries(formData);
+    const data = {
+        name: formData.get('name'),
+        description: formData.get('description') || '',
+        display_order: parseInt(formData.get('display_order')) || 0,
+        status: 'active'
+    };
 
     try {
         const response = await fetch(`${API_URL}/materials/categories`, {
@@ -227,17 +232,21 @@ async function saveCategory() {
             body: JSON.stringify(data)
         });
 
-        if (!response.ok) throw new Error('API Hatası');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'API Hatası');
+        }
         
         const result = await response.json();
         if (!result.success) throw new Error(result.error);
 
         categoryModal.hide();
+        form.reset();
         await loadCategories();
         showSuccess('Kategori başarıyla eklendi');
     } catch (error) {
         console.error('Kategori kaydedilirken hata:', error);
-        showError('Kategori kaydedilemedi!');
+        showError(error.message);
     }
 }
 
