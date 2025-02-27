@@ -172,7 +172,8 @@ async function saveMaterial() {
         unit_id: parseInt(formData.get('unit_id')),
         category_id: formData.get('category_id') ? parseInt(formData.get('category_id')) : null,
         description: formData.get('description')?.trim() || null,
-        notes: formData.get('notes')?.trim() || null
+        notes: formData.get('notes')?.trim() || null,
+        status: 'active' // Her zaman active olarak gönder
     };
 
     try {

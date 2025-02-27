@@ -151,7 +151,7 @@ router.post('/', async (c) => {
     try {
         const body = await c.req.json();
         
-        // Basit validasyon
+        // Validasyon
         if (!body.name || !body.unit_id) {
             return c.json({
                 success: false,
@@ -159,21 +159,21 @@ router.post('/', async (c) => {
             }, 400);
         }
 
-        // Sadece var olan kolonları kullan
+        // Sadece var olan kolonları kullan ve status'u active olarak ayarla
         const result = await db.prepare(`
             INSERT INTO raw_materials (
                 name, 
                 description,
                 unit_id, 
-                category_id,
+                category_id, 
+                status,
                 notes
-            ) VALUES (?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, 'active', ?)
         `).bind(
             body.name,
             body.description || null,
             body.unit_id,
             body.category_id || null,
-            'active',
             body.notes || null
         ).run();
 
