@@ -80,36 +80,75 @@ function renderStockTable(materials) {
     }
     
     tbody.innerHTML = materials.map(material => {
-        // Null check ve default değerler ekle
         const current_stock = material.current_stock || 0;
-        const unit_code = material.unit_code || '-';
-        const last_movement = material.last_movement ? formatDateTime(material.last_movement) : '-';
+        const min_stock = material.min_stock || 0;
         
+        // Stok durumu sınıfını belirle
+        const stockClass = getStockStatusClass(current_stock, min_stock);
+        
+        // Son hareket bilgisi
+        const lastMovement = material.last_movement ? {
+            date: formatDate(material.last_movement.date),
+            type: material.last_movement.type,
+            quantity: material.last_movement.quantity
+        } : null;
+
         return `
         <tr>
-            <td>${material.name || '-'}</td>
-            <td>${material.unit_name || '-'}</td>
             <td>
-                <span class="badge bg-${getStockLevelClass(material)}">
-                    ${current_stock} ${unit_code}
-                </span>
+                <div class="fw-bold">${material.name}</div>
+                <small class="text-muted">${material.description || ''}</small>
             </td>
-            <td>${material.min_stock || '-'} ${unit_code}</td>
-            <td>${getStatusBadge(material.status || 'unknown')}</td>
-            <td>${last_movement}</td>
             <td>
+                <span class="badge bg-secondary">${material.category_name || '-'}</span>
+            </td>
+            <td>
+                <small class="text-muted">Birim:</small> ${material.unit_name}<br>
+                <small class="text-muted">Kod:</small> ${material.unit_code}
+            </td>
+            <td class="text-center">
+                <div class="d-flex flex-column align-items-center">
+                    <h5 class="mb-1">
+                        <span class="badge ${stockClass}">
+                            ${current_stock} ${material.unit_code}
+                        </span>
+                    </h5>
+                    <small class="text-${getStockTrendClass(material)}">
+                        <i class="bi ${getStockTrendIcon(material)}"></i>
+                        ${getStockTrendText(material)}
+                    </small>
+                </div>
+            </td>
+            <td class="text-center">
+                <div class="d-flex flex-column align-items-center">
+                    <span>${min_stock} ${material.unit_code}</span>
+                    ${getStockWarning(current_stock, min_stock)}
+                </div>
+            </td>
+            <td class="text-center">
+                ${lastMovement ? `
+                    <div class="text-muted small">
+                        <div>${lastMovement.date}</div>
+                        <span class="badge ${getMovementBadgeClass(lastMovement.type)}">
+                            ${lastMovement.type === 'in' ? 'Giriş' : 'Çıkış'}:
+                            ${lastMovement.quantity} ${material.unit_code}
+                        </span>
+                    </div>
+                ` : '-'}
+            </td>
+            <td class="text-end">
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-primary me-1" 
-                            onclick="editMaterial(${material.id})">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-info me-1" 
-                            onclick="showMovementHistory(${material.id})">
-                        <i class="bi bi-clock-history"></i>
+                    <button class="btn btn-sm btn-outline-primary" 
+                            onclick="showStockDetail(${material.id}, '${material.name}')">
+                        <i class="bi bi-box-arrow-in-right"></i>
                     </button>
                     <button class="btn btn-sm btn-outline-success" 
-                            onclick="quickMovement(${material.id})">
+                            onclick="showNewMovement(${material.id})">
                         <i class="bi bi-plus-lg"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-info" 
+                            onclick="showHistory(${material.id})">
+                        <i class="bi bi-clock-history"></i>
                     </button>
                 </div>
             </td>
@@ -337,4 +376,54 @@ function getSourceTypeLabel(type) {
         'adjustment': 'Düzeltme'
     };
     return labels[type] || type;
+}
+
+// Stok durum sınıfını belirle
+function getStockStatusClass(current, min) {
+    if (current <= 0) return 'bg-danger';
+    if (current <= min) return 'bg-warning';
+    if (current <= min * 1.5) return 'bg-info';
+    return 'bg-success';
+}
+
+// Stok trend yönünü belirle
+function getStockTrendClass(material) {
+    const trend = material.stock_trend || 0;
+    if (trend > 0) return 'success';
+    if (trend < 0) return 'danger';
+    return 'muted';
+}
+
+function getStockTrendIcon(material) {
+    const trend = material.stock_trend || 0;
+    if (trend > 0) return 'bi-arrow-up-circle';
+    if (trend < 0) return 'bi-arrow-down-circle';
+    return 'bi-dash-circle';
+}
+
+function getStockTrendText(material) {
+    const trend = material.stock_trend || 0;
+    if (trend > 0) return `%${trend} artış`;
+    if (trend < 0) return `%${Math.abs(trend)} azalış`;
+    return 'Değişim yok';
+}
+
+// Stok uyarı mesajı
+function getStockWarning(current, min) {
+    if (current <= 0) {
+        return `<div class="text-danger small">
+            <i class="bi bi-exclamation-triangle-fill"></i> Stok tükendi
+        </div>`;
+    }
+    if (current <= min) {
+        return `<div class="text-warning small">
+            <i class="bi bi-exclamation-circle-fill"></i> Kritik seviye
+        </div>`;
+    }
+    return '';
+}
+
+// Hareket badge rengi
+function getMovementBadgeClass(type) {
+    return type === 'in' ? 'bg-success' : 'bg-danger';
 }

@@ -1,6 +1,7 @@
 -- Finansal işlemler için triggerlar
 DROP TRIGGER IF EXISTS trg_after_transaction_insert;
 DROP TRIGGER IF EXISTS trg_after_transaction_delete;
+DROP TRIGGER IF EXISTS trg_after_account_initial_balance_update;
 
 -- 1. Transaction eklendiğinde hesap bakiyesini güncelle
 CREATE TRIGGER trg_after_transaction_insert
