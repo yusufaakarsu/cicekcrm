@@ -641,70 +641,44 @@ router.get('/payments/:type/:id', async (c) => {
   }
 })
 
+// Endpoint'i düzelt
+router.post('/payments/:type/:id', async (c) => {
+  // ...existing code...
+})
+
+// Endpoint'i değiştir
 router.post('/payments', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
-  const user_id = c.get('user_id') || 1
-  
+  const body = await c.req.json()
+
   try {
-    const body = await c.req.json()
-    console.log('Payment request:', body)
-
-    // 1. Kayıt kontrolü
-    const table = body.related_type === 'purchase' ? 'purchase_orders' : 'orders'
-    const currentPayment = await db.prepare(`
-      SELECT id, total_amount, paid_amount 
-      FROM ${table}
-      WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL
-    `).bind(body.related_id, tenant_id).first()
-
-    if (!currentPayment) {
-      return c.json({ success: false, error: 'Record not found' }, 404)
+    // Body validasyonu
+    if (!body.account_id || !body.amount || !body.related_type || !body.related_id) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
     }
 
-    if (currentPayment.paid_amount >= currentPayment.total_amount) {
-      return c.json({ success: false, error: 'Already paid' }, 400)
-    }
-
-    // 2. Tutarı kontrol et
-    if (body.amount <= 0) {
-      return c.json({ success: false, error: 'Invalid amount' }, 400)
-    }
-
-    // 3. Transaction oluştur
-    const trx = await db.prepare(`
+    // Transaction başlat
+    const result = await db.prepare(`
       INSERT INTO transactions (
-        tenant_id, type, amount, account_id, payment_method,
-        date, description, related_type, related_id, 
+        tenant_id, account_id, type, amount, date,
+        payment_method, description, related_type, related_id,
         status, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?)
     `).bind(
       tenant_id,
-      body.type,
-      body.amount,
       body.account_id,
-      body.payment_method,
+      body.type || 'out',
+      body.amount,
       body.date || new Date().toISOString(),
+      body.payment_method || 'cash',
       body.notes || '',
       body.related_type,
       body.related_id,
-      user_id
+      1 // TODO: Gerçek user_id eklenecek
     ).run()
 
-    // 4. Ana kaydı güncelle
-    await db.prepare(`
-      UPDATE ${table}
-      SET 
-        paid_amount = paid_amount + ?,
-        payment_status = CASE 
-          WHEN paid_amount + ? >= total_amount THEN 'paid'
-          ELSE 'partial'
-        END,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = ? AND tenant_id = ?
-    `).bind(body.amount, body.amount, body.related_id, tenant_id).run()
-
-    return c.json({ success: true })
+    return c.json({ success: true, id: result.lastRowId })
 
   } catch (error) {
     console.error('Payment error:', error)

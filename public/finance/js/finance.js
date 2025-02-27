@@ -134,46 +134,37 @@ async function showPaymentModal(paymentType, id, relatedType) {
     }
 }
 
-// Tek kaydetme fonksiyonu
+// Ödeme kaydetme fonksiyonu
 async function savePayment() {
-    const form = document.getElementById('paymentForm');
-    if (!form) {
-        showError('Form bulunamadı');
-        return;
-    }
-
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData);
-    
     try {
-        const response = await fetch(`${API_URL}/finance/payments`, {
+        const form = document.getElementById('paymentForm')
+        const formData = new FormData(form)
+        const data = Object.fromEntries(formData)
+
+        const response = await fetch(getApiUrl('/finance/payments'), {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                ...data,
-                amount: parseFloat(data.amount) // string -> number
-            })
-        });
-        
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'İşlem kaydedilemedi');
+            throw new Error(await response.text())
         }
 
-        const result = await response.json();
-        
+        const result = await response.json()
         if (!result.success) {
-            throw new Error(result.error);
+            throw new Error(result.error)
         }
 
-        bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-        loadFinanceData();
-        loadPendingPayments();
-        showSuccess('İşlem başarıyla kaydedildi');
+        // Modal'ı kapat ve sayfayı yenile
+        bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide()
+        loadData()
 
     } catch (error) {
-        console.error('Save payment error:', error);
-        showError(error.message || 'İşlem kaydedilemedi');
+        console.error('Save payment error:', error)
+        showError('Ödeme kaydedilemedi: ' + error.message)
     }
 }
 
