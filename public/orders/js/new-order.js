@@ -43,7 +43,7 @@ function setupCustomerSearch() {
     });
 }
 
-// Müşteri arama fonksiyonu güncellendi
+// Müşteri arama fonksiyonunu güncelle - null customer durumunu ele al
 async function searchCustomer() {
     // Input değerini al ve temizle
     const phoneInput = document.getElementById('customerSearch');
@@ -62,8 +62,9 @@ async function searchCustomer() {
         searchButton.disabled = true;
         searchButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
         
-        // API'den müşteriyi ara - düzeltilmiş endpoint
-        const data = await fetchAPI(`/customers/phone/${phone}`);
+        // API'den müşteriyi ara
+        const response = await fetch(`${API_URL}/customers/phone/${phone}`);
+        const data = await response.json();
         
         // Buton durumunu resetle
         searchButton.disabled = false;
@@ -72,13 +73,18 @@ async function searchCustomer() {
         // Müşteri detayları ve yeni müşteri formunu gizle
         document.getElementById('customerDetails').classList.add('d-none');
         document.getElementById('newCustomerForm').classList.add('d-none');
-        
+
+        // API başarılı olsa bile customer null olabilir, bu durumu kontrol et
         if (data.success && data.customer) {
             // Müşteri bulunduysa detayları göster
             showCustomerDetails(data.customer);
         } else {
-            // Müşteri bulunamadıysa direk yeni müşteri formunu göster
-            showNewCustomerForm(phone); // Telefon numarasını parametre olarak gönder
+            // Müşteri bulunamadıysa yeni müşteri formunu göster
+            showNewCustomerForm(phone);
+            // Müşteri bulunamadığını belirt
+            if (data.success) {
+                showInfo(`${phone} numaralı müşteri bulunamadı. Yeni müşteri kaydı yapabilirsiniz.`);
+            }
         }
         
     } catch (error) {
@@ -91,6 +97,23 @@ async function searchCustomer() {
             searchButton.innerHTML = '<i class="bi bi-search"></i>';
         }
     }
+}
+
+// Bilgi mesajı gösterme fonksiyonu
+function showInfo(message) {
+    const infoEl = document.createElement('div');
+    infoEl.className = 'alert alert-info alert-dismissible fade show';
+    infoEl.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Eğer varsa, önceki alertleri kaldır
+    document.querySelectorAll('.alert').forEach(alert => alert.remove());
+    
+    // Forma ekle
+    const form = document.getElementById('newCustomerForm');
+    form.insertBefore(infoEl, form.firstChild);
 }
 
 // Müşteri detaylarını göster

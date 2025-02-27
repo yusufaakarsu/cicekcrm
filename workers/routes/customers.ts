@@ -32,30 +32,40 @@ router.get('/', async (c) => {
   }
 })
 
-// Telefon ile müşteri ara
+// Telefon numarasına göre müşteri bulma
 router.get('/phone/:phone', async (c) => {
-  try {
-    const phone = c.req.param('phone').replace(/\D/g, '').replace(/^0+/, '')
-    const db = c.get('db')
+    const db = c.get('db');
+    const { phone } = c.req.param();
     
-    const customer = await db.prepare(`
-        SELECT * FROM customers 
-        WHERE phone = ? 
-        AND deleted_at IS NULL
-    `).bind(phone).first()
-    
-    return c.json({
-        success: true,
-        customer: customer || null
-    })
-  } catch (error) {
-    return c.json({
-        success: false,
-        message: 'Müşteri araması başarısız',
-        error: error.message
-    })
-  }
-})
+    try {
+        const customer = await db.prepare(`
+            SELECT * FROM customers
+            WHERE phone = ?
+            AND deleted_at IS NULL
+        `).bind(phone).first();
+        
+        // Müşteri bulunamadığında uygun yanıt döndür
+        if (!customer) {
+            return c.json({
+                success: false,
+                error: "Customer not found",
+                customer: null
+            }, 404);  // 404 Not Found
+        }
+        
+        return c.json({
+            success: true,
+            customer
+        });
+    } catch (error) {
+        console.error('Error finding customer by phone:', error);
+        return c.json({ 
+            success: false, 
+            error: 'Database error',
+            details: error.message
+        }, 500);
+    }
+});
 
 // Yeni müşteri kaydet
 router.post('/', async (c) => {
