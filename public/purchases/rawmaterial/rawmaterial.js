@@ -141,10 +141,20 @@ function filterByCategory(categoryId) {
     loadMaterials(); // Filtrelenmiş listeyi yükle
 }
 
+// Modal gösterme fonksiyonunu düzeltelim
 function showMaterialModal() {
-    currentMaterialId = null;
+    materialModal = new bootstrap.Modal(document.getElementById('materialModal'));
+    const form = document.getElementById('materialForm');
+    form.reset();
+    
+    // Modal başlığını sıfırla
     document.getElementById('materialModalTitle').textContent = 'Yeni Hammadde';
-    document.getElementById('materialForm').reset();
+    currentMaterialId = null;
+    
+    // Kategori ve birim select'lerini kontrol et
+    if (categories.length === 0) loadCategories();
+    if (units.length === 0) loadUnits();
+    
     materialModal.show();
 }
 
@@ -162,16 +172,20 @@ async function saveMaterial() {
 
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
-    const method = currentMaterialId ? 'PUT' : 'POST';
-    const url = currentMaterialId ? 
-        `${API_URL}/materials/${currentMaterialId}` : 
-        `${API_URL}/materials`;
-
+    
     try {
-        const response = await fetch(url, {
-            method,
+        // Endpoint'i düzelttik
+        const response = await fetch(`${API_URL}/materials`, {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify({
+                name: data.name,
+                description: data.description || '',
+                unit_id: parseInt(data.unit_id),
+                category_id: parseInt(data.category_id) || null,
+                status: data.status || 'active',
+                notes: data.notes || ''
+            })
         });
 
         if (!response.ok) throw new Error('API Hatası');
@@ -179,13 +193,18 @@ async function saveMaterial() {
         const result = await response.json();
         if (!result.success) throw new Error(result.error);
 
+        // Modal'ı kapat ve verileri yenile
         materialModal.hide();
-        await loadMaterials();
-        await loadCategories();
-        showSuccess(`Hammadde başarıyla ${currentMaterialId ? 'güncellendi' : 'eklendi'}`);
+        document.getElementById('materialForm').reset();
+        await Promise.all([
+            loadMaterials(),
+            loadCategories()
+        ]);
+        
+        showSuccess('Hammadde başarıyla eklendi');
     } catch (error) {
         console.error('Hammadde kaydedilirken hata:', error);
-        showError('Hammadde kaydedilemedi!');
+        showError('Hammadde kaydedilemedi: ' + error.message);
     }
 }
 
@@ -328,4 +347,44 @@ function getSourceTypeLabel(type) {
         'adjustment': 'Düzeltme'
     };
     return labels[type] || type;
+}
+
+function showError(message) {
+    const toastDiv = document.createElement('div');
+    toastDiv.className = 'position-fixed bottom-0 end-0 p-3';
+    toastDiv.style.zIndex = '1050';
+    toastDiv.innerHTML = `
+        <div class="toast align-items-center text-white bg-danger border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toastDiv);
+    const toast = new bootstrap.Toast(toastDiv.querySelector('.toast'));
+    toast.show();
+}
+
+function showSuccess(message) {
+    const toastDiv = document.createElement('div');
+    toastDiv.className = 'position-fixed bottom-0 end-0 p-3';
+    toastDiv.style.zIndex = '1050';
+    toastDiv.innerHTML = `
+        <div class="toast align-items-center text-white bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="bi bi-check-circle me-2"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toastDiv);
+    const toast = new bootstrap.Toast(toastDiv.querySelector('.toast'));
+    toast.show();
 }
