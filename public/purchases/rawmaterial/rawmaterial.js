@@ -1,268 +1,291 @@
-let materialModal;
-let currentFilters = {
-    search: '',
-    category: '',
-    status: ''
-};
+let materialModal, categoryModal, stockDetailModal;
+let currentMaterialId = null;
+let categories = [];
+let units = [];
+let selectedCategoryId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
-    loadMaterials();
+    loadCategories();
     loadUnits();
-    loadCategories(); // Yeni eklendi
+    loadMaterials();
+    
     materialModal = new bootstrap.Modal(document.getElementById('materialModal'));
+    categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
+    stockDetailModal = new bootstrap.Modal(document.getElementById('stockDetailModal'));
 });
-
-async function loadMaterials() {
-    try {
-        const queryParams = new URLSearchParams(currentFilters).toString();
-        const response = await fetch(`${API_URL}/materials?${queryParams}`);
-        if (!response.ok) throw new Error('API Hatası');
-        const data = await response.json();
-
-        const tbody = document.getElementById('materialsTable');
-        
-        if (data.materials?.length > 0) {
-            tbody.innerHTML = data.materials.map(m => `
-                <tr>
-                    <td>
-                        <div class="fw-bold">${m.name}</div>
-                        <div class="small text-muted">${m.description || ''}</div>
-                    </td>
-                    <td>${m.category_name || '-'}</td>
-                    <td>${m.unit_name}</td>
-                    <td>
-                        <span class="badge bg-${m.current_stock <= m.min_stock ? 'danger' : 'success'}">
-                            ${m.current_stock || 0} ${m.unit_code}
-                        </span>
-                    </td>
-                    <td>${getStatusBadge(m.status)}</td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-primary" onclick="showEditModal(${m.id})">
-                            <i class="bi bi-pencil"></i> Düzenle
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        } else {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Ham madde bulunamadı</td></tr>';
-        }
-    } catch (error) {
-        console.error('Ham maddeler yüklenirken hata:', error);
-        showError('Ham maddeler yüklenemedi');
-    }
-}
-
-async function loadUnits() {
-    try {
-        const response = await fetch(`${API_URL}/materials/units`);
-        if (!response.ok) throw new Error('API Hatası');
-        const data = await response.json();
-
-        if (!data.success) {
-            throw new Error(data.error || 'API Hatası');
-        }
-
-        const unitSelect = document.querySelector('select[name="unit_id"]');
-        unitSelect.innerHTML = `
-            <option value="">Birim Seçiniz</option>
-            ${data.units.map(u => `
-                <option value="${u.id}">${u.name} (${u.code})</option>
-            `).join('')}
-        `;
-
-    } catch (error) {
-        console.error('Birimler yüklenemedi:', error);
-        showError('Birimler yüklenemedi');
-    }
-}
 
 async function loadCategories() {
     try {
         const response = await fetch(`${API_URL}/materials/categories`);
         if (!response.ok) throw new Error('API Hatası');
-        const data = await response.json();
-
-        if (!data.success) {
-            throw new Error(data.error || 'API Hatası');
-        }
-
-        // Filtre için kategorileri yükle
-        const categoryFilter = document.getElementById('categoryFilter');
-        // Modal form için kategorileri yükle
-        const categorySelect = document.querySelector('select[name="category_id"]');
         
-        const options = data.categories.map(c => 
-            `<option value="${c.id}">${c.name}</option>`
-        ).join('');
-
-        categoryFilter.innerHTML = `<option value="">Tümü</option>${options}`;
-        categorySelect.innerHTML = `<option value="">Seçiniz</option>${options}`;
-
-    } catch (error) {
-        console.error('Kategoriler yüklenemedi:', error);
-        showError('Kategoriler yüklenemedi');
-    }
-}
-
-function showNewMaterialModal() {
-    document.getElementById('materialForm').reset();
-    document.querySelector('.modal-title').innerHTML = `
-        <i class="bi bi-box2"></i> Yeni Ham Madde
-    `;
-    loadUnitsForSelect(); // Birimleri yükle
-    materialModal.show();
-}
-
-async function loadUnitsForSelect() {
-    try {
-        // Endpoint düzeltildi: /units -> /materials/units
-        const response = await fetch(`${API_URL}/materials/units`);
-        if (!response.ok) throw new Error('API Hatası');
         const data = await response.json();
+        if (!data.success) throw new Error(data.error);
 
-        if (!data.success) {
-            throw new Error(data.error || 'API Hatası');
-        }
-
-        const unitSelect = document.querySelector('select[name="unit_id"]');
+        categories = data.categories || [];
         
-        unitSelect.innerHTML = `
-            <option value="">Birim Seçiniz</option>
-            ${data.units.map(u => `
-                <option value="${u.id}" data-code="${u.code}">
-                    ${u.name} (${u.code})
-                </option>
+        // Kategori listesini güncelle
+        const categoryList = document.getElementById('categoryList');
+        categoryList.innerHTML = `
+            <a href="#" class="list-group-item list-group-item-action ${!selectedCategoryId ? 'active' : ''}"
+               onclick="filterByCategory(null)">
+                Tüm Kategoriler
+                <span class="badge bg-secondary float-end">
+                    ${categories.reduce((sum, cat) => sum + (cat.material_count || 0), 0)}
+                </span>
+            </a>
+            ${categories.map(category => `
+                <a href="#" class="list-group-item list-group-item-action ${selectedCategoryId === category.id ? 'active' : ''}"
+                   onclick="filterByCategory(${category.id})">
+                    ${category.name}
+                    <span class="badge bg-secondary float-end">${category.material_count || 0}</span>
+                </a>
             `).join('')}
         `;
 
+        // Select kutusunu güncelle
+        const categorySelect = document.querySelector('select[name="category_id"]');
+        categorySelect.innerHTML = `
+            <option value="">Seçiniz...</option>
+            ${categories.map(category => `
+                <option value="${category.id}">${category.name}</option>
+            `).join('')}
+        `;
     } catch (error) {
-        console.error('Birimler yüklenemedi:', error);
-        showError('Birimler yüklenemedi');
+        console.error('Kategoriler yüklenirken hata:', error);
+        showError('Kategoriler yüklenemedi!');
     }
+}
+
+async function loadUnits() {
+    try {
+        const response = await fetch(`${API_URL}/settings/units`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        units = data.units || [];
+        
+        const unitSelect = document.querySelector('select[name="unit_id"]');
+        unitSelect.innerHTML = `
+            <option value="">Seçiniz...</option>
+            ${units.map(unit => `
+                <option value="${unit.id}">${unit.name} (${unit.code})</option>
+            `).join('')}
+        `;
+    } catch (error) {
+        console.error('Birimler yüklenirken hata:', error);
+        showError('Birimler yüklenemedi!');
+    }
+}
+
+async function loadMaterials() {
+    try {
+        const response = await fetch(`${API_URL}/materials`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        const tbody = document.querySelector('#materialsTable tbody');
+        const materials = selectedCategoryId ? 
+            data.materials.filter(m => m.category_id === selectedCategoryId) : 
+            data.materials;
+        
+        if (materials?.length > 0) {
+            tbody.innerHTML = materials.map(material => `
+                <tr>
+                    <td>
+                        <div class="fw-bold">${material.name}</div>
+                        <small class="text-muted">${material.description || ''}</small>
+                    </td>
+                    <td>${material.category_name || '-'}</td>
+                    <td>${material.unit_code}</td>
+                    <td>
+                        <span class="badge ${material.current_stock > 0 ? 'bg-success' : 'bg-danger'}">
+                            ${material.current_stock} ${material.unit_code}
+                        </span>
+                    </td>
+                    <td>${getStatusBadge(material.status)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info me-1" 
+                                onclick="showStockDetail(${material.id}, '${material.name}')">
+                            <i class="bi bi-graph-up"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                onclick="editMaterial(${material.id})">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" 
+                                onclick="toggleStatus(${material.id}, '${material.status === 'active' ? 'passive' : 'active'}')">
+                            <i class="bi bi-power"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Hammadde bulunamadı</td></tr>';
+        }
+    } catch (error) {
+        console.error('Hammaddeler yüklenirken hata:', error);
+        showError('Hammaddeler yüklenemedi!');
+    }
+}
+
+function filterByCategory(categoryId) {
+    selectedCategoryId = categoryId;
+    loadCategories(); // Aktif kategoriyi güncelle
+    loadMaterials(); // Filtrelenmiş listeyi yükle
+}
+
+function showMaterialModal() {
+    currentMaterialId = null;
+    document.getElementById('materialModalTitle').textContent = 'Yeni Hammadde';
+    document.getElementById('materialForm').reset();
+    materialModal.show();
+}
+
+function showCategoryModal() {
+    document.getElementById('categoryForm').reset();
+    categoryModal.show();
 }
 
 async function saveMaterial() {
     const form = document.getElementById('materialForm');
-    
-    // Form validasyonu
     if (!form.checkValidity()) {
-        form.classList.add('was-validated');
+        form.reportValidity();
         return;
     }
 
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
-    const isUpdate = !!data.id; // id varsa güncelleme
+    const method = currentMaterialId ? 'PUT' : 'POST';
+    const url = currentMaterialId ? 
+        `${API_URL}/materials/${currentMaterialId}` : 
+        `${API_URL}/materials`;
 
     try {
-        const response = await fetch(`${API_URL}/materials${isUpdate ? '/' + data.id : ''}`, {
-            method: isUpdate ? 'PUT' : 'POST',
-            headers: {'Content-Type': 'application/json'},
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
 
+        if (!response.ok) throw new Error('API Hatası');
+        
         const result = await response.json();
+        if (!result.success) throw new Error(result.error);
 
-        if (!result.success) {
-            throw new Error(result.error || 'API Hatası');
-        }
-
-        showSuccess(`Ham madde başarıyla ${isUpdate ? 'güncellendi' : 'eklendi'}`);
         materialModal.hide();
-        loadMaterials();
-
+        await loadMaterials();
+        await loadCategories();
+        showSuccess(`Hammadde başarıyla ${currentMaterialId ? 'güncellendi' : 'eklendi'}`);
     } catch (error) {
-        console.error('İşlem hatası:', error);
-        showError(`Ham madde ${isUpdate ? 'güncellenemedi' : 'eklenemedi'}: ` + error.message);
+        console.error('Hammadde kaydedilirken hata:', error);
+        showError('Hammadde kaydedilemedi!');
     }
 }
 
-function getStatusBadge(status) {
-    const badges = {
-        'active': ['success', 'Aktif'],
-        'passive': ['warning', 'Pasif'],
-        'archived': ['secondary', 'Arşiv']
-    };
-    const [color, text] = badges[status] || ['secondary', 'Bilinmiyor'];
-    return `<span class="badge bg-${color}">${text}</span>`;
-}
+async function saveCategory() {
+    const form = document.getElementById('categoryForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
 
-function applyFilters() {
-    currentFilters = {
-        search: document.getElementById('searchInput').value,
-        category: document.getElementById('categoryFilter').value,
-        status: document.getElementById('statusFilter').value
-    };
-    loadMaterials();
-}
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
 
-function resetFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('categoryFilter').value = '';
-    document.getElementById('statusFilter').value = '';
-    currentFilters = {
-        search: '',
-        category: '',
-        status: ''
-    };
-    loadMaterials();
-}
-
-// Düzenleme modalını göster
-async function showEditModal(id) {
     try {
+        const response = await fetch(`${API_URL}/materials/categories`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
+        categoryModal.hide();
+        await loadCategories();
+        showSuccess('Kategori başarıyla eklendi');
+    } catch (error) {
+        console.error('Kategori kaydedilirken hata:', error);
+        showError('Kategori kaydedilemedi!');
+    }
+}
+
+async function editMaterial(id) {
+    try {
+        currentMaterialId = id;
+        document.getElementById('materialModalTitle').textContent = 'Hammadde Düzenle';
+        
         const response = await fetch(`${API_URL}/materials/${id}`);
         if (!response.ok) throw new Error('API Hatası');
+        
         const data = await response.json();
+        if (!data.success) throw new Error(data.error);
 
-        document.querySelector('.modal-title').innerHTML = `
-            <i class="bi bi-pencil"></i> Ham Madde Düzenle
-        `;
-
-        // Status select'i göster
-        document.getElementById('statusGroup').classList.remove('d-none');
-        
-        // Form alanlarını doldur
         const form = document.getElementById('materialForm');
-        form.elements['name'].value = data.material.name;
-        form.elements['category_id'].value = data.material.category_id || '';
-        form.elements['unit_id'].value = data.material.unit_id || '';
-        form.elements['description'].value = data.material.description || '';
-        form.elements['notes'].value = data.material.notes || '';
-        form.elements['status'].value = data.material.status;
-
-        // Form elemanlarını disable etmeyi kaldır
-        form.elements['unit_id'].disabled = false;
-        form.elements['category_id'].disabled = false;
+        const material = data.material;
         
-        // Form'a material_id ekle
-        const hiddenId = document.createElement('input');
-        hiddenId.type = 'hidden';
-        hiddenId.name = 'id';
-        hiddenId.value = id;
-        form.appendChild(hiddenId);
-
-        // Form elemanlarını readonly yap
-        form.elements['name'].readOnly = true;
-
-        // Modal'ı göster
+        Object.keys(material).forEach(key => {
+            if (form.elements[key]) {
+                form.elements[key].value = material[key];
+            }
+        });
+        
         materialModal.show();
-
     } catch (error) {
-        console.error('Ham madde detayı alınamadı:', error);
-        showError('Ham madde detayı alınamadı');
+        console.error('Hammadde bilgileri yüklenirken hata:', error);
+        showError('Hammadde bilgileri yüklenemedi!');
     }
 }
 
-// Durum güncelleme fonksiyonu
-async function updateMaterialStatus(id, newStatus) {
+async function showStockDetail(id, name) {
     try {
-        const response = await fetch(`${API_URL}/materials/${id}/status`, {
+        document.getElementById('detail-material-name').textContent = name;
+        
+        const response = await fetch(`${API_URL}/materials/${id}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        const tbody = document.getElementById('stockMovementsTable');
+        const movements = data.movements || [];
+        
+        if (movements.length > 0) {
+            tbody.innerHTML = movements.map(mov => `
+                <tr>
+                    <td>${formatDateTime(mov.created_at)}</td>
+                    <td>${getMovementTypeBadge(mov.movement_type)}</td>
+                    <td>${mov.quantity} ${data.material.unit_code}</td>
+                    <td>${getSourceTypeLabel(mov.source_type)}</td>
+                    <td>${mov.notes || '-'}</td>
+                    <td>${mov.created_by_name}</td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Hareket bulunamadı</td></tr>';
+        }
+
+        stockDetailModal.show();
+    } catch (error) {
+        console.error('Stok hareketleri yüklenirken hata:', error);
+        showError('Stok hareketleri yüklenemedi!');
+    }
+}
+
+async function toggleStatus(id, newStatus) {
+    try {
+        const response = await fetch(`${API_URL}/materials/${id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: newStatus })
         });
 
@@ -271,26 +294,37 @@ async function updateMaterialStatus(id, newStatus) {
         const result = await response.json();
         if (!result.success) throw new Error(result.error);
 
-        showSuccess('Durum güncellendi');
-        loadMaterials(); // Listeyi yenile
-        materialModal.hide();
-
+        await loadMaterials();
+        showSuccess('Hammadde durumu güncellendi');
     } catch (error) {
-        console.error('Durum güncelleme hatası:', error);
-        showError('Durum güncellenemedi: ' + error.message);
+        console.error('Durum güncellenirken hata:', error);
+        showError('Durum güncellenemedi!');
     }
 }
 
-// Modal kapatıldığında form sıfırlama
-document.getElementById('materialModal').addEventListener('hidden.bs.modal', () => {
-    const form = document.getElementById('materialForm');
-    form.reset();
-    form.classList.remove('was-validated');
-    // Hidden input varsa kaldır
-    const hiddenId = form.querySelector('input[name="id"]');
-    if (hiddenId) hiddenId.remove();
-    // Status group'u gizle
-    document.getElementById('statusGroup').classList.add('d-none');
-});
+// Helper Functions
+function getStatusBadge(status) {
+    const badges = {
+        'active': '<span class="badge bg-success">Aktif</span>',
+        'passive': '<span class="badge bg-warning">Pasif</span>'
+    };
+    return badges[status] || status;
+}
 
-// ... diğer fonksiyonlar (editMaterial, showStockModal vb) eklenecek
+function getMovementTypeBadge(type) {
+    const badges = {
+        'in': '<span class="badge bg-success">Giriş</span>',
+        'out': '<span class="badge bg-danger">Çıkış</span>'
+    };
+    return badges[type] || type;
+}
+
+function getSourceTypeLabel(type) {
+    const labels = {
+        'purchase': 'Satın Alma',
+        'sale': 'Satış',
+        'waste': 'Fire',
+        'adjustment': 'Düzeltme'
+    };
+    return labels[type] || type;
+}

@@ -3,191 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ham Madde Yönetimi - Çiçek CRM</title>
+    <title>Hammaddeler - Çiçek CRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 <body data-page="rawmaterial">
-    <div class="d-flex">
-        <!-- Sidebar - position fixed eklendi -->
-        <div id="mainSidebar" class="position-fixed vh-100"></div>
+    <div class="vh-100 d-flex flex-row">
+        <!-- Sidebar -->
+        <div id="mainSidebar"></div>
         
-        <!-- Ana içerik - margin-left eklendi -->
-        <div class="flex-grow-1 p-4" style="margin-left: 200px;">
-            <!-- Başlık ve Butonlar -->
+        <!-- Ana İçerik -->
+        <div class="flex-grow-1 overflow-auto p-3">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="bi bi-box2"></i> Ham Madde Yönetimi</h2>
-                <div class="btn-group">
-                    <button class="btn btn-primary" onclick="showNewMaterialModal()">
-                        <i class="bi bi-plus-lg"></i> Yeni Ham Madde
+                <h2><i class="bi bi-box-seam"></i> Hammaddeler</h2>
+                <div>
+                    <button class="btn btn-outline-primary me-2" onclick="showCategoryModal()">
+                        <i class="bi bi-folder-plus"></i> Yeni Kategori
+                    </button>
+                    <button class="btn btn-primary" onclick="showMaterialModal()">
+                        <i class="bi bi-plus-lg"></i> Yeni Hammadde
                     </button>
                 </div>
             </div>
 
-            <!-- Filtreler -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="row g-3">
-                        <!-- Arama -->
-                        <div class="col-md-3">
-                            <label class="form-label">Arama</label>
-                            <input type="text" class="form-control" id="searchInput" 
-                                placeholder="Ham madde adı...">
+            <!-- Kategori ve Hammadde Listesi -->
+            <div class="row">
+                <!-- Kategoriler -->
+                <div class="col-md-3">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <i class="bi bi-folder2"></i> Kategoriler
                         </div>
-
-                        <!-- Kategori Filtresi -->
-                        <div class="col-md-3">
-                            <label class="form-label">Kategori</label>
-                            <select class="form-select" id="categoryFilter">
-                                <option value="">Tümü</option>
-                            </select>
+                        <div class="list-group list-group-flush" id="categoryList">
+                            <div class="list-group-item text-center">Yükleniyor...</div>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- Durum Filtresi -->
-                        <div class="col-md-2">
-                            <label class="form-label">Durum</label>
-                            <select class="form-select" id="statusFilter">
-                                <option value="">Tümü</option>
-                                <option value="active">Aktif</option>
-                                <option value="passive">Pasif</option>
-                                <option value="archived">Arşiv</option>
-                            </select>
-                        </div>
-
-                        <!-- Filtre Butonu -->
-                        <div class="col-md-2">
-                            <label class="form-label">&nbsp;</label>
-                            <button class="btn btn-primary w-100" onclick="applyFilters()">
-                                <i class="bi bi-search"></i> Filtrele
-                            </button>
-                        </div>
-
-                        <!-- Reset Butonu -->
-                        <div class="col-md-2">
-                            <label class="form-label">&nbsp;</label>
-                            <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
-                                <i class="bi bi-x-circle"></i> Temizle
-                            </button>
+                <!-- Hammaddeler -->
+                <div class="col-md-9">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="materialsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Hammadde</th>
+                                            <th>Kategori</th>
+                                            <th>Birim</th>
+                                            <th>Stok</th>
+                                            <th>Durum</th>
+                                            <th>İşlemler</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="6" class="text-center">Yükleniyor...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Ham Madde Listesi -->
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Ham Madde</th>
-                                <th>Kategori</th>
-                                <th>Birim</th>
-                                <th>Mevcut Stok</th>
-                                <th>Durum</th>
-                                <th class="text-end">İşlemler</th>
-                            </tr>
-                        </thead>
-                        <tbody id="materialsTable">
-                            <!-- JavaScript ile doldurulacak -->
-                        </tbody>
-                    </table>
+    <!-- Yeni/Düzenle Hammadde Modal -->
+    <div class="modal fade" id="materialModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="materialModalTitle">Yeni Hammadde</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="materialForm">
+                        <input type="hidden" name="id">
+                        <div class="mb-3">
+                            <label class="form-label">Hammadde Adı *</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kategori</label>
+                            <select class="form-select" name="category_id">
+                                <option value="">Seçiniz...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Birim *</label>
+                            <select class="form-select" name="unit_id" required>
+                                <option value="">Seçiniz...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Açıklama</label>
+                            <textarea class="form-control" name="description" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notlar</label>
+                            <textarea class="form-control" name="notes" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Durum</label>
+                            <select class="form-select" name="status">
+                                <option value="active">Aktif</option>
+                                <option value="passive">Pasif</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveMaterial()">Kaydet</button>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Modern Ham Madde Modal -->
-            <div class="modal fade" id="materialModal" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content border-0 shadow">
-                        <div class="modal-header border-0 bg-light">
-                            <h5 class="modal-title"></h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- Kategori Modal -->
+    <div class="modal fade" id="categoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Yeni Kategori</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="categoryForm">
+                        <div class="mb-3">
+                            <label class="form-label">Kategori Adı *</label>
+                            <input type="text" class="form-control" name="name" required>
                         </div>
-                        <div class="modal-body">
-                            <form id="materialForm" class="needs-validation" novalidate>
-                                <!-- Ham Madde Adı -->
-                                <div class="form-floating mb-3">
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="materialName" 
-                                           name="name" 
-                                           placeholder="Ham Madde Adı"
-                                           required>
-                                    <label for="materialName">Ham Madde Adı</label>
-                                    <div class="invalid-feedback">
-                                        Ham madde adı gereklidir
-                                    </div>
-                                </div>
-
-                                <!-- Birim Seçimi -->
-                                <div class="form-floating mb-3">
-                                    <select class="form-select" 
-                                            id="materialUnit" 
-                                            name="unit_id"
-                                            required>
-                                        <option value="">Seçiniz</option>
-                                    </select>
-                                    <label for="materialUnit">Birim</label>
-                                    <div class="invalid-feedback">
-                                        Birim seçimi gereklidir
-                                    </div>
-                                </div>
-
-                                <!-- Kategori Seçimi -->
-                                <div class="form-floating mb-3">
-                                    <select class="form-select" 
-                                            id="materialCategory" 
-                                            name="category_id"
-                                            required>
-                                        <option value="">Seçiniz</option>
-                                    </select>
-                                    <label for="materialCategory">Kategori</label>
-                                    <div class="invalid-feedback">
-                                        Kategori seçimi gereklidir
-                                    </div>
-                                </div>
-
-                                <!-- Durum Seçimi - Başlangıçta gizli -->
-                                <div id="statusGroup" class="form-floating mb-3 d-none">
-                                    <select class="form-select" 
-                                            id="materialStatus" 
-                                            name="status"
-                                            required>
-                                        <option value="active">Aktif</option>
-                                        <option value="passive">Pasif</option>
-                                        <option value="archived">Arşiv</option>
-                                    </select>
-                                    <label for="materialStatus">Durum</label>
-                                </div>
-
-                                <!-- Açıklama -->
-                                <div class="form-floating mb-3">
-                                    <textarea class="form-control" 
-                                              id="materialDescription" 
-                                              name="description"
-                                              placeholder="Açıklama"
-                                              style="height: 100px"></textarea>
-                                    <label for="materialDescription">Açıklama</label>
-                                </div>
-
-                                <!-- Notlar -->
-                                <div class="form-floating mb-3">
-                                    <textarea class="form-control" 
-                                              id="materialNotes" 
-                                              name="notes"
-                                              placeholder="Notlar"
-                                              style="height: 100px"></textarea>
-                                    <label for="materialNotes">Notlar</label>
-                                </div>
-                            </form>
+                        <div class="mb-3">
+                            <label class="form-label">Açıklama</label>
+                            <textarea class="form-control" name="description" rows="2"></textarea>
                         </div>
-                        <div class="modal-footer border-0 bg-light">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                <i class="bi bi-x-lg me-1"></i> İptal
-                            </button>
-                            <button type="button" class="btn btn-primary" onclick="saveMaterial()">
-                                <i class="bi bi-check-lg me-1"></i> Kaydet
-                            </button>
+                        <div class="mb-3">
+                            <label class="form-label">Sıralama</label>
+                            <input type="number" class="form-control" name="display_order" value="0">
                         </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCategory()">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stok Detay Modal -->
+    <div class="modal fade" id="stockDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <span id="detail-material-name">-</span> 
+                        <small class="text-muted">Stok Hareketleri</small>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Hareket</th>
+                                    <th>Miktar</th>
+                                    <th>Kaynak</th>
+                                    <th>Not</th>
+                                    <th>İşlem Yapan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stockMovementsTable">
+                                <tr>
+                                    <td colspan="6" class="text-center">Yükleniyor...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -196,6 +192,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/common.js"></script>
-    <script src="rawmaterial.js"></script>
+    <script src="/purchases/rawmaterial/rawmaterial.js"></script>
 </body>
 </html>
