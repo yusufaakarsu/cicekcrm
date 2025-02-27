@@ -262,4 +262,118 @@ router.put('/orders/:id/payment', async (c) => {
     }
 });
 
+// PUT /orders/:id/payment endpoint'i ekle
+router.post('/orders/:id/payment', async (c) => {
+    const db = c.get('db');
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    
+    try {
+        // 1. Ödeme validasyonu
+        if (!body.amount || !body.payment_method || !body.account_id) {
+            return c.json({
+                success: false,
+                error: 'Eksik bilgi: Tutar, ödeme yöntemi ve hesap gerekli'
+            }, 400);
+        }
+
+        // 2. Siparişi kontrol et
+        const order = await db.prepare(`
+            SELECT total_amount, paid_amount, payment_status 
+            FROM purchase_orders 
+            WHERE id = ? AND deleted_at IS NULL
+        `).bind(id).first();
+
+        if (!order) {
+            return c.json({
+                success: false,
+                error: 'Sipariş bulunamadı'
+            }, 404);
+        }
+
+        // 3. Tutar kontrolü
+        const remainingAmount = order.total_amount - (order.paid_amount || 0);
+        if (body.amount > remainingAmount) {
+            return c.json({
+                success: false,
+                error: 'Ödeme tutarı kalan tutardan büyük olamaz'
+            }, 400);
+        }
+
+        // 4. Yeni ödeme durumunu hesapla
+        const newPaidAmount = (order.paid_amount || 0) + body.amount;
+        const newStatus = newPaidAmount >= order.total_amount ? 'paid' : 
+                         newPaidAmount > 0 ? 'partial' : 'pending';
+
+        // 5. Transaction başlat
+        await db.prepare('BEGIN TRANSACTION').run();
+
+        try {
+            // 6. Siparişi güncelle
+            await db.prepare(`
+                UPDATE purchase_orders 
+                SET 
+                    payment_status = ?,
+                    paid_amount = ?,
+                    account_id = ?,
+                    payment_method = ?
+                WHERE id = ?
+            `).bind(
+                newStatus,
+                newPaidAmount,
+                body.account_id,
+                body.payment_method,
+                id
+            ).run();
+
+            // 7. Ödeme kaydı oluştur (trigger ile accounts ve transactions otomatik güncellenir)
+            await db.prepare(`
+                INSERT INTO transactions (
+                    account_id,
+                    category_id,
+                    type,
+                    amount,
+                    date,
+                    related_type,
+                    related_id,
+                    payment_method,
+                    description,
+                    notes,
+                    status,
+                    created_by
+                ) VALUES (?, ?, 'out', ?, datetime('now'), 'purchase', ?, ?, ?, ?, ?, 1)
+            `).bind(
+                body.account_id,
+                1, // Satın alma kategori ID'si
+                body.amount,
+                id,
+                body.payment_method,
+                `Satın alma ödemesi #${id}`,
+                body.notes || null,
+                'paid'
+            ).run();
+
+            await db.prepare('COMMIT').run();
+
+            return c.json({
+                success: true,
+                new_status: newStatus,
+                paid_amount: newPaidAmount
+            });
+
+        } catch (error) {
+            await db.prepare('ROLLBACK').run();
+            throw error;
+        }
+
+    } catch (error) {
+        console.error('Payment error:', error);
+        return c.json({
+            success: false,
+            error: 'İşlem hatası',
+            details: error.message
+        }, 500);
+    }
+});
+
 export default router;
