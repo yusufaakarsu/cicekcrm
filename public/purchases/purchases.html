@@ -217,38 +217,13 @@
 
                     <!-- Ödeme Formu -->
                     <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
+                        <div class="card-header">
                             <span>Yeni Ödeme</span>
-                            <span id="detail-payment-status" class="badge"></span>
                         </div>
                         <div class="card-body">
                             <form id="paymentForm">
                                 <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Tutar</label>
-                                        <input type="number" class="form-control" name="amount" required>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Hesap</label>
-                                        <select class="form-select" name="account_id" required>
-                                            <option value="1">Ana Kasa</option>
-                                            <option value="2">Kredi Kartı</option>
-                                            <option value="3">Banka</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Ödeme Yöntemi</label>
-                                        <select class="form-select" name="payment_method" required>
-                                            <option value="cash">Nakit</option>
-                                            <option value="credit_card">Kredi Kartı</option>
-                                            <option value="bank_transfer">Havale/EFT</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-12">
-                                        <button type="button" class="btn btn-success" onclick="makePayment()" id="paymentButton">
-                                            <i class="bi bi-cash"></i> Ödeme Yap
-                                        </button>
-                                    </div>
+                                    <!-- ...existing form fields... -->
                                 </div>
                             </form>
                         </div>

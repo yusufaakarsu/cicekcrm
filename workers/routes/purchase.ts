@@ -238,37 +238,37 @@ router.put('/orders/:id/status', async (c) => {
         if (!validStatuses.includes(status)) {
             return c.json({
                 success: false,
-                error: 'Invalid status'
+                error: 'Geçersiz durum'
             }, 400);
         }
 
         // Önce mevcut siparişi kontrol et
         const order = await db.prepare(`
-            SELECT payment_status, paid_amount 
+            SELECT payment_status, paid_amount, deleted_at 
             FROM purchase_orders 
-            WHERE id = ? AND deleted_at IS NULL
+            WHERE id = ?
         `).bind(id).first();
 
-        if (!order) {
+        if (!order || order.deleted_at) {
             return c.json({
                 success: false,
-                error: 'Order not found'
+                error: 'Sipariş bulunamadı'
             }, 404);
         }
 
-        // Eğer sipariş ödenmiş ve iptal edilmeye çalışılıyorsa engelle
-        if (order.payment_status === 'paid' && status === 'cancelled') {
+        // İptal edilmiş siparişi tekrar iptal etmeye çalışma
+        if (order.payment_status === 'cancelled') {
             return c.json({
                 success: false,
-                error: 'Ödenmiş sipariş iptal edilemez'
+                error: 'Sipariş zaten iptal edilmiş'
             }, 400);
         }
 
-        // Kısmi ödeme yapılmış ve iptal edilmeye çalışılıyorsa engelle
+        // Kısmi ödeme kontrolü
         if (order.paid_amount > 0 && status === 'cancelled') {
             return c.json({
                 success: false,
-                error: 'Kısmi ödeme yapılmış sipariş iptal edilemez'
+                error: 'Ödemesi yapılmış sipariş iptal edilemez'
             }, 400);
         }
 
@@ -278,16 +278,19 @@ router.put('/orders/:id/status', async (c) => {
             SET 
                 payment_status = ?,
                 updated_at = datetime('now')
-            WHERE id = ? AND deleted_at IS NULL
+            WHERE id = ?
         `).bind(status, id).run();
 
-        return c.json({ success: true });
+        return c.json({ 
+            success: true,
+            message: 'Sipariş durumu güncellendi'
+        });
 
     } catch (error) {
         console.error('Update purchase status error:', error);
         return c.json({
             success: false,
-            error: 'Database error',
+            error: 'Veritabanı hatası',
             details: error.message
         }, 500);
     }
