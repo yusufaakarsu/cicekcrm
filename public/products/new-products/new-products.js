@@ -134,6 +134,7 @@ function addMaterial(materialId) {
     }
 }
 
+// Ürünü kaydet
 async function saveProduct() {
     try {
         // Form verilerini al
@@ -154,7 +155,8 @@ async function saveProduct() {
         const materials = Array.from(materialRows).map(row => {
             const material_id = row.getAttribute('data-id');
             const quantity = parseFloat(row.querySelector('.material-quantity').value);
-            const notes = row.querySelector('.material-notes')?.value || null;
+            // "zorunlu" alanını kaldırdık, sadece notes alanını alıyoruz
+            const notes = row.querySelector('.material-notes')?.value || '';
             
             return {
                 material_id: parseInt(material_id),
@@ -187,7 +189,7 @@ async function saveProduct() {
         if (!response.ok) {
             const errorData = await response.json();
             console.error('API yanıt hatası:', errorData);
-            throw new Error('API Hatası');
+            throw new Error(errorData.message || 'API Hatası');
         }
 
         const result = await response.json();
@@ -244,6 +246,35 @@ function renderMaterialsList() {
 // Malzeme satırını sil
 function removeMaterial(button) {
     button.closest('tr').remove();
+}
+
+// Hammadde satırı ekle - Zorunlu checkbox'ı kaldırıldı
+function addMaterialRow(material) {
+    const materialsContainer = document.getElementById('materialsList');
+    const row = document.createElement('div');
+    row.className = 'material-row card p-3 mb-2';
+    row.setAttribute('data-id', material.id);
+    
+    row.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">${material.name}</h6>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeMaterial(this)">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+        <div class="row g-2">
+            <div class="col-md-6">
+                <label class="form-label small">Miktar (${material.unit_code})</label>
+                <input type="number" class="form-control material-quantity" min="0.1" step="0.1" value="1">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small">Not</label>
+                <input type="text" class="form-control material-notes" placeholder="Özel notlar...">
+            </div>
+        </div>
+    `;
+    
+    materialsContainer.appendChild(row);
 }
 
 // Arama ve filtreleme
