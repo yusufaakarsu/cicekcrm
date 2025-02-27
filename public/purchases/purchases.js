@@ -134,21 +134,30 @@ function showCreatePurchaseModal() {
 async function showPurchaseDetail(id) {
     try {
         currentPurchaseId = id;
+        currentOrder = null; // Reset current order
+        
         const response = await fetch(`${API_URL}/purchase/orders/${id}`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+        
         currentOrder = data.order;
         
-        // Detay alanlarını doldur
+        // Temel bilgileri doldur
         document.getElementById('detail-order-id').textContent = currentOrder.id;
         document.getElementById('detail-supplier-name').textContent = currentOrder.supplier_name;
         document.getElementById('detail-total-amount').textContent = formatPrice(currentOrder.total_amount);
         document.getElementById('detail-paid-amount').textContent = formatPrice(currentOrder.paid_amount || 0);
-        
+
+        // Kalan tutarı hesapla
         const remainingAmount = currentOrder.total_amount - (currentOrder.paid_amount || 0);
         document.getElementById('detail-remaining').textContent = formatPrice(remainingAmount);
-        document.getElementById('detail-status').innerHTML = getStatusBadge(currentOrder.payment_status);
+
+        // Status badge'ini güncelle
+        const statusBadge = document.getElementById('detail-status');
+        statusBadge.className = `badge ${getStatusBadge(currentOrder.payment_status)}`;
+        statusBadge.textContent = getStatusText(currentOrder.payment_status);
 
         // Ürün listesini doldur 
         document.getElementById('detail-items-table').innerHTML = `
@@ -165,7 +174,7 @@ async function showPurchaseDetail(id) {
                     ${currentOrder.items.map(item => `
                         <tr>
                             <td>${item.material_name}</td>
-                            <td class="text-end">${item.quantity} ${item.unit_name}</td>
+                            <td class="text-end">${item.quantity} ${item.unit_code}</td>
                             <td class="text-end">${formatPrice(item.unit_price)}</td>
                             <td class="text-end">${formatPrice(item.quantity * item.unit_price)}</td>
                         </tr>
@@ -174,35 +183,30 @@ async function showPurchaseDetail(id) {
             </table>
         `;
 
-        // Ödeme formu için max tutar
-        document.querySelector('[name="amount"]').value = remainingAmount;
-        document.querySelector('[name="amount"]').max = remainingAmount;
-
-        // Status badge'ini düzgün göster
-        const statusBadge = document.getElementById('detail-status');
-        statusBadge.className = `badge ${getStatusBadge(currentOrder.payment_status)}`;
-        statusBadge.textContent = getStatusText(currentOrder.payment_status);
-
-        // İptal/Ödeme butonlarını duruma göre göster/gizle
+        // İptal/Ödeme butonlarını ve formu duruma göre göster/gizle
         const cancelButton = document.getElementById('cancelButton');
         const paymentButton = document.getElementById('paymentButton');
         const paymentForm = document.getElementById('paymentForm');
 
-        if (currentOrder.payment_status === 'cancelled') {
-            cancelButton.style.display = 'none';
-            paymentButton.style.display = 'none';
-            paymentForm.style.display = 'none';
-        } else if (currentOrder.payment_status === 'paid') {
-            cancelButton.style.display = 'block';
-            paymentButton.style.display = 'none';
-            paymentForm.style.display = 'none';
-        } else {
-            cancelButton.style.display = 'block';
-            paymentButton.style.display = 'block';
-            paymentForm.style.display = 'block';
+        // Form elementlerini kontrol et ve varsa güncelle
+        const amountInput = paymentForm?.querySelector('[name="amount"]');
+        if (amountInput && remainingAmount > 0) {
+            amountInput.value = remainingAmount;
+            amountInput.max = remainingAmount;
         }
 
-        // Modal göster
+        // Durum kontrolü
+        if (currentOrder.payment_status === 'cancelled' || currentOrder.payment_status === 'paid') {
+            if (cancelButton) cancelButton.style.display = 'none';
+            if (paymentButton) paymentButton.style.display = 'none';
+            if (paymentForm) paymentForm.style.display = 'none';
+        } else {
+            if (cancelButton) cancelButton.style.display = 'block';
+            if (paymentButton) paymentButton.style.display = 'block';
+            if (paymentForm) paymentForm.style.display = 'block';
+        }
+
+        // Modalı göster
         detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
         detailModal.show();
 
