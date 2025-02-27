@@ -197,4 +197,65 @@ router.put('/orders/:id/status', async (c) => {
     }
 });
 
+// Ödeme durumu güncelleme
+router.put('/orders/:id/payment', async (c) => {
+    const db = c.get('db');
+    const { id } = c.req.param();
+    const { status, amount } = await c.req.json();
+    
+    try {
+        // Status kontrolü
+        if (!['paid', 'partial', 'cancelled'].includes(status)) {
+            return c.json({
+                success: false,
+                error: 'Invalid payment status'
+            }, 400);
+        }
+
+        // Mevcut siparişi kontrol et
+        const order = await db.prepare(`
+            SELECT total_amount, paid_amount 
+            FROM purchase_orders 
+            WHERE id = ? AND deleted_at IS NULL
+        `).bind(id).first();
+
+        if (!order) {
+            return c.json({
+                success: false,
+                error: 'Order not found'
+            }, 404);
+        }
+
+        let newPaidAmount = order.paid_amount || 0;
+        if (status === 'paid') {
+            newPaidAmount = order.total_amount;
+        } else if (status === 'partial' && amount) {
+            newPaidAmount += parseFloat(amount);
+        }
+
+        // Ödeme durumunu güncelle
+        await db.prepare(`
+            UPDATE purchase_orders 
+            SET 
+                payment_status = ?,
+                paid_amount = ?,
+                updated_at = datetime('now')
+            WHERE id = ? AND deleted_at IS NULL
+        `).bind(status, newPaidAmount, id).run();
+
+        return c.json({ 
+            success: true,
+            paid_amount: newPaidAmount
+        });
+
+    } catch (error) {
+        console.error('Update payment status error:', error);
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
+        }, 500);
+    }
+});
+
 export default router;

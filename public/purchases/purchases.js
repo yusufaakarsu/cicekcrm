@@ -87,38 +87,55 @@ async function loadMaterials() {
     }
 }
 
+// Materyal listesini kategorilere göre grupla
+function groupMaterialsByCategory() {
+    const grouped = {};
+    materials.forEach(m => {
+        if (!grouped[m.category_name]) {
+            grouped[m.category_name] = [];
+        }
+        grouped[m.category_name].push(m);
+    });
+    return grouped;
+}
+
 function addItemRow() {
     const tbody = document.querySelector('#itemsTable tbody');
-    const rowId = Date.now(); // Unique ID için timestamp
+    const rowId = Date.now();
+    const groupedMaterials = groupMaterialsByCategory();
     
     const row = `
         <tr id="row-${rowId}">
             <td>
                 <select class="form-select form-select-sm" onchange="updateUnit(this, ${rowId})">
                     <option value="">Seçiniz...</option>
-                    ${materials.map(m => `
-                        <option value="${m.id}" 
-                                data-unit="${m.unit_code}"
-                                data-price="0">
-                            ${m.name}
-                        </option>
+                    ${Object.entries(groupedMaterials).map(([category, items]) => `
+                        <optgroup label="${category}">
+                            ${items.map(m => `
+                                <option value="${m.id}" 
+                                        data-unit="${m.unit_code}"
+                                        data-price="0">
+                                    ${m.name}
+                                </option>
+                            `).join('')}
+                        </optgroup>
                     `).join('')}
                 </select>
             </td>
-            <td>
-                <input type="number" class="form-control form-control-sm" 
+            <td style="width: 120px;">
+                <input type="number" class="form-control form-control-sm quantity" 
                        onchange="calculateRowTotal(${rowId})" 
                        value="1" min="0.01" step="0.01">
             </td>
-            <td>
+            <td style="width: 80px;">
                 <span class="unit-code">-</span>
             </td>
-            <td>
-                <input type="number" class="form-control form-control-sm" 
+            <td style="width: 120px;">
+                <input type="number" class="form-control form-control-sm price" 
                        onchange="calculateRowTotal(${rowId})" 
                        value="0" min="0" step="0.01">
             </td>
-            <td>
+            <td style="width: 120px;">
                 <span class="row-total">0.00</span> ₺
             </td>
             <td>
@@ -143,11 +160,11 @@ function updateUnit(select, rowId) {
 
 function calculateRowTotal(rowId) {
     const row = document.getElementById(`row-${rowId}`);
-    const quantity = parseFloat(row.querySelector('input[type="number"]:first-of-type').value) || 0;
-    const price = parseFloat(row.querySelector('input[type="number"]:last-of-type').value) || 0;
+    const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
+    const price = parseFloat(row.querySelector('.price').value) || 0;
     
-    const total = quantity * price;
-    row.querySelector('.row-total').textContent = total.toFixed(2);
+    const total = (quantity * price).toFixed(2);
+    row.querySelector('.row-total').textContent = total;
     
     calculateTotal();
 }
@@ -289,6 +306,56 @@ async function updateStatus(status) {
     } catch (error) {
         console.error('Durum güncelleme hatası:', error);
         showError('Durum güncellenemedi!');
+    }
+}
+
+// Ödeme işlemleri için yeni fonksiyonlar
+async function showPaymentModal(orderId) {
+    try {
+        const response = await fetch(`${API_URL}/purchase/orders/${orderId}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+
+        const order = data.order;
+        
+        // Payment modal içeriğini doldur
+        document.getElementById('payment-order-id').textContent = order.id;
+        document.getElementById('payment-supplier').textContent = order.supplier_name;
+        document.getElementById('payment-total').textContent = formatPrice(order.total_amount);
+        document.getElementById('payment-paid').textContent = formatPrice(order.paid_amount || 0);
+        document.getElementById('payment-remaining').textContent = 
+            formatPrice(order.total_amount - (order.paid_amount || 0));
+
+        // Payment status'a göre butonları ayarla
+        const paymentButtons = document.getElementById('paymentButtons');
+        if (order.payment_status === 'paid') {
+            paymentButtons.innerHTML = `
+                <button type="button" class="btn btn-success" disabled>Ödendi</button>
+                <button type="button" class="btn btn-warning" onclick="updatePaymentStatus(${order.id}, 'partial')">
+                    Kısmi Öde
+                </button>
+            `;
+        } else {
+            paymentButtons.innerHTML = `
+                <button type="button" class="btn btn-success" onclick="updatePaymentStatus(${order.id}, 'paid')">
+                    Tamamını Öde
+                </button>
+                <button type="button" class="btn btn-warning" onclick="updatePaymentStatus(${order.id}, 'partial')">
+                    Kısmi Öde
+                </button>
+                <button type="button" class="btn btn-danger" onclick="updatePaymentStatus(${order.id}, 'cancelled')">
+                    İptal
+                </button>
+            `;
+        }
+
+        const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        paymentModal.show();
+    } catch (error) {
+        console.error('Ödeme detayları yüklenirken hata:', error);
+        showError('Ödeme detayları yüklenemedi!');
     }
 }
 
