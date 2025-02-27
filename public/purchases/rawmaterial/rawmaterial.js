@@ -248,7 +248,7 @@ async function saveCategory() {
 
 async function editMaterial(id) {
     try {
-        currentMaterialId = id; // Güncelleme için ID'yi sakla
+        currentMaterialId = id;
         document.getElementById('materialModalTitle').textContent = 'Hammadde Düzenle';
         
         const response = await fetch(`${API_URL}/materials/${id}`);
@@ -265,8 +265,8 @@ async function editMaterial(id) {
         form.elements['description'].value = material.description || '';
         form.elements['unit_id'].value = material.unit_id || '';
         form.elements['category_id'].value = material.category_id || '';
-        form.elements['status'].value = material.status || 'active';
         form.elements['notes'].value = material.notes || '';
+        form.elements['status'].value = material.status || 'active';
         
         materialModal.show();
     } catch (error) {
