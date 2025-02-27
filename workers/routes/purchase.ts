@@ -253,7 +253,7 @@ router.post('/orders/:id/payment', async (c) => {
                 description,
                 status,
                 created_by
-            ) VALUES (?, ?, 'out', ?, datetime('now'), 'purchase', ?, ?, ?, 'completed', ?)
+            ) VALUES (?, ?, 'out', ?, datetime('now'), 'purchase', ?, ?, ?, 'paid', ?)
         `).bind(
             body.account_id,
             4, // Tedarikçi Ödemesi kategorisi

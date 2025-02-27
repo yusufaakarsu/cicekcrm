@@ -16,28 +16,19 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadSuppliers() {
     try {
         const response = await fetch(`${API_URL}/suppliers`);
-        if (!response.ok) throw new Error('API Hatası');
-        
         const data = await response.json();
         suppliers = data.suppliers || [];
         
-        // Supplier filtresini doldur
+        // Supplier filtresini doldur (eğer element varsa)
         const supplierFilter = document.getElementById('supplierFilter');
-        const supplierSelect = document.querySelector('select[name="supplier_id"]');
-        
-        const options = `
-            <option value="">Seçiniz</option>
-            ${suppliers.map(s => `
-                <option value="${s.id}">${s.name}</option>
-            `).join('')}
-        `;
-        
-        supplierFilter.innerHTML = options;
-        supplierSelect.innerHTML = options;
-        
+        if (supplierFilter) {
+            supplierFilter.innerHTML = `
+                <option value="">Tüm Tedarikçiler</option>
+                ${suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+            `;
+        }
     } catch (error) {
         console.error('Suppliers loading error:', error);
-        showError('Tedarikçiler yüklenemedi');
     }
 }
 
@@ -59,22 +50,19 @@ async function loadMaterials() {
 async function loadCategories() {
     try {
         const response = await fetch(`${API_URL}/materials/categories`);
-        if (!response.ok) throw new Error('API Hatası');
-        
         const data = await response.json();
         categories = data.categories || [];
         
-        // Kategori filtresini doldur
+        // Kategori filtresini doldur (eğer element varsa)
         const categoryFilter = document.getElementById('categoryFilter');
-        categoryFilter.innerHTML = `
-            <option value="">Tüm Kategoriler</option>
-            ${categories.map(c => `
-                <option value="${c.id}">${c.name}</option>
-            `).join('')}
-        `;
+        if (categoryFilter) {
+            categoryFilter.innerHTML = `
+                <option value="">Tüm Kategoriler</option>
+                ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+            `;
+        }
     } catch (error) {
         console.error('Categories loading error:', error);
-        showError('Kategoriler yüklenemedi');
     }
 }
 
@@ -198,7 +186,8 @@ async function loadPurchases() {
 // Tabloyu render et
 function renderPurchaseTable(orders) {
     const tbody = document.getElementById('purchaseTable');
-    
+    if (!tbody) return;
+
     if (!orders || orders.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center">Kayıt bulunamadı</td></tr>';
         return;
