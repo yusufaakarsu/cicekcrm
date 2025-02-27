@@ -191,19 +191,10 @@ async function loadCustomerAddresses(customerId) {
     }
 }
 
-// Yeni müşteri formu gösterme fonksiyonu - telefon alanı problemini düzelt
+// Yeni müşteri formu gösterme fonksiyonu - Veritabanı uyumlu hale getirildi
 function showNewCustomerForm(phone = '') {
     document.getElementById('customerDetails').classList.add('d-none');
     document.getElementById('newCustomerForm').classList.remove('d-none');
-    
-    // İlçe listesini doldur
-    const districtSelect = document.querySelector('[name="new_customer_district"]');
-    if (districtSelect) {
-        districtSelect.innerHTML = '<option value="">İlçe seçin...</option>' +
-            ISTANBUL_DISTRICTS.map(district => 
-                `<option value="${district}">${district}</option>`
-            ).join('');
-    }
 
     // Form alanlarını resetle - Hata yönetimi eklendi
     const form = document.getElementById('newCustomerForm');
@@ -217,9 +208,7 @@ function showNewCustomerForm(phone = '') {
     safeSetValue('[name="new_customer_name"]', '');
     safeSetValue('[name="new_customer_phone"]', phone); // Telefon numarasını güvenli şekilde ayarla
     safeSetValue('[name="new_customer_email"]', '');
-    safeSetValue('[name="new_customer_district"]', '');
     safeSetValue('[name="new_customer_notes"]', '');
-    safeSetValue('[name="new_customer_special_dates"]', '');
 }
 
 // Müşteri tipi değişikliğini dinle - updateNewCustomerForm olarak yeniden adlandırıldı
@@ -240,7 +229,7 @@ function setupNewCustomerForm() {
     }
 }
 
-// Yeni müşteri kaydetme fonksiyonu - Veritabanı şemasına uyumlu hale getirildi
+// Yeni müşteri kaydetme fonksiyonu - Veritabanı şemasıyla tam uyumlu
 async function saveNewCustomer() {
     try {
         const form = document.getElementById('newCustomerForm');
@@ -252,21 +241,6 @@ async function saveNewCustomer() {
             email: form.querySelector('[name="new_customer_email"]')?.value?.trim() || null,
             notes: form.querySelector('[name="new_customer_notes"]')?.value?.trim() || null
         };
-
-        // İlçe ve özel günler gibi bilgileri notes alanına ekleyelim (opsiyonel)
-        const district = form.querySelector('[name="new_customer_district"]')?.value?.trim();
-        const specialDates = form.querySelector('[name="new_customer_special_dates"]')?.value?.trim();
-        
-        if (district || specialDates) {
-            let additionalNotes = "";
-            if (district) additionalNotes += `İlçe: ${district}\n`;
-            if (specialDates) additionalNotes += `Özel Günler: ${specialDates}\n`;
-            
-            // Mevcut notlara ekle
-            formData.notes = formData.notes 
-                ? formData.notes + "\n\n" + additionalNotes 
-                : additionalNotes;
-        }
 
         console.log('Gönderilen veri:', formData);
 
@@ -431,7 +405,6 @@ function confirmAddressAndContinue() {
             const buildingNo = document.getElementById('addressBuildingNo').value;
             const floor = document.getElementById('addressFloor').value;
             const apartmentNo = document.getElementById('addressApartmentNo').value;
-            const addressLabel = document.getElementById('addressLabel').value;
 
             if (!buildingNo || !floor || !apartmentNo) {
                 throw new Error('Lütfen bina no, kat ve daire no bilgilerini girin');
@@ -456,7 +429,7 @@ function confirmAddressAndContinue() {
                 building_no: buildingNo,
                 floor: floor,
                 apartment_no: apartmentNo,
-                label: addressLabel || 'Teslimat Adresi'
+                label: 'Teslimat Adresi'
             };
         }
 
