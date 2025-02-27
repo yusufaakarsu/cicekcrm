@@ -462,7 +462,10 @@ async function cancelPurchase() {
         const response = await fetch(`${API_URL}/purchase/orders/${currentPurchaseId}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'cancelled' })
+            body: JSON.stringify({ 
+                status: 'cancelled',
+                payment_status: 'cancelled' // Bu parametre eklendi
+            })
         });
 
         if (!response.ok) throw new Error('API Hatası');
@@ -473,10 +476,10 @@ async function cancelPurchase() {
             await loadPurchases();
             showSuccess('Sipariş başarıyla iptal edildi');
         } else {
-            throw new Error(result.error);
+            throw new Error(result.error || 'İptal işlemi başarısız');
         }
     } catch (error) {
         console.error('Sipariş iptal hatası:', error);
-        showError('Sipariş iptal edilemedi');
+        showError(error.message || 'Sipariş iptal edilemedi');
     }
 }

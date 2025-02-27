@@ -223,7 +223,30 @@
                         <div class="card-body">
                             <form id="paymentForm">
                                 <div class="row g-3">
-                                    <!-- ...existing form fields... -->
+                                    <div class="col-md-4">
+                                        <label class="form-label">Tutar</label>
+                                        <input type="number" 
+                                               class="form-control" 
+                                               name="amount" 
+                                               step="0.01" 
+                                               required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Hesap</label>
+                                        <select class="form-select" name="account_id" required>
+                                            <option value="1">Ana Kasa</option>
+                                            <option value="2">Kredi Kartı</option>
+                                            <option value="3">Banka</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Ödeme Yöntemi</label>
+                                        <select class="form-select" name="payment_method" required>
+                                            <option value="cash">Nakit</option>
+                                            <option value="credit_card">Kredi Kartı</option>
+                                            <option value="bank_transfer">Havale/EFT</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </form>
                         </div>
