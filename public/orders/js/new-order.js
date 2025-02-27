@@ -745,50 +745,26 @@ async function confirmProducts() {
             // Kayıtlı adres seçilmişse
             addressId = selectedAddress.id;
         } else {
+            // Yeni adres oluştur
+            const addressData = {
+                customer_id: Number(customerId),
+                label: selectedAddress.label || 'Teslimat Adresi',
+                district: selectedAddress.district,
+                street: selectedAddress.street,
+                here_place_id: selectedAddress.here_place_id || null,
+                building_no: selectedAddress.building_no || "1", 
+                floor_no: selectedAddress.floor || "1",
+                door_no: selectedAddress.apartment_no || "1",
+                lat: selectedAddress.lat || null,
+                lng: selectedAddress.lng || null,
+                neighborhood: selectedAddress.neighborhood || null,
+                directions: selectedAddress.directions || null
+            };
+            
             try {
-                // Yeni adres oluştur - adres API'sine yapılan çağrıyı düzelt
-                const addressData = {
-                    customer_id: Number(customerId),
-                    label: selectedAddress.label || 'Teslimat Adresi',
-                    district: selectedAddress.district,
-                    street: selectedAddress.street,
-                    here_place_id: selectedAddress.here_place_id || null,
-                    building_no: selectedAddress.building_no || "1", 
-                    floor_no: selectedAddress.floor || "1",
-                    door_no: selectedAddress.apartment_no || "1",
-                    lat: selectedAddress.lat || null,
-                    lng: selectedAddress.lng || null
-                };
-                
-                console.log("Gönderilecek adres verisi:", addressData);
-                
-                // Fetch API kullanarak address API'sine direkt istek yap
-                const addressResponse = await fetch(`${API_URL}/addresses`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(addressData)
-                });
-                
-                if (!addressResponse.ok) {
-                    // API response status başarılı değilse, hata detaylarını logla
-                    const errorText = await addressResponse.text();
-                    console.error("Address API Error:", addressResponse.status, errorText);
-                    throw new Error(`Adres kaydedilemedi: HTTP ${addressResponse.status}`);
-                }
-                
-                const addressResult = await addressResponse.json();
-                
-                if (!addressResult.success) {
-                    throw new Error('Adres kaydedilemedi: ' + (addressResult.error || 'Bilinmeyen hata'));
-                }
-                
-                addressId = addressResult.address_id || addressResult.id;
-                console.log("Oluşturulan adres ID:", addressId);
-                
+                // Ayrı bir fonksiyonda adres oluştur
+                addressId = await createNewAddress(addressData);
             } catch (addressError) {
-                console.error("Adres oluşturma hatası:", addressError);
                 throw new Error(`Adres kaydedilemedi: ${addressError.message}`);
             }
         }
@@ -832,6 +808,49 @@ async function confirmProducts() {
     } catch (error) {
         console.error('Sipariş kayıt hatası:', error);
         showError('Sipariş kaydedilemedi: ' + error.message);
+    }
+}
+
+// Adres ekleme işlemini daha dayanıklı hale getir
+async function createNewAddress(addressData) {
+    try {
+        console.log("Gönderilecek adres verisi:", addressData);
+        
+        // Fetch API kullanarak address API'sine direkt istek yap
+        const addressResponse = await fetch(`${API_URL}/addresses`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(addressData)
+        });
+        
+        if (!addressResponse.ok) {
+            // API response status başarılı değilse, hata detaylarını logla
+            const errorText = await addressResponse.text();
+            console.error("Address API Error:", addressResponse.status, errorText);
+            
+            // Hata içinde "created_at" geçiyorsa, muhtemelen şema problemi
+            if (errorText.includes('created_at')) {
+                throw new Error('Veritabanı şema hatası: Adres tablosunda created_at sütunu eksik');
+            } else {
+                throw new Error(`Adres kaydedilemedi: HTTP ${addressResponse.status}`);
+            }
+        }
+        
+        const addressResult = await addressResponse.json();
+        
+        if (!addressResult.success) {
+            throw new Error('Adres kaydedilemedi: ' + (addressResult.error || 'Bilinmeyen hata'));
+        }
+        
+        const addressId = addressResult.address_id || addressResult.id;
+        console.log("Oluşturulan adres ID:", addressId);
+        return addressId;
+        
+    } catch (error) {
+        console.error("Adres oluşturma hatası:", error);
+        throw error;
     }
 }
 

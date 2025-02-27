@@ -82,76 +82,60 @@ async function saveAddress(c) {
     // ...save to database code...
 }
 
-// Yeni adres oluşturma endpoint'i - daha fazla hata bilgisi ve validasyon
+// Adres ekleme endpointi - created_at sütunu kaldırıldı
 router.post('/', async (c) => {
-    const db = c.get('db');
+  const db = c.get('db');
+  
+  try {
+    const body = await c.req.json();
     
-    try {
-        // İstek verilerini al ve loglayarak doğrula
-        const body = await c.req.json();
-        console.log("Address create request:", body);
-        
-        // Zorunlu alanları kontrol et
-        const requiredFields = ['customer_id', 'district', 'street'];
-        for (const field of requiredFields) {
-            if (!body[field]) {
-                return c.json({
-                    success: false,
-                    error: `${field} field is required`
-                }, 400);
-            }
-        }
-        
-        // Adres ekle - veritabanı şemasına göre düzeltildi
-        const result = await db.prepare(`
-            INSERT INTO addresses (
-                customer_id, 
-                label, 
-                district,
-                street, 
-                building_no, 
-                floor_no, 
-                door_no,
-                here_place_id, 
-                lat, 
-                lng,
-                created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-        `).bind(
-            body.customer_id,
-            body.label || 'Teslimat Adresi',
-            body.district,
-            body.street,
-            body.building_no || '1',
-            body.floor_no || '1',
-            body.door_no || '1',
-            body.here_place_id || null,
-            body.lat || null,
-            body.lng || null
-        ).run();
-        
-        const address_id = result.meta?.last_row_id;
-        
-        if (!address_id) {
-            return c.json({
-                success: false,
-                error: "Could not create address"
-            }, 500);
-        }
-        
-        return c.json({
-            success: true,
-            address_id
-        });
-        
-    } catch (error) {
-        console.error('Address creation error:', error);
-        return c.json({
-            success: false,
-            error: 'Database error',
-            details: error.message
-        }, 500);
-    }
+    // SQL sorgusundan created_at sütunu kaldırıldı
+    const result = await db.prepare(`
+      INSERT INTO addresses (
+        customer_id, 
+        label, 
+        district,
+        street, 
+        building_no, 
+        floor_no, 
+        door_no,
+        here_place_id, 
+        lat, 
+        lng,
+        neighborhood,
+        directions
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      body.customer_id,
+      body.label || 'Teslimat Adresi',
+      body.district,
+      body.street,
+      body.building_no || '1',
+      body.floor_no || '1',
+      body.door_no || '1',
+      body.here_place_id || null,
+      body.lat || null,
+      body.lng || null,
+      body.neighborhood || null,
+      body.directions || null
+    ).run();
+
+    const address_id = result.meta?.last_row_id;
+    
+    return c.json({
+      success: true,
+      address_id: address_id
+    });
+    
+  } catch (error) {
+    console.error('Address creation error:', error);
+    
+    return c.json({
+      success: false,
+      error: 'Database error',
+      details: error.message
+    }, 500);
+  }
 });
 
 export default router
