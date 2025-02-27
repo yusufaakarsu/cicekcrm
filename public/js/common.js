@@ -20,6 +20,16 @@ const ISTANBUL_DISTRICTS = [
 // API ve uygulama URL'leri - düzeltildi
 const BASE_URL = window.location.origin; // Mevcut domaini kullan
 
+// API URL Configuration
+const API_BASE = window.location.hostname.includes('pages.dev') 
+    ? 'https://cicek-crm-api.yusufaakarsu.workers.dev'
+    : `${window.location.protocol}//${window.location.host}`;
+
+const API_URL = `${API_BASE}/api`;
+
+// Bunu global olarak export et
+window.getApiUrl = (path) => `${API_URL}${path}`;
+
 // Genel utility fonksiyonları
 // Sidebar yükleme fonksiyonu düzeltildi - doğru path kullanıldı
 async function loadSideBar() {

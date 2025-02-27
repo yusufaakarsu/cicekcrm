@@ -646,39 +646,54 @@ router.post('/payments/:type/:id', async (c) => {
   // ...existing code...
 })
 
-// Endpoint'i değiştir
+// Payment endpoint'ini düzelt
 router.post('/payments', async (c) => {
   const db = c.get('db')
   const tenant_id = c.get('tenant_id')
   const body = await c.req.json()
 
   try {
-    // Body validasyonu
+    // 1. Validasyon
     if (!body.account_id || !body.amount || !body.related_type || !body.related_id) {
       return c.json({ success: false, error: 'Missing required fields' }, 400)
     }
 
-    // Transaction başlat
+    // 2. Category ID bul
+    const { id: category_id } = await db.prepare(`
+      SELECT id FROM transaction_categories 
+      WHERE tenant_id = ? AND reporting_code = ?
+      LIMIT 1
+    `).bind(
+      tenant_id,
+      body.related_type === 'purchase' ? 'SUPPLIER' : 'SALES_CASH'
+    ).first() as any
+
+    // 3. Transaction ekle
     const result = await db.prepare(`
       INSERT INTO transactions (
-        tenant_id, account_id, type, amount, date,
-        payment_method, description, related_type, related_id,
-        status, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?)
+        tenant_id, account_id, category_id,
+        type, amount, date,
+        payment_method, description, related_type, 
+        related_id, status, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?)
     `).bind(
       tenant_id,
       body.account_id,
-      body.type || 'out',
+      category_id,
+      body.type,
       body.amount,
       body.date || new Date().toISOString(),
       body.payment_method || 'cash',
-      body.notes || '',
+      body.description || '',
       body.related_type,
       body.related_id,
-      1 // TODO: Gerçek user_id eklenecek
+      1 // TODO: gerçek user_id gelecek
     ).run()
 
-    return c.json({ success: true, id: result.lastRowId })
+    return c.json({ 
+      success: true, 
+      transaction_id: result.lastRowId 
+    })
 
   } catch (error) {
     console.error('Payment error:', error)

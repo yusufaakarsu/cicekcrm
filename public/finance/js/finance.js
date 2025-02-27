@@ -1,9 +1,3 @@
-const API_BASE = window.location.hostname.includes('pages.dev') 
-    ? 'https://cicek-crm-api.yusufaakarsu.workers.dev'
-    : `${window.location.protocol}//${window.location.host}`;
-
-const API_URL = `${API_BASE}/api`;
-
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
     initFinancePage();
@@ -141,16 +135,26 @@ async function savePayment() {
         const formData = new FormData(form)
         const data = Object.fromEntries(formData)
 
-        const response = await fetch(getApiUrl('/finance/payments'), {
+        const response = await fetch(`${API_URL}/finance/payments`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(data)
+            body: JSON.stringify({
+                account_id: parseInt(data.account_id),
+                amount: parseFloat(data.amount),
+                type: data.type,
+                date: data.date,
+                payment_method: data.payment_method,
+                description: data.notes,
+                related_type: data.related_type,
+                related_id: parseInt(data.related_id)
+            })
         })
 
         if (!response.ok) {
-            throw new Error(await response.text())
+            const error = await response.json()
+            throw new Error(error.error || 'API Error') 
         }
 
         const result = await response.json()
@@ -160,7 +164,8 @@ async function savePayment() {
 
         // Modal'ı kapat ve sayfayı yenile
         bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide()
-        loadData()
+        loadPendingPayments()
+        loadFinanceData()
 
     } catch (error) {
         console.error('Save payment error:', error)
