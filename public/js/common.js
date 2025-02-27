@@ -266,27 +266,38 @@ function hideLoading(element) {
 }
 
 // API işlemleri için genel fonksiyonlar
+// fetchAPI fonksiyonunu debug için geliştir
 async function fetchAPI(endpoint, options = {}) {
-    const url = getApiUrl(endpoint);
-    console.log('API Request:', url);
+    const apiUrl = API_URL + endpoint;
+    console.log(`API Request to ${apiUrl}:`, { 
+        method: options.method || 'GET',
+        body: options.body ? JSON.parse(options.body) : undefined 
+    });
 
-    const defaultOptions = {
-        headers: {
-            'Content-Type': 'application/json'
-        }
+    // Varsayılan başlıkları ekle
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
     };
 
     try {
-        const response = await fetch(url, { ...defaultOptions, ...options });
-        
+        const response = await fetch(apiUrl, {
+            ...options,
+            headers
+        });
+
+        // Response status problemi varsa detaylı logla
         if (!response.ok) {
+            const errorBody = await response.text();
+            console.error(`API Error (${response.status}):`, errorBody);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log(`API Response from ${endpoint}:`, data);
         return data;
     } catch (error) {
-        console.error('API Error:', error);
+        console.error(`API Error for ${endpoint}:`, error);
         throw error;
     }
 }

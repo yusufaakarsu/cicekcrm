@@ -32,7 +32,7 @@ router.get('/', async (c) => {
   }
 })
 
-// Telefon numarasına göre müşteri bulma
+// Telefon numarasına göre müşteri bulma - 404 yerine boş sonuç döndürme
 router.get('/phone/:phone', async (c) => {
     const db = c.get('db');
     const { phone } = c.req.param();
@@ -44,13 +44,13 @@ router.get('/phone/:phone', async (c) => {
             AND deleted_at IS NULL
         `).bind(phone).first();
         
-        // Müşteri bulunamadığında uygun yanıt döndür
+        // Müşteri bulunamadığında null döndür ama 404 kodu döndürme
         if (!customer) {
             return c.json({
-                success: false,
-                error: "Customer not found",
-                customer: null
-            }, 404);  // 404 Not Found
+                success: true,
+                customer: null,
+                message: "Customer not found"
+            }, 200);  // 200 OK dönüyoruz, frontend boş sonucu işleyecek
         }
         
         return c.json({
@@ -232,7 +232,7 @@ router.get('/:id/orders', async (c) => {
   }
 })
 
-// Müşteri adresleri
+// Müşteri adreslerini getir - Hata durumunu daha iyi handle et
 router.get('/:id/addresses', async (c) => {
   const db = c.get('db')
   const { id } = c.req.param()
@@ -249,16 +249,20 @@ router.get('/:id/addresses', async (c) => {
       WHERE a.customer_id = ?
       AND a.deleted_at IS NULL
       ORDER BY a.created_at DESC
-    `).bind(id).all()
+    `).bind(id).all();
     
-    return c.json(results || [])
+    // Adres bulunamasa bile boş bir array döndür, hata değil
+    return c.json({
+        success: true,
+        addresses: results || []
+    });
   } catch (error) {
-    console.error('Customer addresses error:', error)
+    console.error('Customer addresses error:', error);
     return c.json({ 
       success: false, 
       error: 'Database error',
       details: error.message
-    }, 500)
+    }, 500);
   }
 })
 

@@ -82,80 +82,76 @@ async function saveAddress(c) {
     // ...save to database code...
 }
 
-// Yeni adres ekle - Column mapping düzeltildi
+// Yeni adres oluşturma endpoint'i - daha fazla hata bilgisi ve validasyon
 router.post('/', async (c) => {
-  const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
-  
-  try {
-    const body = await c.req.json()
+    const db = c.get('db');
     
-    // Debug için gelen veriyi logla
-    console.log('Received body:', JSON.stringify(body, null, 2));
-
-    // Adres validasyonu
-    if (!body.customer_id || !body.district || !body.street) {
-      return c.json({
-        success: false,
-        error: 'Missing required fields',
-        required: ['customer_id', 'district', 'street']
-      }, 400)
+    try {
+        // İstek verilerini al ve loglayarak doğrula
+        const body = await c.req.json();
+        console.log("Address create request:", body);
+        
+        // Zorunlu alanları kontrol et
+        const requiredFields = ['customer_id', 'district', 'street'];
+        for (const field of requiredFields) {
+            if (!body[field]) {
+                return c.json({
+                    success: false,
+                    error: `${field} field is required`
+                }, 400);
+            }
+        }
+        
+        // Adres ekle - veritabanı şemasına göre düzeltildi
+        const result = await db.prepare(`
+            INSERT INTO addresses (
+                customer_id, 
+                label, 
+                district,
+                street, 
+                building_no, 
+                floor_no, 
+                door_no,
+                here_place_id, 
+                lat, 
+                lng,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `).bind(
+            body.customer_id,
+            body.label || 'Teslimat Adresi',
+            body.district,
+            body.street,
+            body.building_no || '1',
+            body.floor_no || '1',
+            body.door_no || '1',
+            body.here_place_id || null,
+            body.lat || null,
+            body.lng || null
+        ).run();
+        
+        const address_id = result.meta?.last_row_id;
+        
+        if (!address_id) {
+            return c.json({
+                success: false,
+                error: "Could not create address"
+            }, 500);
+        }
+        
+        return c.json({
+            success: true,
+            address_id
+        });
+        
+    } catch (error) {
+        console.error('Address creation error:', error);
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
+        }, 500);
     }
-
-    // SQL sorgusunu düzenle - Kolonları doğru sırala
-    const result = await db.prepare(`
-      INSERT INTO addresses (
-        tenant_id,         -- 1
-        customer_id,       -- 2 
-        label,            -- 3
-        district,         -- 4
-        street,           -- 5
-        building_no,      -- 6
-        floor_no,         -- 7
-        door_no,          -- 8
-        here_place_id,    -- 9
-        lat,             -- 10
-        lng,             -- 11
-        created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    `).bind(
-      tenant_id,                              // 1
-      body.customer_id,                       // 2
-      body.label || 'Teslimat Adresi',       // 3
-      body.district,                          // 4
-      body.street,                            // 5
-      body.building_no,                       // 6
-      body.floor_no,                          // 7
-      body.door_no,                           // 8
-      body.here_place_id,                     // 9
-      body.lat,                              // 10
-      body.lng                               // 11
-    ).run()
-
-    if (!result.success) {
-      throw new Error('Address insert failed')
-    }
-
-    // Başarılı response
-    return c.json({
-      success: true,
-      address_id: result.meta?.last_row_id
-    })
-
-  } catch (error) {
-    // Hata detaylarını logla
-    console.error('Address save error:', {
-      error: error.message,
-      stack: error.stack,
-      body: body
-    })
-
-    return c.json({
-      success: false,
-      error: 'Database error',
-      message: error.message
-    }, 500)
-  }
-})
+});
 
 export default router

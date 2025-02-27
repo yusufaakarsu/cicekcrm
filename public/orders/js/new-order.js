@@ -43,7 +43,7 @@ function setupCustomerSearch() {
     });
 }
 
-// Müşteri arama fonksiyonunu güncelle - null customer durumunu ele al
+// Müşteri arama fonksiyonu - Hata durumları daha iyi yönetiliyor
 async function searchCustomer() {
     // Input değerini al ve temizle
     const phoneInput = document.getElementById('customerSearch');
@@ -62,9 +62,30 @@ async function searchCustomer() {
         searchButton.disabled = true;
         searchButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
         
-        // API'den müşteriyi ara
-        const response = await fetch(`${API_URL}/customers/phone/${phone}`);
-        const data = await response.json();
+        // API'den müşteriyi ara - 404 hatasını daha iyi yönet
+        let data;
+        try {
+            const response = await fetch(`${API_URL}/customers/phone/${phone}`);
+            
+            // 404 hatası durumunda müşteriyi bulamadığımızı varsay
+            if (response.status === 404) {
+                showNewCustomerForm(phone);
+                showInfo(`${phone} numaralı müşteri bulunamadı. Yeni müşteri kaydı yapabilirsiniz.`);
+                return;
+            }
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            data = await response.json();
+        } catch (fetchError) {
+            console.error('Customer API error:', fetchError);
+            // API hatası durumunda yeni müşteri formunu göster
+            showNewCustomerForm(phone);
+            showInfo(`Müşteri arama işlemi yapılamadı. Yeni müşteri kaydı yapabilirsiniz.`);
+            return;
+        }
         
         // Buton durumunu resetle
         searchButton.disabled = false;
@@ -161,8 +182,21 @@ function continueToAddress() {
 async function loadCustomerAddresses(customerId) {
     try {
         const response = await fetch(`${API_URL}/customers/${customerId}/addresses`);
-        const addresses = await response.json();
         
+        // Hata durumunda boş adres listesi göster
+        if (!response.ok) {
+            console.error(`Address fetch error: HTTP status ${response.status}`);
+            const container = document.querySelector('.saved-addresses');
+            container.innerHTML = '<div class="alert alert-warning">Kayıtlı adresler getirilemedi. Yeni adres ekleyebilirsiniz.</div>';
+            
+            // Müşterinin kayıtlı adresi yokmuş gibi, yeni adres seçeneğini seç
+            document.getElementById('newAddress').checked = true;
+            document.getElementById('customerAddressesSection').classList.add('d-none');
+            document.getElementById('newAddressSection').classList.remove('d-none');
+            return;
+        }
+        
+        const addresses = await response.json();
         const container = document.querySelector('.saved-addresses');
         
         if (addresses && addresses.length > 0) {
@@ -187,7 +221,13 @@ async function loadCustomerAddresses(customerId) {
         }
     } catch (error) {
         console.error('Adres yükleme hatası:', error);
-        showError('Adresler yüklenemedi');
+        const container = document.querySelector('.saved-addresses');
+        container.innerHTML = '<div class="alert alert-warning">Kayıtlı adresler getirilemedi. Yeni adres ekleyebilirsiniz.</div>';
+        
+        // Müşterinin kayıtlı adresi yokmuş gibi, yeni adres seçeneğini seç
+        document.getElementById('newAddress').checked = true;
+        document.getElementById('customerAddressesSection').classList.add('d-none');
+        document.getElementById('newAddressSection').classList.remove('d-none');
     }
 }
 
@@ -694,36 +734,63 @@ async function confirmProducts() {
         const customerId = document.getElementById('customerId').value;
         const addressType = document.querySelector('input[name="addressType"]:checked').value;
 
+        // Ürün seçilip seçilmediğini kontrol et
+        if (selectedProducts.size === 0) {
+            throw new Error('Lütfen en az bir ürün seçin');
+        }
+
         // Önce adres kaydı yap
         let addressId;
         if (addressType === 'customer') {
             // Kayıtlı adres seçilmişse
             addressId = selectedAddress.id;
         } else {
-            // Yeni adres oluştur
-            const addressResponse = await fetchAPI('/addresses', {
-                method: 'POST',
-                body: JSON.stringify({
+            try {
+                // Yeni adres oluştur - adres API'sine yapılan çağrıyı düzelt
+                const addressData = {
                     customer_id: Number(customerId),
                     label: selectedAddress.label || 'Teslimat Adresi',
                     district: selectedAddress.district,
                     street: selectedAddress.street,
                     here_place_id: selectedAddress.here_place_id || null,
-                    building_no: selectedAddress.building_no,
-                    floor_no: selectedAddress.floor || null,
-                    door_no: selectedAddress.apartment_no || null,
+                    building_no: selectedAddress.building_no || "1", 
+                    floor_no: selectedAddress.floor || "1",
+                    door_no: selectedAddress.apartment_no || "1",
                     lat: selectedAddress.lat || null,
-                    lng: selectedAddress.lng || null,
-                    neighborhood: selectedAddress.neighborhood || null,
-                    directions: selectedAddress.directions || null
-                })
-            });
-
-            if (!addressResponse.success) {
-                throw new Error('Adres kaydedilemedi: ' + addressResponse.error);
+                    lng: selectedAddress.lng || null
+                };
+                
+                console.log("Gönderilecek adres verisi:", addressData);
+                
+                // Fetch API kullanarak address API'sine direkt istek yap
+                const addressResponse = await fetch(`${API_URL}/addresses`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(addressData)
+                });
+                
+                if (!addressResponse.ok) {
+                    // API response status başarılı değilse, hata detaylarını logla
+                    const errorText = await addressResponse.text();
+                    console.error("Address API Error:", addressResponse.status, errorText);
+                    throw new Error(`Adres kaydedilemedi: HTTP ${addressResponse.status}`);
+                }
+                
+                const addressResult = await addressResponse.json();
+                
+                if (!addressResult.success) {
+                    throw new Error('Adres kaydedilemedi: ' + (addressResult.error || 'Bilinmeyen hata'));
+                }
+                
+                addressId = addressResult.address_id || addressResult.id;
+                console.log("Oluşturulan adres ID:", addressId);
+                
+            } catch (addressError) {
+                console.error("Adres oluşturma hatası:", addressError);
+                throw new Error(`Adres kaydedilemedi: ${addressError.message}`);
             }
-
-            addressId = addressResponse.address_id;
         }
 
         // Ara toplam hesapla
