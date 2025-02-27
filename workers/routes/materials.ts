@@ -159,6 +159,7 @@ router.post('/', async (c) => {
             }, 400);
         }
 
+        // Hammadde ekle
         const result = await db.prepare(`
             INSERT INTO raw_materials (
                 name, description, unit_id,
@@ -174,12 +175,26 @@ router.post('/', async (c) => {
             body.notes || null
         ).run();
 
+        // Yeni eklenen hammaddenin detaylarını getir
+        const material = await db.prepare(`
+            SELECT 
+                m.*,
+                c.name as category_name,
+                u.name as unit_name,
+                u.code as unit_code
+            FROM raw_materials m
+            LEFT JOIN raw_material_categories c ON m.category_id = c.id
+            LEFT JOIN units u ON m.unit_id = u.id
+            WHERE m.id = ?
+        `).bind(result.meta?.last_row_id).first();
+
         return c.json({
             success: true,
-            id: result.meta?.last_row_id
+            material: material
         });
 
     } catch (error) {
+        console.error('Create material error:', error);
         return c.json({
             success: false,
             error: 'Database error',

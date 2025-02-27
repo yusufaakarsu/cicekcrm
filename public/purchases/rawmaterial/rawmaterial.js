@@ -171,31 +171,33 @@ async function saveMaterial() {
     }
 
     const formData = new FormData(form);
-    const data = Object.fromEntries(formData);
+    const data = {
+        name: formData.get('name'),
+        unit_id: parseInt(formData.get('unit_id')),
+        category_id: formData.get('category_id') ? parseInt(formData.get('category_id')) : null,
+        description: formData.get('description') || '',
+        status: formData.get('status') || 'active',
+        notes: formData.get('notes') || ''
+    };
     
     try {
-        // Endpoint'i düzelttik
         const response = await fetch(`${API_URL}/materials`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: data.name,
-                description: data.description || '',
-                unit_id: parseInt(data.unit_id),
-                category_id: parseInt(data.category_id) || null,
-                status: data.status || 'active',
-                notes: data.notes || ''
-            })
+            body: JSON.stringify(data)
         });
 
-        if (!response.ok) throw new Error('API Hatası');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'API Hatası');
+        }
         
         const result = await response.json();
         if (!result.success) throw new Error(result.error);
 
         // Modal'ı kapat ve verileri yenile
         materialModal.hide();
-        document.getElementById('materialForm').reset();
+        form.reset();
         await Promise.all([
             loadMaterials(),
             loadCategories()
@@ -204,7 +206,7 @@ async function saveMaterial() {
         showSuccess('Hammadde başarıyla eklendi');
     } catch (error) {
         console.error('Hammadde kaydedilirken hata:', error);
-        showError('Hammadde kaydedilemedi: ' + error.message);
+        showError(error.message);
     }
 }
 
