@@ -1,5 +1,7 @@
 let materialModal, movementModal;
 let units = []; // Global birimler listesi
+let stockTable;
+let currentMaterialId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
@@ -14,10 +16,42 @@ async function loadStock() {
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
-        renderStockTable(data.materials);
+        if (!data.success) throw new Error(data.error);
+
+        const tbody = document.querySelector('#stockTable tbody');
+        
+        if (data.materials?.length > 0) {
+            tbody.innerHTML = data.materials.map(material => `
+                <tr>
+                    <td>
+                        <div class="fw-bold">${material.name}</div>
+                        <small class="text-muted">${material.category_name || '-'}</small>
+                    </td>
+                    <td>${material.unit_code}</td>
+                    <td>
+                        <span class="badge ${getStockBadgeClass(material.current_stock)}">
+                            ${material.current_stock} ${material.unit_code}
+                        </span>
+                    </td>
+                    <td>${material.status === 'active' ? 'Aktif' : 'Pasif'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="showMovements(${material.id}, '${material.name}')">
+                            <i class="bi bi-clock-history"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" 
+                                onclick="showAddMovement(${material.id}, '${material.name}')">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">Stok bilgisi bulunamadı</td></tr>';
+        }
     } catch (error) {
         console.error('Stock loading error:', error);
-        showError('Stok bilgileri yüklenemedi');
+        showError('Stok bilgileri yüklenemedi!');
     }
 }
 
@@ -200,4 +234,10 @@ async function saveMovement() {
 // Filtreleri uygula
 function applyFilters() {
     loadStock();
+}
+
+function getStockBadgeClass(stock) {
+    if (stock <= 0) return 'bg-danger';
+    if (stock <= 5) return 'bg-warning';
+    return 'bg-success';
 }
