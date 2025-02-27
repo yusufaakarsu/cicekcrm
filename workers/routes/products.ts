@@ -312,7 +312,7 @@ router.post('/', async (c) => {
     const product_id = result.meta?.last_row_id
     if (!product_id) throw new Error('Ürün ID alınamadı')
 
-    // 2. Malzemeleri kaydet
+    // 2. Malzemeleri kaydet - created_at sütunu kaldırıldı 
     if (Array.isArray(body.materials) && body.materials.length > 0) {
       for (const material of body.materials) {
         try {
@@ -320,8 +320,8 @@ router.post('/', async (c) => {
           
           await db.prepare(`
             INSERT INTO product_materials (
-              product_id, material_id, default_quantity, notes, created_at
-            ) VALUES (?, ?, ?, ?, datetime('now'))
+              product_id, material_id, default_quantity, notes
+            ) VALUES (?, ?, ?, ?)
           `).bind(
             product_id,
             parseInt(material.material_id),
