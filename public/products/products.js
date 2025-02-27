@@ -230,9 +230,231 @@ function resetCategoryForm() {
     form.elements['id'].value = '';
 }
 
-// Ürün düzenleme fonksiyonu - Ürün düzenleme sayfasına yönlendir
+// Ürün düzenleme fonksiyonu - Düzenleme seçeneklerini sunar
 function editProduct(id) {
-    window.location.href = `/products/edit-product/edit-product.html?id=${id}`;
+    // Kullanıcıya seçenek sun - Hem modal hem de sayfa yönlendirme seçeneği
+    const confirmModal = bootstrap.Modal.getOrCreateInstance(
+        document.getElementById('confirmEditModal') || createConfirmEditModal()
+    );
+    
+    // Modal'daki düğmelere tıklama olaylarını ekle
+    document.getElementById('editInPage').onclick = () => {
+        confirmModal.hide();
+        window.location.href = `/products/edit-product/edit-product.html?id=${id}`;
+    };
+    
+    document.getElementById('editInModal').onclick = () => {
+        confirmModal.hide();
+        openEditProductModal(id);
+    };
+    
+    confirmModal.show();
+}
+
+// Modal HTML'ini dinamik olarak oluştur
+function createConfirmEditModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'confirmEditModal';
+    modal.setAttribute('tabindex', '-1');
+    
+    modal.innerHTML = `
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ürün Düzenleme</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Ürünü nasıl düzenlemek istersiniz?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" id="editInModal">
+                        <i class="bi bi-window"></i> Modal içinde düzenle
+                    </button>
+                    <button type="button" class="btn btn-success" id="editInPage">
+                        <i class="bi bi-pencil-square"></i> Düzenleme sayfasını aç
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    return modal;
+}
+
+// Ürün düzenleme modali
+async function openEditProductModal(id) {
+    try {
+        // Ürün verisini getir
+        const response = await fetch(`${API_URL}/products/${id}`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+        
+        const product = data.product;
+        
+        // Eğer mevcut değilse, modal HTML'ini oluştur
+        if (!document.getElementById('editProductModal')) {
+            createEditProductModal();
+        }
+        
+        // Modal örneğini al
+        const editModal = bootstrap.Modal.getOrCreateInstance(
+            document.getElementById('editProductModal')
+        );
+        
+        // Form alanlarını doldur
+        const form = document.getElementById('editProductForm');
+        form.elements['id'].value = product.id;
+        form.elements['name'].value = product.name;
+        form.elements['description'].value = product.description || '';
+        form.elements['base_price'].value = product.base_price;
+        form.elements['category_id'].value = product.category_id;
+        form.elements['status'].value = product.status || 'active';
+        
+        // Modali göster
+        editModal.show();
+        
+    } catch (error) {
+        console.error('Product load error:', error);
+        showError(`Ürün yüklenemedi: ${error.message}`);
+    }
+}
+
+// Düzenleme modal'ını oluştur
+function createEditProductModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'editProductModal';
+    modal.setAttribute('tabindex', '-1');
+    
+    modal.innerHTML = `
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ürün Düzenle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProductForm">
+                        <input type="hidden" name="id">
+                        <div class="mb-3">
+                            <label class="form-label">Ürün Adı</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kategori</label>
+                            <select class="form-select" name="category_id" required>
+                                <option value="">Seçiniz...</option>
+                                <!-- Kategoriler JavaScript ile doldurulacak -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fiyat</label>
+                            <input type="number" class="form-control" name="base_price" min="0" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Açıklama</label>
+                            <textarea class="form-control" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Durum</label>
+                            <select class="form-select" name="status">
+                                <option value="active">Aktif</option>
+                                <option value="passive">Pasif</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="updateProduct()">
+                        <i class="bi bi-save"></i> Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Kategorileri yükle
+    loadCategoriesToSelect(document.querySelector('#editProductForm select[name="category_id"]'));
+    
+    return modal;
+}
+
+// Kategori select'ini doldur
+async function loadCategoriesToSelect(select) {
+    try {
+        const response = await fetch(`${API_URL}/products/categories`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        const categories = data.categories || [];
+        
+        let options = '<option value="">Seçiniz...</option>';
+        categories.forEach(cat => {
+            options += `<option value="${cat.id}">${cat.name}</option>`;
+        });
+        
+        select.innerHTML = options;
+    } catch (error) {
+        console.error('Categories loading error:', error);
+    }
+}
+
+// Ürün güncelleme işlemi
+async function updateProduct() {
+    const form = document.getElementById('editProductForm');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    const id = data.id;
+    
+    try {
+        const response = await fetch(`${API_URL}/products/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: data.name,
+                category_id: parseInt(data.category_id),
+                base_price: parseFloat(data.base_price),
+                description: data.description,
+                status: data.status
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'API Hatası');
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Güncelleme başarısız');
+        }
+        
+        bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
+        showSuccess('Ürün başarıyla güncellendi');
+        loadProducts(); // Ürün listesini yenile
+        
+    } catch (error) {
+        console.error('Product update error:', error);
+        showError(`Ürün güncellenemedi: ${error.message}`);
+    }
 }
 
 // Ürün silme fonksiyonu
