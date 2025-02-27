@@ -5,50 +5,91 @@ const router = new Hono();
 // Satın alma listesi
 router.get('/orders', async (c) => {
     const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
     
     try {
-        const supplier_id = c.req.query('supplier_id');
-        const date = c.req.query('date');
-        
+        // Filtre parametrelerini al
+        const url = new URL(c.req.url);
+        const supplier_id = url.searchParams.get('supplier_id');
+        const payment_status = url.searchParams.get('payment_status');
+        const date_filter = url.searchParams.get('date_filter');
+        const start_date = url.searchParams.get('start_date');
+        const end_date = url.searchParams.get('end_date');
+        const min_amount = url.searchParams.get('min_amount');
+        const max_amount = url.searchParams.get('max_amount');
+
+        // Base SQL
         let sql = `
             SELECT 
                 po.*,
                 s.name as supplier_name,
+                s.phone as supplier_phone,
                 u.name as created_by_name,
-                (
-                    SELECT COALESCE(SUM(quantity * unit_price), 0) 
-                    FROM purchase_order_items 
-                    WHERE order_id = po.id 
-                    AND deleted_at IS NULL
-                ) as total_amount
+                COUNT(poi.id) as item_count,
+                COALESCE(SUM(poi.quantity * poi.unit_price), 0) as calculated_total
             FROM purchase_orders po
             LEFT JOIN suppliers s ON po.supplier_id = s.id
             LEFT JOIN users u ON po.created_by = u.id
-            WHERE po.tenant_id = ? 
-            AND po.deleted_at IS NULL
+            LEFT JOIN purchase_order_items poi ON po.id = poi.order_id 
+                AND poi.deleted_at IS NULL
+            WHERE po.deleted_at IS NULL
         `;
-        
-        const params = [tenant_id];
-        
+
+        const params = [];
+
+        // Tedarikçi filtresi
         if (supplier_id) {
-            sql += ' AND po.supplier_id = ?';
+            sql += ` AND po.supplier_id = ?`;
             params.push(supplier_id);
         }
-        
-        if (date) {
-            sql += ' AND DATE(po.order_date) = DATE(?)';
-            params.push(date);
+
+        // Ödeme durumu filtresi
+        if (payment_status) {
+            sql += ` AND po.payment_status = ?`;
+            params.push(payment_status);
         }
-        
-        sql += ' ORDER BY po.order_date DESC, po.id DESC';
-        
+
+        // Tarih filtresi
+        if (date_filter) {
+            switch(date_filter) {
+                case 'today':
+                    sql += ` AND DATE(po.order_date) = DATE('now')`;
+                    break;
+                case 'week':
+                    sql += ` AND po.order_date >= date('now', '-7 days')`;
+                    break;
+                case 'month':
+                    sql += ` AND strftime('%Y-%m', po.order_date) = strftime('%Y-%m', 'now')`;
+                    break;
+                case 'custom':
+                    if (start_date && end_date) {
+                        sql += ` AND po.order_date BETWEEN ? AND ?`;
+                        params.push(start_date, end_date);
+                    }
+                    break;
+            }
+        }
+
+        // Tutar filtresi
+        if (min_amount) {
+            sql += ` AND po.total_amount >= ?`;
+            params.push(min_amount);
+        }
+        if (max_amount) {
+            sql += ` AND po.total_amount <= ?`;
+            params.push(max_amount);
+        }
+
+        // Gruplama ve sıralama
+        sql += ` GROUP BY po.id ORDER BY po.order_date DESC`;
+
+        // Sorguyu çalıştır
         const { results } = await db.prepare(sql).bind(...params).all();
         
         return c.json({
             success: true,
-            orders: results || []
+            orders: results
         });
+        
     } catch (error) {
         console.error('Database error:', error);
         return c.json({ 
@@ -62,8 +103,7 @@ router.get('/orders', async (c) => {
 // Satın alma detayı
 router.get('/orders/:id', async (c) => {
     const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
-    const id = c.req.param('id');
+    const { id } = c.req.param();
     
     try {
         // Ana sipariş bilgileri
@@ -71,38 +111,52 @@ router.get('/orders/:id', async (c) => {
             SELECT 
                 po.*,
                 s.name as supplier_name,
+                s.phone as supplier_phone,
+                s.email as supplier_email,
                 u.name as created_by_name
             FROM purchase_orders po
-            JOIN suppliers s ON po.supplier_id = s.id
+            LEFT JOIN suppliers s ON po.supplier_id = s.id
             LEFT JOIN users u ON po.created_by = u.id
-            WHERE po.id = ? AND po.tenant_id = ?
-        `).bind(id, tenant_id).first();
+            WHERE po.id = ? 
+            AND po.deleted_at IS NULL
+        `).bind(id).first();
+
+        if (!order) {
+            return c.json({
+                success: false,
+                error: 'Sipariş bulunamadı'
+            }, 404);
+        }
 
         // Sipariş kalemleri
         const { results: items } = await db.prepare(`
             SELECT 
                 poi.*,
                 rm.name as material_name,
-                rmc.name as category_name,
+                rm.description as material_description,
                 u.name as unit_name,
                 u.code as unit_code
             FROM purchase_order_items poi
-            JOIN raw_materials rm ON poi.material_id = rm.id
-            LEFT JOIN raw_material_categories rmc ON rm.category_id = rmc.id
+            LEFT JOIN raw_materials rm ON poi.material_id = rm.id
             LEFT JOIN units u ON rm.unit_id = u.id
-            WHERE poi.order_id = ?
+            WHERE poi.order_id = ? 
             AND poi.deleted_at IS NULL
         `).bind(id).all();
 
         return c.json({
             success: true,
-            order,
-            items
+            order: {
+                ...order,
+                items: items || []
+            }
         });
+
     } catch (error) {
-        return c.json({ 
-            success: false, 
-            error: 'Database error' 
+        console.error('Purchase order detail error:', error);
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
         }, 500);
     }
 });

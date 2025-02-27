@@ -2,38 +2,30 @@ import { Hono } from 'hono'
 
 const router = new Hono()
 
-// Tüm müşterileri listele
+// Müşteri listesi
 router.get('/', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   
   try {
     const { results } = await db.prepare(`
       SELECT 
         c.*,
-        COUNT(DISTINCT a.id) as address_count,
-        COUNT(DISTINCT o.id) as total_orders,
-        MAX(o.created_at) as last_order,
-        COALESCE(SUM(o.total_amount), 0) as total_spent
+        (SELECT COUNT(*) FROM orders WHERE customer_id = c.id AND deleted_at IS NULL) as order_count,
+        (SELECT COUNT(*) FROM recipients WHERE customer_id = c.id AND deleted_at IS NULL) as recipient_count,
+        (SELECT COUNT(*) FROM addresses WHERE customer_id = c.id AND deleted_at IS NULL) as address_count
       FROM customers c
-      LEFT JOIN addresses a ON a.customer_id = c.id 
-        AND a.deleted_at IS NULL
-      LEFT JOIN orders o ON o.customer_id = c.id 
-        AND o.deleted_at IS NULL
-      WHERE c.tenant_id = ?
-      AND c.deleted_at IS NULL
-      GROUP BY c.id
+      WHERE c.deleted_at IS NULL
       ORDER BY c.name
-    `).bind(tenant_id).all()
-
+    `).all()
+    
     return c.json({
       success: true,
-      customers: results || []
+      customers: results
     })
   } catch (error) {
-    console.error('Customers list error:', error)
+    console.error('Customer list error:', error)
     return c.json({ 
-      success: false,
+      success: false, 
       error: 'Database error',
       message: error.message 
     }, 500)
@@ -45,14 +37,12 @@ router.get('/phone/:phone', async (c) => {
   try {
     const phone = c.req.param('phone').replace(/\D/g, '').replace(/^0+/, '')
     const db = c.get('db')
-    const tenant_id = c.get('tenant_id')
     
     const customer = await db.prepare(`
         SELECT * FROM customers 
         WHERE phone = ? 
-        AND tenant_id = ? 
         AND deleted_at IS NULL
-    `).bind(phone, tenant_id).first()
+    `).bind(phone).first()
     
     return c.json({
         success: true,
@@ -67,149 +57,137 @@ router.get('/phone/:phone', async (c) => {
   }
 })
 
-// Yeni müşteri ekle - Güncellendi
-router.post("/", async (c) => {
-  const body = await c.req.json();
-  const db = c.get("db");
-  const tenant_id = c.get("tenant_id");
+// Yeni müşteri kaydet
+router.post('/', async (c) => {
+  const db = c.get('db')
+  const body = await c.req.json()
   
   try {
-      const phone = body.phone.replace(/\D/g, "");
-      
-      // Temel validasyon
-      if (!body.name || !phone) {
-          return c.json({
-              success: false,
-              error: "Ad ve telefon alanları zorunludur"
-          }, 400);
-      }
+    // 1. Müşteri kaydet
+    const result = await db.prepare(`
+      INSERT INTO customers (name, phone, email, notes)
+      VALUES (?, ?, ?, ?)
+    `).bind(
+      body.name,
+      body.phone,
+      body.email || null,
+      body.notes || null
+    ).run()
 
-      // Telefon kontrolü
-      const existing = await db.prepare(`
-          SELECT id FROM customers WHERE phone = ? AND tenant_id = ? AND deleted_at = 0
-      `).bind(phone, tenant_id).first();
-
-      if (existing) {
-          return c.json({
-              success: false,
-              error: "Bu telefon numarası zaten kayıtlı",
-              id: existing.id
-          }, 400);
-      }
-
-      // Müşteri ekleme - SQL sorgusu güncellendi
-      const result = await db.prepare(`
-          INSERT INTO customers (
-              tenant_id, name, phone, email, notes, 
-              created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-      `).bind(
-          tenant_id,
-          body.name,
-          phone,
-          body.email || null,
-          body.notes || null
-      ).run();
-
-      // meta.last_row_id kontrol edilmeli
-      if (!result.meta?.last_row_id) {
-          throw new Error("Müşteri kaydı oluşturulamadı");
-      }
-
-      // Yeni eklenen müşteriyi getir
-      const customer = await db.prepare(`
-          SELECT * FROM customers WHERE id = ?
-      `).bind(result.meta.last_row_id).first();
-
-      return c.json({
-          success: true,
-          customer: customer,
-          id: result.meta.last_row_id
-      });
-
+    const customerId = result.meta?.last_row_id
+    
+    return c.json({
+      success: true,
+      customer_id: customerId
+    })
   } catch (error) {
-      console.error("Müşteri kayıt hatası:", error);
-      return c.json({
-          success: false,
-          error: "Müşteri kaydedilemedi",
-          message: error.message
-      }, 500);
+    console.error('Customer create error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      message: error.message 
+    }, 500)
   }
-});
+})
 
-// Müşteri detayı - View kullanımı
+// Müşteri detayı
 router.get('/:id', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   const { id } = c.req.param()
   
   try {
     const customer = await db.prepare(`
-      SELECT * FROM vw_customers
-      WHERE id = ? AND tenant_id = ?
-    `).bind(id, tenant_id).first()
-
+      SELECT * FROM customers
+      WHERE id = ? AND deleted_at IS NULL
+    `).bind(id).first()
+    
     if (!customer) {
-      return c.json({ error: 'Customer not found' }, 404)
+      return c.json({ success: false, error: 'Customer not found' }, 404)
     }
 
-    return c.json(customer)
+    const { results: recipients } = await db.prepare(`
+      SELECT * FROM recipients
+      WHERE customer_id = ? AND deleted_at IS NULL
+    `).bind(id).all()
+
+    const { results: addresses } = await db.prepare(`
+      SELECT * FROM addresses
+      WHERE customer_id = ? AND deleted_at IS NULL
+    `).bind(id).all()
+
+    const { results: orders } = await db.prepare(`
+      SELECT 
+        o.*,
+        r.name as recipient_name
+      FROM orders o
+      LEFT JOIN recipients r ON o.recipient_id = r.id
+      WHERE o.customer_id = ? AND o.deleted_at IS NULL
+      ORDER BY o.delivery_date DESC
+      LIMIT 10
+    `).bind(id).all()
+
+    return c.json({
+      success: true,
+      customer,
+      recipients: recipients || [],
+      addresses: addresses || [],
+      orders: orders || []
+    })
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Customer detail error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      message: error.message
+    }, 500)
   }
 })
 
 // Müşteri güncelle
 router.put('/:id', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   const { id } = c.req.param()
   const body = await c.req.json()
   
   try {
-    const result = await db.prepare(`
+    await db.prepare(`
       UPDATE customers 
-      SET 
-        name = ?, phone = ?, email = ?, 
-        address = ?, city = ?, district = ?,
-        company_name = ?, tax_number = ?,
-        special_dates = ?, notes = ?,
-        updated_at = DATETIME('now')
-      WHERE id = ? AND tenant_id = ? AND deleted = 0
+      SET name = ?, phone = ?, email = ?, notes = ?
+      WHERE id = ? AND deleted_at IS NULL
     `).bind(
-      body.name, body.phone, body.email,
-      body.address, body.city, body.district,
-      body.company_name, body.tax_number,
-      body.special_dates, body.notes,
-      id, tenant_id
+      body.name,
+      body.phone,
+      body.email || null,
+      body.notes || null,
+      id
     ).run()
-
-    if (result.changes === 0) {
-      return c.json({ error: 'Customer not found or no changes made' }, 404)
-    }
-
-    return c.json({ success: true })
+    
+    return c.json({
+      success: true
+    })
   } catch (error) {
-    return c.json({ error: 'Database error' }, 500)
+    console.error('Customer update error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      message: error.message 
+    }, 500)
   }
 })
 
 // Müşteri siparişleri - View kullanımı
 router.get('/:id/orders', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   const { id } = c.req.param()
   
   try {
     const { results } = await db.prepare(`
       SELECT * FROM vw_customer_orders
       WHERE customer_id = ?
-      AND tenant_id = ?
       ORDER BY created_at DESC
       LIMIT 10
     `).bind(
-      parseInt(id), 
-      parseInt(tenant_id)
+      parseInt(id)
     ).all()
 
     return c.json({
@@ -229,7 +207,6 @@ router.get('/:id/orders', async (c) => {
 // Müşteri adresleri
 router.get('/:id/addresses', async (c) => {
   const db = c.get('db')
-  const tenant_id = c.get('tenant_id')
   const { id } = c.req.param()
   
   try {
@@ -242,10 +219,9 @@ router.get('/:id/addresses', async (c) => {
         a.door_no as apartment_no
       FROM addresses a
       WHERE a.customer_id = ?
-      AND a.tenant_id = ?
       AND a.deleted_at IS NULL
       ORDER BY a.created_at DESC
-    `).bind(id, tenant_id).all()
+    `).bind(id).all()
     
     return c.json(results || [])
   } catch (error) {
@@ -254,6 +230,129 @@ router.get('/:id/addresses', async (c) => {
       success: false, 
       error: 'Database error',
       details: error.message
+    }, 500)
+  }
+})
+
+// Müşteri sil (soft delete)
+router.delete('/:id', async (c) => {
+  const db = c.get('db')
+  const { id } = c.req.param()
+  
+  try {
+    await db.prepare(`
+      UPDATE customers 
+      SET deleted_at = datetime('now')
+      WHERE id = ?
+    `).bind(id).run()
+    
+    return c.json({
+      success: true
+    })
+  } catch (error) {
+    console.error('Customer delete error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      message: error.message 
+    }, 500)
+  }
+})
+
+// Alıcılar (recipients) endpointleri
+router.post('/:customerId/recipients', async (c) => {
+  const db = c.get('db')
+  const { customerId } = c.req.param()
+  const body = await c.req.json()
+  
+  try {
+    const result = await db.prepare(`
+      INSERT INTO recipients (
+        customer_id, name, phone, alternative_phone, notes, special_dates, preferences
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      customerId,
+      body.name,
+      body.phone,
+      body.alternative_phone || null,
+      body.notes || null,
+      body.special_dates || null,
+      body.preferences || null
+    ).run()
+    
+    return c.json({
+      success: true,
+      recipient_id: result.meta?.last_row_id
+    })
+  } catch (error) {
+    console.error('Recipient create error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      message: error.message 
+    }, 500)
+  }
+})
+
+router.put('/recipients/:id', async (c) => {
+  const db = c.get('db')
+  const { id } = c.req.param()
+  const body = await c.req.json()
+  
+  try {
+    await db.prepare(`
+      UPDATE recipients
+      SET 
+        name = ?, 
+        phone = ?, 
+        alternative_phone = ?, 
+        notes = ?,
+        special_dates = ?,
+        preferences = ?
+      WHERE id = ? AND deleted_at IS NULL
+    `).bind(
+      body.name,
+      body.phone,
+      body.alternative_phone || null,
+      body.notes || null,
+      body.special_dates || null,
+      body.preferences || null,
+      id
+    ).run()
+    
+    return c.json({
+      success: true
+    })
+  } catch (error) {
+    console.error('Recipient update error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      message: error.message 
+    }, 500)
+  }
+})
+
+router.delete('/recipients/:id', async (c) => {
+  const db = c.get('db')
+  const { id } = c.req.param()
+  
+  try {
+    await db.prepare(`
+      UPDATE recipients
+      SET deleted_at = datetime('now')
+      WHERE id = ?
+    `).bind(id).run()
+    
+    return c.json({
+      success: true
+    })
+  } catch (error) {
+    console.error('Recipient delete error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'Database error',
+      message: error.message 
     }, 500)
   }
 })

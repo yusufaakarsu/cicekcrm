@@ -135,42 +135,75 @@ function addMaterial(materialId) {
 }
 
 async function saveProduct() {
-    const form = document.getElementById('productForm');
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData);
-    
-    // Malzemeleri doğru formatta topla
-    data.materials = Array.from(document.querySelectorAll('#materialsTableBody tr')).map(row => ({
-        material_id: parseInt(row.querySelector('input[name="materials[][material_id]"]').value),
-        quantity: parseFloat(row.querySelector('input[name="materials[][quantity]"]').value),
-        is_required: row.querySelector('input[name="materials[][is_required]"]').checked
-    }));
-
     try {
+        // Form verilerini al
+        const name = document.getElementById('productName').value.trim();
+        const category_id = document.getElementById('categorySelect').value;
+        const description = document.getElementById('productDescription').value.trim();
+        const base_price = parseFloat(document.getElementById('productPrice').value);
+        const status = document.getElementById('productStatus').value;
+
+        // Validasyon
+        if (!name || !category_id || isNaN(base_price) || base_price <= 0) {
+            showError('Lütfen gerekli alanları doldurun');
+            return;
+        }
+
+        // Malzemeleri topla
+        const materialRows = document.querySelectorAll('#materialsList .material-row');
+        const materials = Array.from(materialRows).map(row => {
+            const material_id = row.getAttribute('data-id');
+            const quantity = parseFloat(row.querySelector('.material-quantity').value);
+            const notes = row.querySelector('.material-notes')?.value || null;
+            
+            return {
+                material_id: parseInt(material_id),
+                quantity: quantity,
+                notes: notes
+            };
+        }).filter(m => m.material_id && !isNaN(m.quantity) && m.quantity > 0);
+
+        // API'ye gönderilecek payload
+        const payload = {
+            name,
+            category_id: parseInt(category_id),
+            description,
+            base_price,
+            status,
+            materials
+        };
+        
+        console.log('Gönderilen veri:', payload); // Debug için
+
+        // API isteği
         const response = await fetch(`${API_URL}/products`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error('API Hatası');
-        
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('API yanıt hatası:', errorData);
+            throw new Error('API Hatası');
+        }
+
         const result = await response.json();
-        if (!result.success) throw new Error(result.error);
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Kayıt başarısız');
+        }
 
         showSuccess('Ürün başarıyla kaydedildi');
         setTimeout(() => {
             window.location.href = '/products/products.html';
-        }, 1000);
-
+        }, 1500);
+        
     } catch (error) {
         console.error('Product save error:', error);
-        showError('Ürün kaydedilemedi');
+        showError(`Ürün kaydedilemedi: ${error.message}`);
     }
 }
 
@@ -211,43 +244,6 @@ function renderMaterialsList() {
 // Malzeme satırını sil
 function removeMaterial(button) {
     button.closest('tr').remove();
-}
-
-// Ürünü kaydet
-async function saveProduct() {
-    const form = document.getElementById('productForm');
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData);
-    
-    // Malzemeleri ekle
-    data.materials = Array.from(document.querySelectorAll('#materialsTableBody tr')).map(row => ({
-        material_id: row.querySelector('input[name="materials[][material_id]"]').value,
-        quantity: parseFloat(row.querySelector('input[name="materials[][quantity]"]').value),
-        is_required: row.querySelector('input[name="materials[][is_required]"]').checked
-    }));
-
-    try {
-        const response = await fetch(`${API_URL}/products`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-
-        if (!response.ok) throw new Error('API Hatası');
-        
-        showSuccess('Ürün başarıyla kaydedildi');
-        setTimeout(() => {
-            window.location.href = '/products/products.html';
-        }, 1000);
-    } catch (error) {
-        console.error('Product save error:', error);
-        showError('Ürün kaydedilemedi');
-    }
 }
 
 // Arama ve filtreleme
