@@ -201,75 +201,14 @@ router.put('/orders/:id/status', async (c) => {
     }
 });
 
-// Ödeme durumu güncelleme
-router.put('/orders/:id/payment', async (c) => {
-    const db = c.get('db');
-    const { id } = c.req.param();
-    const { status, amount } = await c.req.json();
-    
-    try {
-        // Status kontrolü
-        if (!['paid', 'partial', 'cancelled'].includes(status)) {
-            return c.json({
-                success: false,
-                error: 'Invalid payment status'
-            }, 400);
-        }
-
-        // Mevcut siparişi kontrol et
-        const order = await db.prepare(`
-            SELECT total_amount, paid_amount 
-            FROM purchase_orders 
-            WHERE id = ? AND deleted_at IS NULL
-        `).bind(id).first();
-
-        if (!order) {
-            return c.json({
-                success: false,
-                error: 'Order not found'
-            }, 404);
-        }
-
-        let newPaidAmount = order.paid_amount || 0;
-        if (status === 'paid') {
-            newPaidAmount = order.total_amount;
-        } else if (status === 'partial' && amount) {
-            newPaidAmount += parseFloat(amount);
-        }
-
-        // Ödeme durumunu güncelle
-        await db.prepare(`
-            UPDATE purchase_orders 
-            SET 
-                payment_status = ?,
-                paid_amount = ?,
-                updated_at = datetime('now')
-            WHERE id = ? AND deleted_at IS NULL
-        `).bind(status, newPaidAmount, id).run();
-
-        return c.json({ 
-            success: true,
-            paid_amount: newPaidAmount
-        });
-
-    } catch (error) {
-        console.error('Update payment status error:', error);
-        return c.json({
-            success: false,
-            error: 'Database error',
-            details: error.message
-        }, 500);
-    }
-});
-
-// PUT /orders/:id/payment endpoint'i ekle
+// POST endpoint'ini üste taşı
 router.post('/orders/:id/payment', async (c) => {
     const db = c.get('db');
     const { id } = c.req.param();
     const body = await c.req.json();
     
     try {
-        // 1. Ödeme validasyonu
+        // 1. Validasyon
         if (!body.amount || !body.payment_method || !body.account_id) {
             return c.json({
                 success: false,
@@ -300,71 +239,47 @@ router.post('/orders/:id/payment', async (c) => {
             }, 400);
         }
 
-        // 4. Yeni ödeme durumunu hesapla
+        // 4. Transaction kaydı oluştur
+        await db.prepare(`
+            INSERT INTO transactions (
+                account_id,
+                category_id,
+                type,
+                amount,
+                date,
+                related_type,
+                related_id,
+                payment_method,
+                description,
+                status,
+                created_by
+            ) VALUES (?, ?, 'out', ?, datetime('now'), 'purchase', ?, ?, ?, 'completed', ?)
+        `).bind(
+            body.account_id,
+            4, // Tedarikçi Ödemesi kategorisi
+            body.amount,
+            id,
+            body.payment_method,
+            `Satın alma ödemesi #${id}`,
+            1 // TODO: Gerçek user_id gelecek
+        ).run();
+
+        // 5. Purchase order güncelle 
         const newPaidAmount = (order.paid_amount || 0) + body.amount;
         const newStatus = newPaidAmount >= order.total_amount ? 'paid' : 
                          newPaidAmount > 0 ? 'partial' : 'pending';
 
-        // 5. Transaction başlat
-        await db.prepare('BEGIN TRANSACTION').run();
+        await db.prepare(`
+            UPDATE purchase_orders 
+            SET payment_status = ?, paid_amount = ?
+            WHERE id = ?
+        `).bind(newStatus, newPaidAmount, id).run();
 
-        try {
-            // 6. Siparişi güncelle
-            await db.prepare(`
-                UPDATE purchase_orders 
-                SET 
-                    payment_status = ?,
-                    paid_amount = ?,
-                    account_id = ?,
-                    payment_method = ?
-                WHERE id = ?
-            `).bind(
-                newStatus,
-                newPaidAmount,
-                body.account_id,
-                body.payment_method,
-                id
-            ).run();
-
-            // 7. Ödeme kaydı oluştur (trigger ile accounts ve transactions otomatik güncellenir)
-            await db.prepare(`
-                INSERT INTO transactions (
-                    account_id,
-                    category_id,
-                    type,
-                    amount,
-                    date,
-                    related_type,
-                    related_id,
-                    payment_method,
-                    description,
-                    notes,
-                    status,
-                    created_by
-                ) VALUES (?, ?, 'out', ?, datetime('now'), 'purchase', ?, ?, ?, ?, ?, 1)
-            `).bind(
-                body.account_id,
-                1, // Satın alma kategori ID'si
-                body.amount,
-                id,
-                body.payment_method,
-                `Satın alma ödemesi #${id}`,
-                body.notes || null,
-                'paid'
-            ).run();
-
-            await db.prepare('COMMIT').run();
-
-            return c.json({
-                success: true,
-                new_status: newStatus,
-                paid_amount: newPaidAmount
-            });
-
-        } catch (error) {
-            await db.prepare('ROLLBACK').run();
-            throw error;
-        }
+        return c.json({
+            success: true,
+            new_status: newStatus,
+            paid_amount: newPaidAmount
+        });
 
     } catch (error) {
         console.error('Payment error:', error);
@@ -375,5 +290,66 @@ router.post('/orders/:id/payment', async (c) => {
         }, 500);
     }
 });
+
+// Ödeme durumu güncelleme
+// router.put('/orders/:id/payment', async (c) => {
+//     const db = c.get('db');
+//     const { id } = c.req.param();
+//     const { status, amount } = await c.req.json();
+    
+//     try {
+//         // Status kontrolü
+//         if (!['paid', 'partial', 'cancelled'].includes(status)) {
+//             return c.json({
+//                 success: false,
+//                 error: 'Invalid payment status'
+//             }, 400);
+//         }
+
+//         // Mevcut siparişi kontrol et
+//         const order = await db.prepare(`
+//             SELECT total_amount, paid_amount 
+//             FROM purchase_orders 
+//             WHERE id = ? AND deleted_at IS NULL
+//         `).bind(id).first();
+
+//         if (!order) {
+//             return c.json({
+//                 success: false,
+//                 error: 'Order not found'
+//             }, 404);
+//         }
+
+//         let newPaidAmount = order.paid_amount || 0;
+//         if (status === 'paid') {
+//             newPaidAmount = order.total_amount;
+//         } else if (status === 'partial' && amount) {
+//             newPaidAmount += parseFloat(amount);
+//         }
+
+//         // Ödeme durumunu güncelle
+//         await db.prepare(`
+//             UPDATE purchase_orders 
+//             SET 
+//                 payment_status = ?,
+//                 paid_amount = ?,
+//                 updated_at = datetime('now')
+//             WHERE id = ? AND deleted_at IS NULL
+//         `).bind(status, newPaidAmount, id).run();
+
+//         return c.json({ 
+//             success: true,
+//             paid_amount: newPaidAmount
+//         });
+
+//     } catch (error) {
+//         console.error('Update payment status error:', error);
+//         return c.json({
+//             success: false,
+//             error: 'Database error',
+//             details: error.message
+//         }, 500);
+//     }
+// });
 
 export default router;

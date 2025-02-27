@@ -1,429 +1,477 @@
-let createModal, detailModal;
-let currentPurchaseId = null;
-let materials = [];
-let suppliers = [];
-let currentOrder = null;
+let purchaseModal;
+let materials = []; // Ham maddelerin listesi
+let suppliers = []; // Tedarikçilerin listesi
+let categories = []; // Ham madde kategorileri
+let filteredMaterials = []; // Filtrelenmiş ham maddeler
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
-    loadPurchases();
     loadSuppliers();
     loadMaterials();
-    
-    // Modal instances
-    createModal = new bootstrap.Modal(document.getElementById('createPurchaseModal'));
-    detailModal = new bootstrap.Modal(document.getElementById('purchaseDetailModal'));
+    loadPurchases();
+    loadCategories();
 });
 
-async function loadPurchases() {
-    try {
-        const response = await fetch(`${API_URL}/purchase/orders`);
-        if (!response.ok) throw new Error('API Hatası');
-        
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error);
-
-        const tbody = document.querySelector('#purchasesTable tbody');
-        
-        if (data.orders?.length > 0) {
-            tbody.innerHTML = data.orders.map(order => `
-                <tr>
-                    <td>#${order.id}</td>
-                    <td>${order.supplier_name}</td>
-                    <td>${formatDate(order.order_date)}</td>
-                    <td>${order.item_count} kalem</td>
-                    <td>${formatPrice(order.calculated_total)}</td>
-                    <td>${getPaymentStatusBadge(order.payment_status)}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-info" onclick="showPurchaseDetail(${order.id})">
-                            <i class="bi bi-eye"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        } else {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Satın alma siparişi bulunamadı</td></tr>';
-        }
-    } catch (error) {
-        console.error('Siparişler yüklenirken hata:', error);
-        showError('Siparişler yüklenemedi!');
-    }
-}
-
+// Tedarikçileri yükle
 async function loadSuppliers() {
     try {
         const response = await fetch(`${API_URL}/suppliers`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
-        if (!data.success) throw new Error(data.error);
-
         suppliers = data.suppliers || [];
         
-        const select = document.querySelector('select[name="supplier_id"]');
-        select.innerHTML = `
-            <option value="">Seçiniz...</option>
+        // Supplier filtresini doldur
+        const supplierFilter = document.getElementById('supplierFilter');
+        const supplierSelect = document.querySelector('select[name="supplier_id"]');
+        
+        const options = `
+            <option value="">Seçiniz</option>
             ${suppliers.map(s => `
                 <option value="${s.id}">${s.name}</option>
             `).join('')}
         `;
+        
+        supplierFilter.innerHTML = options;
+        supplierSelect.innerHTML = options;
+        
     } catch (error) {
-        console.error('Tedarikçiler yüklenirken hata:', error);
-        showError('Tedarikçiler yüklenemedi!');
+        console.error('Suppliers loading error:', error);
+        showError('Tedarikçiler yüklenemedi');
     }
 }
 
+// Ham maddeleri yükle
 async function loadMaterials() {
     try {
-        const response = await fetch(`${API_URL}/materials`);
+        const response = await fetch(`${API_URL}/stock/materials`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
-        if (!data.success) throw new Error(data.error);
-
         materials = data.materials || [];
     } catch (error) {
-        console.error('Hammaddeler yüklenirken hata:', error);
-        showError('Hammaddeler yüklenemedi!');
+        console.error('Materials loading error:', error);
+        showError('Ham maddeler yüklenemedi');
     }
 }
 
-// Materyal listesini kategorilere göre grupla
-function groupMaterialsByCategory() {
-    const grouped = {};
-    materials.forEach(m => {
-        if (!grouped[m.category_name]) {
-            grouped[m.category_name] = [];
-        }
-        grouped[m.category_name].push(m);
-    });
-    return grouped;
+// Kategorileri yükle
+async function loadCategories() {
+    try {
+        const response = await fetch(`${API_URL}/materials/categories`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        categories = data.categories || [];
+        
+        // Kategori filtresini doldur
+        const categoryFilter = document.getElementById('categoryFilter');
+        categoryFilter.innerHTML = `
+            <option value="">Tüm Kategoriler</option>
+            ${categories.map(c => `
+                <option value="${c.id}">${c.name}</option>
+            `).join('')}
+        `;
+    } catch (error) {
+        console.error('Categories loading error:', error);
+        showError('Kategoriler yüklenemedi');
+    }
 }
 
-function addItemRow() {
-    const tbody = document.querySelector('#itemsTable tbody');
-    const rowId = Date.now();
-    const groupedMaterials = groupMaterialsByCategory();
+// Ham maddeleri filtrele
+function filterMaterials() {
+    const categoryId = document.getElementById('categoryFilter').value;
+    const searchText = document.getElementById('materialSearch').value.toLowerCase();
     
-    const row = `
-        <tr id="row-${rowId}">
-            <td>
-                <select class="form-select form-select-sm" onchange="updateUnit(this, ${rowId})">
-                    <option value="">Seçiniz...</option>
-                    ${Object.entries(groupedMaterials).map(([category, items]) => `
-                        <optgroup label="${category}">
-                            ${items.map(m => `
-                                <option value="${m.id}" 
-                                        data-unit="${m.unit_code}"
-                                        data-price="0">
-                                    ${m.name}
-                                </option>
-                            `).join('')}
-                        </optgroup>
-                    `).join('')}
-                </select>
-            </td>
-            <td style="width: 120px;">
-                <input type="number" class="form-control form-control-sm quantity" 
-                       onchange="calculateRowTotal(${rowId})" 
-                       value="1" min="0.01" step="0.01">
-            </td>
-            <td style="width: 80px;">
-                <span class="unit-code">-</span>
-            </td>
-            <td style="width: 120px;">
-                <input type="number" class="form-control form-control-sm price" 
-                       onchange="calculateRowTotal(${rowId})" 
-                       value="0" min="0" step="0.01">
-            </td>
-            <td style="width: 120px;">
-                <span class="row-total">0.00</span> ₺
-            </td>
-            <td>
-                <button type="button" class="btn btn-sm btn-outline-danger" 
-                        onclick="removeRow(${rowId})">
-                    <i class="bi bi-trash"></i>
+    filteredMaterials = materials.filter(m => {
+        const categoryMatch = !categoryId || m.category_id == categoryId;
+        const searchMatch = !searchText || m.name.toLowerCase().includes(searchText);
+        return categoryMatch && searchMatch;
+    });
+    
+    renderMaterialButtons();
+}
+
+// Ham madde butonlarını render et
+function renderMaterialButtons() {
+    const container = document.getElementById('materialButtonsContainer');
+    
+    if (!filteredMaterials.length) {
+        container.innerHTML = '<div class="col-12"><div class="alert alert-info">Ham madde bulunamadı</div></div>';
+        return;
+    }
+    
+    container.innerHTML = filteredMaterials.map(m => `
+        <div class="col-md-3 mb-2">
+            <button type="button" 
+                    class="btn btn-outline-primary w-100 text-start" 
+                    onclick="addMaterialToOrder(${m.id})">
+                <div class="fw-bold">${m.name}</div>
+                <small class="text-muted d-block">${m.unit_name}</small>
+            </button>
+        </div>
+    `).join('');
+}
+
+// Ham maddeyi siparişe ekle
+function addMaterialToOrder(materialId) {
+    const material = materials.find(m => m.id === materialId);
+    if (!material) return;
+    
+    const tbody = document.getElementById('itemsTableBody');
+    
+    // Eğer bu malzeme zaten eklenmişse uyarı ver
+    const existingRow = tbody.querySelector(`input[value="${material.id}"]`);
+    if (existingRow) {
+        showError('Bu ham madde zaten listeye eklenmiş!');
+        return;
+    }
+    
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>
+            <input type="hidden" name="items[][material_id]" value="${material.id}">
+            ${material.name}
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <input type="number" 
+                       class="form-control" 
+                       name="items[][quantity]"
+                       value="1"
+                       min="0.01" 
+                       step="0.01" 
+                       required
+                       onchange="calculateRowTotal(this)">
+                <span class="input-group-text">${material.unit_name}</span>
+            </div>
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">₺</span>
+                <input type="number" 
+                       class="form-control" 
+                       name="items[][unit_price]"
+                       value="0"
+                       min="0.01" 
+                       step="0.01" 
+                       required
+                       onchange="calculateRowTotal(this)">
+            </div>
+        </td>
+        <td class="text-end">
+            <span class="row-total">0,00 ₺</span>
+        </td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    onclick="removeRow(this)">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+    
+    tbody.appendChild(row);
+    calculateRowTotal(row.querySelector('input[name$="[quantity]"]')); // İlk hesaplama
+}
+
+// Satır sil
+function removeRow(button) {
+    button.closest('tr').remove();
+    calculateTotalAmount();
+}
+
+// Satın alma listesini yükle
+async function loadPurchases() {
+    try {
+        // URL düzeltildi: /stock/orders -> /purchase/orders
+        const response = await fetch(`${API_URL}/purchase/orders`);
+        if (!response.ok) throw new Error('API Hatası');
+        
+        const data = await response.json();
+        renderPurchaseTable(data.orders);
+    } catch (error) {
+        console.error('Purchases loading error:', error);
+        showError('Satın alma listesi yüklenemedi');
+    }
+}
+
+// Tabloyu render et
+function renderPurchaseTable(orders) {
+    const tbody = document.getElementById('purchaseTable');
+    
+    if (!orders || orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Kayıt bulunamadı</td></tr>';
+        return;
+    }
+    
+    // Tarihe göre sırala (yeniden eskiye)
+    orders.sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
+    
+    tbody.innerHTML = orders.map(order => `
+        <tr class="order-row" data-order-id="${order.id}">
+            <td class="text-center">#${order.id}</td>
+            <td>${order.supplier_name}</td>
+            <td class="text-center">${formatDate(order.order_date)}</td>
+            <td class="text-end fw-bold">${formatCurrency(order.total_amount)}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-primary" 
+                        onclick="toggleOrderDetails(${order.id}, this)">
+                    <i class="bi bi-chevron-down"></i>
                 </button>
             </td>
         </tr>
+        <tr id="details-${order.id}" class="d-none">
+            <td colspan="5" class="p-0">
+                <div class="details-content p-3 bg-light border-top"></div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Sipariş detaylarını göster/gizle
+async function toggleOrderDetails(orderId, button) {
+    const detailsRow = document.getElementById(`details-${orderId}`);
+    const detailsContent = detailsRow.querySelector('.details-content');
+    const icon = button.querySelector('i');
+
+    if (detailsRow.classList.contains('d-none')) {
+        try {
+            // Detayları yükle
+            const response = await fetch(`${API_URL}/purchase/orders/${orderId}`);
+            if (!response.ok) throw new Error('API Hatası');
+            
+            const data = await response.json();
+            
+            // Detay içeriğini oluştur
+            detailsContent.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Ham Madde</th>
+                                <th class="text-end">Miktar</th>
+                                <th class="text-end">Birim Fiyat</th>
+                                <th class="text-end">Toplam</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.items.map(item => `
+                                <tr>
+                                    <td>${item.material_name}</td>
+                                    <td class="text-end">${item.quantity} ${item.unit_name}</td>
+                                    <td class="text-end">${formatCurrency(item.unit_price)}</td>
+                                    <td class="text-end">${formatCurrency(item.quantity * item.unit_price)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // Görünürlüğü değiştir
+            detailsRow.classList.remove('d-none');
+            icon.classList.replace('bi-chevron-down', 'bi-chevron-up');
+        } catch (error) {
+            showError('Sipariş detayları yüklenemedi');
+        }
+    } else {
+        // Detayları gizle
+        detailsRow.classList.add('d-none');
+        icon.classList.replace('bi-chevron-up', 'bi-chevron-down');
+    }
+}
+
+// Ham maddeyi siparişe ekle
+function addMaterialToOrder(materialId) {
+    const material = materials.find(m => m.id === materialId);
+    if (!material) return;
+    
+    const tbody = document.getElementById('itemsTableBody');
+    
+    // Eğer bu malzeme zaten eklenmişse uyarı ver
+    const existingRow = tbody.querySelector(`input[value="${material.id}"]`);
+    if (existingRow) {
+        showError('Bu ham madde zaten listeye eklenmiş!');
+        return;
+    }
+    
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>
+            <input type="hidden" name="items[][material_id]" value="${material.id}">
+            ${material.name}
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <input type="number" 
+                       class="form-control" 
+                       name="items[][quantity]"
+                       value="1"
+                       min="0.01" 
+                       step="0.01" 
+                       required
+                       onchange="calculateTotal(this.closest('tr'))">
+                <span class="input-group-text">${material.unit_name}</span>
+            </div>
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">₺</span>
+                <input type="number" 
+                       class="form-control" 
+                       name="items[][unit_price]"
+                       value="0"
+                       min="0.01" 
+                       step="0.01" 
+                       required
+                       onchange="calculateTotal(this.closest('tr'))">
+            </div>
+        </td>
+        <td class="text-end">
+            <span class="row-total">0,00 ₺</span>
+        </td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    onclick="removeRow(this)">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
     `;
     
-    tbody.insertAdjacentHTML('beforeend', row);
+    tbody.appendChild(row);
+    calculateTotal(row); // İlk hesaplama
 }
 
-function updateUnit(select, rowId) {
-    const row = document.getElementById(`row-${rowId}`);
-    const option = select.options[select.selectedIndex];
+// Satır toplamını hesapla
+function calculateTotal(row) {
+    const quantity = parseFloat(row.querySelector('input[name$="[quantity]"]').value) || 0;
+    const price = parseFloat(row.querySelector('input[name$="[unit_price]"]').value) || 0;
+    const total = quantity * price;
     
-    row.querySelector('.unit-code').textContent = option.dataset.unit || '-';
-    calculateRowTotal(rowId);
-}
-
-function calculateRowTotal(rowId) {
-    const row = document.getElementById(`row-${rowId}`);
-    const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
-    const price = parseFloat(row.querySelector('.price').value) || 0;
+    row.querySelector('.row-total').textContent = formatCurrency(total);
     
-    const total = (quantity * price).toFixed(2);
-    row.querySelector('.row-total').textContent = total;
-    
-    calculateTotal();
+    // Genel toplam hesapla
+    let grandTotal = 0;
+    document.querySelectorAll('.row-total').forEach(span => {
+        grandTotal += parseCurrency(span.textContent);
+    });
+    document.getElementById('totalAmount').textContent = formatCurrency(grandTotal);
 }
 
-function calculateTotal() {
-    const totals = Array.from(document.querySelectorAll('.row-total'))
-        .map(el => parseFloat(el.textContent) || 0);
-    
-    const total = totals.reduce((a, b) => a + b, 0);
-    document.getElementById('totalAmount').textContent = total.toFixed(2);
-}
-
-function removeRow(rowId) {
-    document.getElementById(`row-${rowId}`).remove();
-    calculateTotal();
-}
-
+// Satın alma siparişini kaydet
 async function savePurchase() {
-    const form = document.getElementById('purchaseForm');
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-
-    // Sipariş kalemlerini topla
-    const items = Array.from(document.querySelectorAll('#itemsTable tbody tr')).map(row => {
-        const material = row.querySelector('select').value;
-        const quantity = parseFloat(row.querySelector('.quantity').value);
-        const price = parseFloat(row.querySelector('.price').value);
-        
-        return {
-            material_id: parseInt(material),
-            quantity: quantity,
-            unit_price: price
-        };
-    }).filter(item => item.material_id && item.quantity > 0 && item.unit_price > 0);
-
-    if (items.length === 0) {
-        showError('En az bir ürün eklemelisiniz!');
-        return;
-    }
-
-    const data = {
-        supplier_id: parseInt(form.elements['supplier_id'].value),
-        order_date: form.elements['order_date'].value,
-        notes: form.elements['notes'].value || null,
-        total_amount: parseFloat(document.getElementById('totalAmount').textContent),
-        items: items
-    };
-
     try {
-        console.log('Saving purchase order:', data); // Debug log
+        const form = document.getElementById('purchaseForm');
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+
+        const supplier_id = parseInt(form.querySelector('[name="supplier_id"]').value);
+        const order_date = form.querySelector('[name="order_date"]').value;
+        
+        if (!supplier_id || !order_date) {
+            throw new Error('Lütfen tedarikçi ve sipariş tarihini seçin');
+        }
+
+        // Kalem verilerini topla
+        const items = [];
+        document.querySelectorAll('#itemsTableBody tr').forEach(row => {
+            const material_id = parseInt(row.querySelector('[name$="[material_id]"]').value);
+            const quantity = parseFloat(row.querySelector('[name$="[quantity]"]').value);
+            const unit_price = parseFloat(row.querySelector('[name$="[unit_price]"]').value);
+            
+            if (!material_id || !quantity || !unit_price) return;
+
+            items.push({ material_id, quantity, unit_price });
+        });
+
+        if (items.length === 0) {
+            throw new Error('Lütfen en az bir kalem ekleyin');
+        }
+
+        console.log('Sending data:', { supplier_id, order_date, items });
 
         const response = await fetch(`${API_URL}/purchase/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify({ supplier_id, order_date, items })
         });
 
+        if (!response.ok) throw new Error('API Hatası');
         const result = await response.json();
         
-        if (!response.ok || !result.success) {
+        if (!result.success) {
             throw new Error(result.error || 'API Hatası');
         }
 
-        createModal.hide();
-        form.reset();
-        document.querySelector('#itemsTable tbody').innerHTML = '';
-        calculateTotal();
+        showSuccess('Satın alma siparişi oluşturuldu');
+        document.getElementById('purchaseModal').querySelector('.btn-close').click();
         await loadPurchases();
-        
-        showSuccess('Sipariş başarıyla oluşturuldu');
+
     } catch (error) {
-        console.error('Sipariş oluşturma hatası:', error);
-        showError(error.message || 'Sipariş oluşturulamadı');
+        console.error('Purchase save error:', error);
+        showError('Satın alma siparişi oluşturulamadı: ' + error.message);
     }
 }
 
-async function showPurchaseDetail(id) {
+// Filtreleri uygula
+async function applyFilters() {
     try {
-        currentPurchaseId = id;
-        const response = await fetch(`${API_URL}/purchase/orders/${id}`);
+        const supplier_id = document.getElementById('supplierFilter').value;
+        const date = document.getElementById('dateFilter').value;
+        
+        let url = `${API_URL}/purchase/orders`;
+        const params = new URLSearchParams();
+        
+        if (supplier_id) params.append('supplier_id', supplier_id);
+        if (date) params.append('date', date);
+        
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+        
+        const response = await fetch(url);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
-        if (!data.success) throw new Error(data.error);
-
-        // 1. Önce order bilgisini saklayalım
-        currentOrder = data.order;
-        
-        // 2. Detay alanlarını doldururken currentOrder kullanalım
-        document.getElementById('detail-id').textContent = currentOrder.id;
-        document.getElementById('detail-supplier-name').textContent = currentOrder.supplier_name;
-        document.getElementById('detail-supplier-phone').textContent = currentOrder.supplier_phone;
-        document.getElementById('detail-supplier-email').textContent = currentOrder.supplier_email || '-';
-        document.getElementById('detail-created-by').textContent = currentOrder.created_by_name;
-
-        // 3. Ürün listesinde de currentOrder kullanalım
-        document.getElementById('detail-items').innerHTML = currentOrder.items.map(item => `
-            <tr>
-                <td>${item.material_name}</td>
-                <td>${item.quantity}</td>
-                <td>${item.unit_code}</td>
-                <td>${formatPrice(item.unit_price)}</td>
-                <td>${formatPrice(item.quantity * item.unit_price)}</td>
-            </tr>
-        `).join('');
-
-        document.getElementById('detail-total').textContent = 
-            `${formatPrice(currentOrder.total_amount)} ₺`;
-
-        // 4. Modalı açalım
-        detailModal.show();
-
+        renderPurchaseTable(data.orders);
     } catch (error) {
-        console.error('Sipariş detayı yüklenirken hata:', error);
-        showError('Sipariş detayları yüklenemedi!');
+        console.error('Filter error:', error);
+        showError('Filtreleme yapılamadı: ' + error.message);
     }
 }
 
-function showCreatePurchaseModal() {
-    document.getElementById('purchaseForm').reset();
-    document.querySelector('#itemsTable tbody').innerHTML = '';
-    calculateTotal();
-    createModal.show();
+let materialSelectorModal;
+
+// Modal göster
+function showMaterialSelector() {
+    materialSelectorModal = new bootstrap.Modal(document.getElementById('materialSelectorModal'));
+    filterMaterials(); // İlk yükleme
+    materialSelectorModal.show();
 }
 
-async function updateStatus(status) {
-    if (!currentPurchaseId || status !== 'cancelled') return;
-
-    if (!confirm('Bu siparişi iptal etmek istediğinize emin misiniz?')) {
-        return;
+// Yeni satın alma modalını göster
+function showNewPurchaseModal() {
+    // Mevcut modal varsa kaldır
+    const oldModal = document.querySelector('.modal.show');
+    if (oldModal) {
+        const bsModal = bootstrap.Modal.getInstance(oldModal);
+        if (bsModal) bsModal.hide();
     }
     
-    try {
-        const response = await fetch(`${API_URL}/purchase/orders/${currentPurchaseId}/status`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'cancelled' })
-        });
-
-        if (!response.ok) throw new Error('API Hatası');
-        
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error);
-
-        detailModal.hide();
-        await loadPurchases();
-        showSuccess('Sipariş iptal edildi');
-    } catch (error) {
-        console.error('Durum güncelleme hatası:', error);
-        showError('Sipariş iptal edilemedi!');
-    }
-}
-
-// Ödeme işlemleri için yeni fonksiyonlar
-async function showPaymentModal(order) {
-    try {
-        // Modal içeriğini doldur
-        document.getElementById('payment-order-id').textContent = order.id;
-        document.getElementById('payment-supplier').textContent = order.supplier_name;
-        document.getElementById('payment-total').textContent = formatPrice(order.total_amount);
-        document.getElementById('payment-paid').textContent = formatPrice(order.paid_amount || 0);
-        
-        const remainingAmount = order.total_amount - (order.paid_amount || 0);
-        document.getElementById('payment-remaining').textContent = formatPrice(remainingAmount);
-
-        // Ödeme tutarını max olarak ayarla
-        const amountInput = document.querySelector('[name="amount"]');
-        amountInput.max = remainingAmount;
-        amountInput.value = remainingAmount;
-
-        // Ödeme yöntemi değişince hesap otomatik seçilsin
-        const paymentMethodSelect = document.querySelector('[name="payment_method"]');
-        const accountIdInput = document.createElement('input');
-        accountIdInput.type = 'hidden';
-        accountIdInput.name = 'account_id';
-        
-        paymentMethodSelect.onchange = function() {
-            // Ödeme yöntemine göre hesap ID'sini ayarla
-            switch(this.value) {
-                case 'cash':
-                    accountIdInput.value = '1'; // Ana Kasa
-                    break;
-                case 'credit_card':
-                    accountIdInput.value = '2'; // Kredi Kartı POS
-                    break;
-                case 'bank_transfer':
-                    accountIdInput.value = '3'; // Banka Hesabı
-                    break;
-            }
-        };
-
-        // Default olarak nakit seç
-        paymentMethodSelect.value = 'cash';
-        accountIdInput.value = '1';
-
-        // Formu güncelle
-        const form = document.getElementById('paymentForm');
-        form.appendChild(accountIdInput);
-
-        const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
-        paymentModal.show();
-    } catch (error) {
-        console.error('Ödeme modalı açılırken hata:', error);
-        showError('Ödeme modalı açılamadı!');
-    }
-}
-
-// Ödeme yap
-async function makePayment() {
-    const form = document.getElementById('paymentForm');
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-
-    try {
-        const formData = new FormData(form);
-        const data = {
-            amount: parseFloat(formData.get('amount')),
-            payment_method: formData.get('payment_method'),
-            account_id: parseInt(formData.get('account_id')),
-            notes: formData.get('notes')
-        };
-
-        // URL'i düzeltelim
-        const response = await fetch(`${API_URL}/purchase/orders/${currentPurchaseId}/payment`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-
-        if (!response.ok) throw new Error('API Hatası');
-        
-        const result = await response.json();
-        if (!result.success) throw new Error(result.error);
-
-        // Modalları kapatalım
-        bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-        bootstrap.Modal.getInstance(document.getElementById('purchaseDetailModal')).hide();
-
-        // Listeyi güncelle
-        await loadPurchases();
-        showSuccess('Ödeme başarıyla kaydedildi');
-    } catch (error) {
-        console.error('Ödeme hatası:', error);
-        showError(error.message || 'Ödeme yapılamadı');
-    }
-}
-
-// Helper Functions
-function getPaymentStatusBadge(status) {
-    const badges = {
-        'pending': '<span class="badge bg-warning">Bekliyor</span>',
-        'partial': '<span class="badge bg-info">Kısmi Ödeme</span>',
-        'paid': '<span class="badge bg-success">Ödendi</span>',
-        'cancelled': '<span class="badge bg-danger">İptal</span>'
-    };
-    return badges[status] || status;
+    // Yeni modalı oluştur ve göster
+    purchaseModal = new bootstrap.Modal(document.getElementById('purchaseModal'), {
+        backdrop: 'static',
+        keyboard: false
+    });
+    
+    // Form ve tabloyu temizle
+    document.getElementById('purchaseForm').reset();
+    document.getElementById('itemsTableBody').innerHTML = '';
+    document.getElementById('totalAmount').textContent = '0,00 ₺';
+    
+    // Ham madde listesini hazırla
+    filterMaterials();
+    purchaseModal.show();
 }
