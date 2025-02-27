@@ -81,7 +81,7 @@
                                         <tr>
                                             <th>Malzeme</th>
                                             <th style="width: 200px">Önerilen Miktar</th>
-                                            <th style="width: 100px">Zorunlu</th>
+                                            <th style="width: 200px">Not</th>
                                             <th style="width: 50px"></th>
                                         </tr>
                                     </thead>
@@ -131,7 +131,7 @@
         </div>
     </div>
 
-    <!-- Malzeme seçim modal içeriği - zorunlu checkbox'ı kaldırıldı -->
+    <!-- Hammadde Seçim Modalı -->
     <div class="modal fade" id="materialModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -143,7 +143,7 @@
                     <div class="input-group mb-3">
                         <input type="text" class="form-control" id="materialSearch" 
                                placeholder="Hammadde adı ile ara...">
-                        <button class="btn btn-outline-primary" type="button" onclick="searchMaterials()">
+                        <button class="btn btn-outline-primary" type="button" onclick="searchMaterials(document.getElementById('materialSearch').value)">
                             <i class="bi bi-search"></i> Ara
                         </button>
                     </div>

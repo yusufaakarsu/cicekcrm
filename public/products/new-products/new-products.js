@@ -112,12 +112,10 @@ function addMaterial(materialId) {
             </div>
         </td>
         <td>
-            <div class="form-check text-center">
-                <input class="form-check-input" 
-                       type="checkbox"
-                       name="materials[][is_required]"
-                       checked>
-            </div>
+            <input type="text" 
+                   class="form-control form-control-sm" 
+                   name="materials[][notes]"
+                   placeholder="Özel not...">
         </td>
         <td>
             <button type="button" 
@@ -150,20 +148,44 @@ async function saveProduct() {
             return;
         }
 
-        // Malzemeleri topla
+        // DOM seçicilerini iyileştir ve daha güvenli hale getir
+        const materials = [];
         const materialRows = document.querySelectorAll('#materialsList .material-row');
-        const materials = Array.from(materialRows).map(row => {
-            const material_id = row.getAttribute('data-id');
-            const quantity = parseFloat(row.querySelector('.material-quantity').value);
-            // "zorunlu" alanını kaldırdık, sadece notes alanını alıyoruz
-            const notes = row.querySelector('.material-notes')?.value || '';
-            
-            return {
-                material_id: parseInt(material_id),
-                quantity: quantity,
-                notes: notes
-            };
-        }).filter(m => m.material_id && !isNaN(m.quantity) && m.quantity > 0);
+        
+        // Debug için bilgi
+        console.log(`Bulunan malzeme satırı sayısı: ${materialRows.length}`);
+        
+        if (materialRows.length > 0) {
+            materialRows.forEach(row => {
+                try {
+                    const material_id = row.getAttribute('data-id');
+                    
+                    // Null kontrolü ekle
+                    const quantityElement = row.querySelector('.material-quantity');
+                    const notesElement = row.querySelector('.material-notes');
+                    
+                    if (!material_id || !quantityElement) {
+                        console.warn('Eksik malzeme verisi:', row);
+                        return; // Bu satırı atla
+                    }
+                    
+                    const quantity = parseFloat(quantityElement.value);
+                    const notes = notesElement ? notesElement.value : '';
+                    
+                    console.log(`Malzeme ekleniyor: ID=${material_id}, Miktar=${quantity}`);
+                    
+                    if (material_id && !isNaN(quantity) && quantity > 0) {
+                        materials.push({
+                            material_id: parseInt(material_id),
+                            quantity: quantity,
+                            notes: notes || ''
+                        });
+                    }
+                } catch (rowError) {
+                    console.error('Malzeme satırı işlenirken hata:', rowError, row);
+                }
+            });
+        }
 
         // API'ye gönderilecek payload
         const payload = {
@@ -172,7 +194,7 @@ async function saveProduct() {
             description,
             base_price,
             status,
-            materials
+            materials // Artık güvenli bir şekilde dolu
         };
         
         console.log('Gönderilen veri:', payload); // Debug için
@@ -280,3 +302,93 @@ function addMaterialRow(material) {
 // Arama ve filtreleme
 document.getElementById('categoryFilter')?.addEventListener('change', renderMaterialsList);
 document.getElementById('searchInput')?.addEventListener('keyup', renderMaterialsList);
+
+// Hammadde Ekle Modalı
+function showMaterialModal() {
+    materialModal = new bootstrap.Modal(document.getElementById('materialModal'));
+    searchMaterials();
+    materialModal.show();
+}
+
+// Hammaddeler Ara
+function searchMaterials(search = '') {
+    try {
+        const filtered = rawMaterials.filter(m => 
+            !search || m.name.toLowerCase().includes(search.toLowerCase())
+        );
+        
+        const list = document.getElementById('materialList');
+        
+        if (filtered.length === 0) {
+            list.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center">Hammadde bulunamadı</td>
+                </tr>
+            `;
+            return;
+        }
+        
+        list.innerHTML = filtered.map(material => `
+            <tr>
+                <td>${material.name}</td>
+                <td>${material.category_name || '-'}</td>
+                <td>${material.unit_code}</td>
+                <td>${material.current_stock || 0}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-primary"
+                            onclick="addMaterialRow(${JSON.stringify(material).replace(/"/g, '&quot;')})">
+                        <i class="bi bi-plus"></i> Ekle
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Material search error:', error);
+    }
+}
+
+// Malzeme Satırı Ekle - "zorunlu" seçeneği kaldırıldı
+function addMaterialRow(material) {
+    try {
+        // Control if material is already added
+        const existingRow = document.querySelector(`.material-row[data-id="${material.id}"]`);
+        if (existingRow) {
+            showError(`${material.name} zaten eklenmiş`);
+            if (materialModal) materialModal.hide();
+            return;
+        }
+
+        const materialsContainer = document.getElementById('materialsList');
+        const row = document.createElement('div');
+        row.className = 'material-row card p-3 mb-2';
+        row.setAttribute('data-id', material.id);
+        
+        row.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">${material.name}</h6>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeMaterial(this)">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <label class="form-label small">Miktar (${material.unit_code})</label>
+                    <input type="number" class="form-control material-quantity" min="0.1" step="0.1" value="1">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small">Not</label>
+                    <input type="text" class="form-control material-notes" placeholder="Özel notlar...">
+                </div>
+            </div>
+        `;
+        
+        materialsContainer.appendChild(row);
+        
+        // Modal varsa kapat
+        if (materialModal) materialModal.hide();
+        
+    } catch (error) {
+        console.error('Error adding material row:', error);
+        showError('Hammadde eklenirken hata oluştu');
+    }
+}
