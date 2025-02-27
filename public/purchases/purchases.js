@@ -302,3 +302,71 @@ function calculateTotalAmount() {
     });
     document.getElementById('totalAmount').textContent = formatPrice(total);
 }
+
+// Para formatlamak için helper fonksiyonlar
+function formatPrice(price) {
+    return new Intl.NumberFormat('tr-TR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(price) + ' ₺';
+}
+
+function parsePrice(priceString) {
+    return parseFloat(priceString.replace(/[^0-9,.-]/g, '').replace(',', '.')) || 0;
+}
+
+// Sipariş kaydetme fonksiyonu
+async function savePurchase() {
+    const form = document.getElementById('purchaseForm');
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+
+    try {
+        const formData = new FormData(form);
+        const data = {
+            supplier_id: parseInt(formData.get('supplier_id')),
+            order_date: formData.get('order_date'),
+            notes: formData.get('notes'),
+            items: []
+        };
+
+        // Kalem verilerini topla
+        document.querySelectorAll('#itemsTable tbody tr').forEach(row => {
+            const material_id = parseInt(row.querySelector('[name$="[material_id]"]').value);
+            const quantity = parseFloat(row.querySelector('[name$="[quantity]"]').value);
+            const unit_price = parseFloat(row.querySelector('[name$="[unit_price]"]').value);
+            
+            if (material_id && quantity && unit_price) {
+                data.items.push({ material_id, quantity, unit_price });
+            }
+        });
+
+        if (!data.items.length) {
+            throw new Error('En az bir kalem eklemelisiniz');
+        }
+
+        const response = await fetch(`${API_URL}/purchase/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Kayıt başarısız');
+        }
+
+        createModal.hide();
+        await loadPurchases();
+        showSuccess('Sipariş başarıyla oluşturuldu');
+        form.reset();
+
+    } catch (error) {
+        console.error('Sipariş kaydedilirken hata:', error);
+        showError(error.message || 'Sipariş kaydedilemedi');
+    }
+}
