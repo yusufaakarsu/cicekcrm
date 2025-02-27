@@ -27,7 +27,7 @@ async function loadStock() {
             tbody.innerHTML = data.materials.map(material => {
                 const stockStatus = getStockStatus(material);
                 
-                // Son işlem bilgilerini kontrol et
+                // Son hareket bilgisini formatla
                 const lastMovement = material.last_movement_date ? {
                     date: formatDateTime(material.last_movement_date),
                     type: material.last_movement_type,
@@ -42,11 +42,11 @@ async function loadStock() {
                                  style="width: 8px; height: 8px; display: inline-block;"></div>
                             <div>
                                 <div class="fw-bold">${material.name}</div>
-                                <small class="text-muted">#${material.id}</small>
+                                <small class="text-muted">${material.description || ''}</small>
                             </div>
                         </div>
                     </td>
-                    <td>${material.category_name || '-'}</td>
+                    <td><span class="badge bg-secondary">${material.category_name}</span></td>
                     <td>
                         <div>${material.unit_name}</div>
                         <small class="text-muted">${material.unit_code}</small>
@@ -59,7 +59,7 @@ async function loadStock() {
                     <td class="text-center">
                         ${lastMovement ? `
                             <div class="text-muted small">${lastMovement.date}</div>
-                            <span class="badge ${getMovementBadgeClass(lastMovement.type)}">
+                            <span class="badge ${lastMovement.type === 'in' ? 'bg-success' : 'bg-danger'}">
                                 ${lastMovement.type === 'in' ? 'Giriş' : 'Çıkış'}: 
                                 ${lastMovement.quantity} ${material.unit_code}
                             </span>
