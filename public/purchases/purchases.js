@@ -225,3 +225,80 @@ async function makePayment() {
         showError(error.message || 'Ödeme yapılamadı');
     }
 }
+
+// Ürün satırı ekle
+function addItemRow() {
+    const tbody = document.querySelector('#itemsTable tbody');
+    
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>
+            <select class="form-select form-select-sm" name="items[][material_id]" required onchange="calculateRowTotal(this.closest('tr'))">
+                <option value="">Seçiniz...</option>
+                ${materials.map(m => `
+                    <option value="${m.id}">${m.name}</option>
+                `).join('')}
+            </select>
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <input type="number" 
+                       class="form-control" 
+                       name="items[][quantity]"
+                       value="1"
+                       min="0.01" 
+                       step="0.01" 
+                       required
+                       onchange="calculateRowTotal(this.closest('tr'))">
+            </div>
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">₺</span>
+                <input type="number" 
+                       class="form-control" 
+                       name="items[][unit_price]"
+                       value="0"
+                       min="0.01" 
+                       step="0.01" 
+                       required
+                       onchange="calculateRowTotal(this.closest('tr'))">
+            </div>
+        </td>
+        <td class="text-end">
+            <span class="row-total">0,00 ₺</span>
+        </td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+    
+    tbody.appendChild(row);
+}
+
+// Satır sil
+function removeRow(button) {
+    button.closest('tr').remove();
+    calculateTotalAmount();
+}
+
+// Satır toplamını hesapla 
+function calculateRowTotal(row) {
+    const quantity = parseFloat(row.querySelector('[name$="[quantity]"]').value) || 0;
+    const price = parseFloat(row.querySelector('[name$="[unit_price]"]').value) || 0;
+    const total = quantity * price;
+    
+    row.querySelector('.row-total').textContent = formatPrice(total);
+    calculateTotalAmount();
+}
+
+// Genel toplamı hesapla
+function calculateTotalAmount() {
+    let total = 0;
+    document.querySelectorAll('.row-total').forEach(span => {
+        total += parsePrice(span.textContent);
+    });
+    document.getElementById('totalAmount').textContent = formatPrice(total);
+}
