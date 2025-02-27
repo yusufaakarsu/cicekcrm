@@ -18,7 +18,9 @@ async function loadStock() {
         const data = await response.json();
         if (!data.success) throw new Error(data.error);
 
+        // Burada tbody seçicisini düzelttik
         const tbody = document.querySelector('#stockTable tbody');
+        if (!tbody) throw new Error('Stock table tbody not found');
         
         if (data.materials?.length > 0) {
             tbody.innerHTML = data.materials.map(material => `
