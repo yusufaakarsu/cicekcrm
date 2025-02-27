@@ -2,12 +2,23 @@ import { Hono } from 'hono';
 
 const router = new Hono();
 
-// Satın alma listesi
+// Satın alma listesi - Filtreleme eklendi
 router.get('/orders', async (c) => {
     const db = c.get('db');
     
     try {
-        const { results } = await db.prepare(`
+        // Filtre parametrelerini al
+        const url = new URL(c.req.url);
+        const supplier_id = url.searchParams.get('supplier_id');
+        const payment_status = url.searchParams.get('payment_status');
+        const date_filter = url.searchParams.get('date_filter');
+        const start_date = url.searchParams.get('start_date');
+        const end_date = url.searchParams.get('end_date');
+        const min_amount = url.searchParams.get('min_amount');
+        const max_amount = url.searchParams.get('max_amount');
+
+        // Base SQL
+        let sql = `
             SELECT 
                 po.*,
                 s.name as supplier_name,
@@ -21,14 +32,64 @@ router.get('/orders', async (c) => {
             LEFT JOIN purchase_order_items poi ON po.id = poi.order_id 
                 AND poi.deleted_at IS NULL
             WHERE po.deleted_at IS NULL
-            GROUP BY po.id
-            ORDER BY po.order_date DESC
-        `).all();
+        `;
+
+        const params = [];
+
+        // Tedarikçi filtresi
+        if (supplier_id) {
+            sql += ` AND po.supplier_id = ?`;
+            params.push(supplier_id);
+        }
+
+        // Ödeme durumu filtresi
+        if (payment_status) {
+            sql += ` AND po.payment_status = ?`;
+            params.push(payment_status);
+        }
+
+        // Tarih filtresi
+        if (date_filter) {
+            switch(date_filter) {
+                case 'today':
+                    sql += ` AND DATE(po.order_date) = DATE('now')`;
+                    break;
+                case 'week':
+                    sql += ` AND po.order_date >= date('now', '-7 days')`;
+                    break;
+                case 'month':
+                    sql += ` AND strftime('%Y-%m', po.order_date) = strftime('%Y-%m', 'now')`;
+                    break;
+                case 'custom':
+                    if (start_date && end_date) {
+                        sql += ` AND po.order_date BETWEEN ? AND ?`;
+                        params.push(start_date, end_date);
+                    }
+                    break;
+            }
+        }
+
+        // Tutar filtresi
+        if (min_amount) {
+            sql += ` AND po.total_amount >= ?`;
+            params.push(min_amount);
+        }
+        if (max_amount) {
+            sql += ` AND po.total_amount <= ?`;
+            params.push(max_amount);
+        }
+
+        // Gruplama ve sıralama
+        sql += ` GROUP BY po.id ORDER BY po.order_date DESC`;
+
+        // Sorguyu çalıştır
+        const { results } = await db.prepare(sql).bind(...params).all();
         
         return c.json({
             success: true,
             orders: results
         });
+
     } catch (error) {
         console.error('Purchase orders error:', error);
         return c.json({
