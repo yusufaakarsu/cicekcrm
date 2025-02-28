@@ -277,8 +277,12 @@ function addItemRow() {
                        min="0.01" 
                        step="0.01" 
                        required
-                       onchange="calculateRowTotal(this.closest('tr'))">
+                       onchange="calculateRowTotal(this.closest('tr'))"
+                       onkeyup="calculateRowTotal(this.closest('tr'))">
             </div>
+        </td>
+        <td>
+            <span class="unit-code"></span>
         </td>
         <td>
             <div class="input-group input-group-sm">
@@ -290,7 +294,8 @@ function addItemRow() {
                        min="0.01" 
                        step="0.01" 
                        required
-                       onchange="calculateRowTotal(this.closest('tr'))">
+                       onchange="calculateRowTotal(this.closest('tr'))"
+                       onkeyup="calculateRowTotal(this.closest('tr'))">
             </div>
         </td>
         <td class="text-end">
@@ -304,6 +309,7 @@ function addItemRow() {
     `;
     
     tbody.appendChild(row);
+    calculateTotalAmount(); // Yeni satır eklendiğinde toplam hesabını güncelle
 }
 
 // Satır sil
@@ -312,11 +318,20 @@ function removeRow(button) {
     calculateTotalAmount();
 }
 
-// Satır toplamını hesapla 
+// Satır toplamını hesapla
 function calculateRowTotal(row) {
     const quantity = parseFloat(row.querySelector('[name$="[quantity]"]').value) || 0;
     const price = parseFloat(row.querySelector('[name$="[unit_price]"]').value) || 0;
     const total = quantity * price;
+    
+    // Materyal seçildiğinde birim kodunu göster
+    const materialSelect = row.querySelector('[name$="[material_id]"]');
+    if (materialSelect?.value) {
+        const selectedMaterial = materials.find(m => m.id == materialSelect.value);
+        if (selectedMaterial) {
+            row.querySelector('.unit-code').textContent = selectedMaterial.unit_code || '';
+        }
+    }
     
     row.querySelector('.row-total').textContent = formatPrice(total);
     calculateTotalAmount();
@@ -328,7 +343,11 @@ function calculateTotalAmount() {
     document.querySelectorAll('.row-total').forEach(span => {
         total += parsePrice(span.textContent);
     });
-    document.getElementById('totalAmount').textContent = formatPrice(total);
+    
+    const totalElement = document.getElementById('totalAmount');
+    if (totalElement) {
+        totalElement.textContent = formatPrice(total).replace(' ₺', '');
+    }
 }
 
 // Para formatlamak için helper fonksiyonlar
@@ -340,6 +359,7 @@ function formatPrice(price) {
 }
 
 function parsePrice(priceString) {
+    if (!priceString) return 0;
     return parseFloat(priceString.replace(/[^0-9,.-]/g, '').replace(',', '.')) || 0;
 }
 
@@ -355,14 +375,23 @@ async function savePurchase() {
         const formData = new FormData(form);
         const items = [];
         let total_amount = 0;
-
+        
         // Kalem verilerini topla ve toplam tutarı hesapla
         document.querySelectorAll('#itemsTable tbody tr').forEach(row => {
-            const material_id = parseInt(row.querySelector('[name$="[material_id]"]').value);
+            const materialSelect = row.querySelector('[name$="[material_id]"]');
+            
+            if (!materialSelect) {
+                console.error('Material select element not found');
+                return;
+            }
+            
+            const material_id = parseInt(materialSelect.value);
             const quantity = parseFloat(row.querySelector('[name$="[quantity]"]').value);
             const unit_price = parseFloat(row.querySelector('[name$="[unit_price]"]').value);
             
-            if (material_id && quantity && unit_price) {
+            console.log('Row data:', { material_id, quantity, unit_price });
+            
+            if (material_id && !isNaN(material_id) && quantity && unit_price) {
                 const item_total = quantity * unit_price;
                 total_amount += item_total;
                 
@@ -387,13 +416,21 @@ async function savePurchase() {
             items: items
         };
 
+        console.log('Sending API data:', data); // Debug için ekledik
+
         const response = await fetch(`${API_URL}/purchase/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
 
-        if (!response.ok) throw new Error('API Hatası');
+        // Detaylı hata kontrolü
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('API Error:', errorData);
+            throw new Error(errorData.details || errorData.error || 'API Hatası');
+        }
+        
         const result = await response.json();
         
         if (!result.success) {
@@ -412,9 +449,11 @@ async function savePurchase() {
 }
 
 // Tarih filtresini kontrol et
-document.getElementById('dateFilter').addEventListener('change', function(e) {
-    const customDateDiv = document.getElementById('customDateRange');
-    customDateDiv.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('dateFilter').addEventListener('change', function(e) {
+        const customDateDiv = document.getElementById('customDateRange');
+        customDateDiv.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+    });
 });
 
 // Filtreleri uygula
@@ -427,13 +466,13 @@ async function applyFilters() {
             min_amount: document.getElementById('minAmount').value,
             max_amount: document.getElementById('maxAmount').value
         };
-
+        
         // Özel tarih seçilmişse ekle
         if (filters.date_filter === 'custom') {
             filters.start_date = document.getElementById('startDate').value;
             filters.end_date = document.getElementById('endDate').value;
         }
-
+        
         // URL parametrelerini oluştur
         const params = new URLSearchParams();
         Object.entries(filters).forEach(([key, value]) => {
@@ -445,29 +484,29 @@ async function applyFilters() {
         
         const data = await response.json();
         renderPurchaseTable(data.orders);
-
+        
     } catch (error) {
         console.error('Filtreleme hatası:', error);
         showError('Filtreleme yapılamadı');
     }
 }
 
-// İptal fonksiyonunu ekle
+// İptal fonksiyonu
 async function cancelPurchase() {
     if (!confirm('Siparişi iptal etmek istediğinize emin misiniz?')) {
         return;
     }
-
+    
     try {
         const response = await fetch(`${API_URL}/purchase/orders/${currentPurchaseId}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 status: 'cancelled',
                 payment_status: 'cancelled' // Bu parametre eklendi
             })
         });
-
+        
         if (!response.ok) throw new Error('API Hatası');
         const result = await response.json();
 

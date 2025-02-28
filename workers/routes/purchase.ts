@@ -161,15 +161,15 @@ router.get('/orders/:id', async (c) => {
     }
 });
 
-// Yeni satın alma ekle
+// Yeni satın alma ekle - tenant_id kaldırıldı, hata yönetimi geliştirildi
 router.post('/orders', async (c) => {
     const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
     const user_id = c.get('user_id') || 1;
     
     try {
         const data = await c.req.json();
-        const { supplier_id, order_date, items } = data;
+        console.log('Purchase order received data:', data); // Debug info
+        const { supplier_id, order_date, items, total_amount } = data;
 
         // Validasyonlar
         if (!supplier_id || !order_date || !Array.isArray(items) || items.length === 0) {
@@ -179,37 +179,39 @@ router.post('/orders', async (c) => {
             }, 400);
         }
 
-        // 1. Ana siparişi oluştur ve ID'sini al 
+        // 1. Ana siparişi oluştur ve ID'sini al - tenant_id kaldırıldı 
         const orderResult = await db.prepare(`
             INSERT INTO purchase_orders (
-                tenant_id, supplier_id, order_date, created_by,
-                created_at, payment_status
-            ) VALUES (?, ?, ?, ?, datetime('now'), 'pending')
+                supplier_id, order_date, created_by,
+                created_at, payment_status, total_amount
+            ) VALUES (?, ?, ?, datetime('now'), 'pending', ?)
             RETURNING id
         `).bind(
-            tenant_id,
             supplier_id,
             order_date,
-            user_id
+            user_id,
+            total_amount || 0 // Total amount ekledik
         ).first();
 
         const order_id = orderResult.id;
 
-        // 2. Kalemleri batch olarak ekle
-        const itemInserts = items.map(item => 
-            db.prepare(`
-                INSERT INTO purchase_order_items (
-                    order_id, material_id, quantity, unit_price, created_at
-                ) VALUES (?, ?, ?, ?, datetime('now'))
-            `).bind(
-                order_id, 
-                item.material_id,
-                item.quantity,
-                item.unit_price
-            )
-        );
+        // 2. Kalemleri batch olarak ekle (boş değilse)
+        if (items && items.length > 0) {
+            const itemInserts = items.map(item => 
+                db.prepare(`
+                    INSERT INTO purchase_order_items (
+                        order_id, material_id, quantity, unit_price, created_at
+                    ) VALUES (?, ?, ?, ?, datetime('now'))
+                `).bind(
+                    order_id, 
+                    item.material_id,
+                    item.quantity,
+                    item.unit_price
+                )
+            );
 
-        await db.batch(itemInserts);
+            await db.batch(itemInserts);
+        }
 
         return c.json({
             success: true,
@@ -219,10 +221,12 @@ router.post('/orders', async (c) => {
 
     } catch (error) {
         console.error('Purchase order error:', error);
+        // Daha detaylı hata mesajı döndür
         return c.json({ 
             success: false, 
             error: 'İşlem başarısız',
-            details: error.message
+            details: error.message,
+            stack: error.stack // Debug için stack trace ekledik
         }, 500);
     }
 });
