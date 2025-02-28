@@ -217,7 +217,10 @@
                         <!-- Kart Mesajı -->
                         <div class="mb-3">
                             <label class="form-label">Kart Mesajı</label>
-                            <textarea class="form-control" id="cardMessage" rows="2"></textarea>
+                            <select class="form-select mb-2" id="cardMessageId" onchange="updateCardMessage(this.value)">
+                                <option value="">Hazır mesaj seçin...</option>
+                            </select>
+                            <textarea class="form-control" id="cardMessage" rows="2" placeholder="Özel mesaj yazabilirsiniz..."></textarea>
                         </div>
                     </div>
                     <div class="card-footer">
@@ -246,9 +249,9 @@
                             </div>
                         </div>
 
-                        <!-- Ürün Listesi -->
-                        <div class="row g-3" id="productList">
-                            <!-- Ürünler JS ile doldurulacak -->
+                        <!-- JS kodunuzla uyumlu olması için productsContainer ekleyin -->
+                        <div id="productsContainer" class="mt-3">
+                            <!-- Ürünler buraya yüklenecek -->
                         </div>
                     </div>
                 </div>

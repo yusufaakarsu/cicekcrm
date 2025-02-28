@@ -871,9 +871,17 @@ async function createNewAddress(addressData) {
     }
 }
 
-// Ürünleri listele
+// Ürünleri listele - container null kontrolü eklendi
 function renderProducts(products) {
   const container = document.getElementById('productsContainer');
+  
+  // Container null kontrolü ekle
+  if (!container) {
+    console.error("Ürün container elementi (productsContainer) bulunamadı");
+    showError("Sayfa yapısında sorun var. Lütfen sayfayı yenileyin.");
+    return;
+  }
+  
   container.innerHTML = '';
   
   if (!products || !products.length) {
@@ -889,7 +897,6 @@ function renderProducts(products) {
     const item = document.createElement('button');
     item.type = 'button';
     item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
-    // selectProduct yerine addProduct fonksiyonunu kullan
     item.onclick = () => addProduct(product);
     
     item.innerHTML = `
