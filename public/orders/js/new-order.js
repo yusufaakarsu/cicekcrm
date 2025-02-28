@@ -178,7 +178,7 @@ function continueToAddress() {
     document.getElementById('addressSelectionCard').scrollIntoView({ behavior: 'smooth' });
 }
 
-// Müşteri kayıtlı adreslerini yükle
+// Müşteri kayıtlı adreslerini yükle - API yanıt yapısı düzeltildi
 async function loadCustomerAddresses(customerId) {
     try {
         const response = await fetch(`${API_URL}/customers/${customerId}/addresses`);
@@ -186,17 +186,18 @@ async function loadCustomerAddresses(customerId) {
         // Hata durumunda boş adres listesi göster
         if (!response.ok) {
             console.error(`Address fetch error: HTTP status ${response.status}`);
-            const container = document.querySelector('.saved-addresses');
-            container.innerHTML = '<div class="alert alert-warning">Kayıtlı adresler getirilemedi. Yeni adres ekleyebilirsiniz.</div>';
-            
-            // Müşterinin kayıtlı adresi yokmuş gibi, yeni adres seçeneğini seç
-            document.getElementById('newAddress').checked = true;
-            document.getElementById('customerAddressesSection').classList.add('d-none');
-            document.getElementById('newAddressSection').classList.remove('d-none');
+            showNoAddresses();
             return;
         }
         
-        const addresses = await response.json();
+        // API yanıtını al
+        const data = await response.json();
+        console.log("Adres API yanıtı:", data);
+        
+        // Yeni API formatına uygun şekilde addresses'i al
+        // API ya { success: true, addresses: [...] } ya da doğrudan [...] olabilir
+        const addresses = data.success !== undefined ? data.addresses : data;
+        
         const container = document.querySelector('.saved-addresses');
         
         if (addresses && addresses.length > 0) {
@@ -217,18 +218,23 @@ async function loadCustomerAddresses(customerId) {
                 </div>
             `).join('');
         } else {
-            container.innerHTML = '<div class="alert alert-info">Kayıtlı adres bulunamadı.</div>';
+            showNoAddresses();
         }
     } catch (error) {
         console.error('Adres yükleme hatası:', error);
-        const container = document.querySelector('.saved-addresses');
-        container.innerHTML = '<div class="alert alert-warning">Kayıtlı adresler getirilemedi. Yeni adres ekleyebilirsiniz.</div>';
-        
-        // Müşterinin kayıtlı adresi yokmuş gibi, yeni adres seçeneğini seç
-        document.getElementById('newAddress').checked = true;
-        document.getElementById('customerAddressesSection').classList.add('d-none');
-        document.getElementById('newAddressSection').classList.remove('d-none');
+        showNoAddresses();
     }
+}
+
+// Adres bulunamadı gösterimi için yardımcı fonksiyon
+function showNoAddresses() {
+    const container = document.querySelector('.saved-addresses');
+    container.innerHTML = '<div class="alert alert-info">Kayıtlı adres bulunamadı.</div>';
+    
+    // Müşterinin kayıtlı adresi yokmuş gibi, yeni adres seçeneğini seç
+    document.getElementById('newAddress').checked = true;
+    document.getElementById('customerAddressesSection').classList.add('d-none');
+    document.getElementById('newAddressSection').classList.remove('d-none');
 }
 
 // Yeni müşteri formu gösterme fonksiyonu - Veritabanı uyumlu hale getirildi

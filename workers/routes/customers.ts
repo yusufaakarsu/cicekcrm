@@ -238,7 +238,7 @@ router.get('/:id/addresses', async (c) => {
   const { id } = c.req.param()
   
   try {
-    // SQL düzeltildi - addresses tablosu ile uyumlu hale getirildi
+    // SQL düzeltildi - created_at yerine id ile sıralama yapılıyor
     const { results } = await db.prepare(`
       SELECT 
         a.*,
@@ -248,13 +248,12 @@ router.get('/:id/addresses', async (c) => {
       FROM addresses a
       WHERE a.customer_id = ?
       AND a.deleted_at IS NULL
-      ORDER BY a.created_at DESC
+      ORDER BY a.id DESC
     `).bind(id).all();
     
-    // Adres bulunamasa bile boş bir array döndür, hata değil
     return c.json({
-        success: true,
-        addresses: results || []
+      success: true,
+      addresses: results || []
     });
   } catch (error) {
     console.error('Customer addresses error:', error);
