@@ -36,19 +36,74 @@ const API_URL = `${window.location.hostname.includes('pages.dev')
 window.getApiUrl = (path) => `${API_URL}${path}`;
 
 // Genel utility fonksiyonları
-// Sidebar yükleme fonksiyonu düzeltildi - doğru path kullanıldı
+// Sidebar yükleme fonksiyonu düzeltildi - doğru path kullanılması için
 async function loadSideBar() {
     try {
+        console.log('Sidebar yükleniyor...');
+        
+        // Sidebar HTML dosyasının yolunu düzelt
         const response = await fetch('/common/sidebar.html');
+        
+        if (!response.ok) {
+            console.error('Sidebar yüklenemedi:', response.status, response.statusText);
+            
+            // Sidebar HTML dosyası bulunamadığında inline HTML oluştur
+            const sidebarContainer = document.getElementById('mainSidebar');
+            if (sidebarContainer) {
+                sidebarContainer.innerHTML = `
+                    <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 200px; min-height: 100vh;">
+                        <h5 class="mb-4">Çiçek CRM</h5>
+                        <ul class="nav nav-pills flex-column mb-auto">
+                            <li class="nav-item">
+                                <a href="/index.html" class="nav-link text-white active">
+                                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/orders/orders.html" class="nav-link text-white">
+                                    <i class="bi bi-box me-2"></i> Siparişler
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/products/products.html" class="nav-link text-white">
+                                    <i class="bi bi-box-seam me-2"></i> Ürünler
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/stock/stock.html" class="nav-link text-white">
+                                    <i class="bi bi-cart me-2"></i> Stok
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                `;
+            }
+            return;
+        }
+        
         const html = await response.text();
-        document.getElementById('mainSidebar').innerHTML = html;
+        const sidebarEl = document.getElementById('mainSidebar');
+        if (sidebarEl) {
+            sidebarEl.innerHTML = html;
+        } else {
+            console.error('Sidebar element bulunamadı: #mainSidebar');
+        }
 
         // Aktif sayfayı işaretle
         const currentPage = document.body.dataset.page;
+        console.log('Current page:', currentPage);
+        
         if (currentPage) {
-            const activeLink = document.querySelector(`#mainSidebar a[href*="/${currentPage}/"]`);
-            if (activeLink) {
-                activeLink.classList.add('active');
+            // Daha esnek eşleşme için
+            const links = document.querySelectorAll('#mainSidebar a');
+            for (const link of links) {
+                // Path'i lowercase yaparak karşılaştır
+                const href = link.getAttribute('href').toLowerCase();
+                if (href.includes('/' + currentPage.toLowerCase()) || 
+                    (currentPage.toLowerCase() === 'dashboard' && href.includes('index.html'))) {
+                    link.classList.add('active');
+                    break;
+                }
             }
         }
     } catch (error) {
