@@ -122,85 +122,53 @@ router.post('/:id/start', async (c) => {
     }
 })
 
-// Hazırlamayı tamamla - STOK HAREKETLERİYLE BİRLİKTE
+// Hazırlamayı tamamla - düzeltilmiş sürüm (trigger-aware)
 router.post('/:id/complete', async (c) => {
     const db = c.get('db')
     const { id } = c.req.param()
     const { materials } = await c.req.json()
 
     try {
-        // Bağlantı için geçerli bir user ID bul
-        const { results: users } = await db.prepare(`
-            SELECT id FROM users LIMIT 1
-        `).all();
-        
-        const userId = users && users.length > 0 ? users[0].id : 1;
-        console.log(`Kullanıcı ID: ${userId} kullanılıyor`);
-
-        // 1. Malzemeleri kaydet ve stok hareketi oluştur
-        let savedMaterials = 0;
+        // 1. Önce malzemeleri kaydet
         for (const material of materials) {
             try {
-                const { material_id, quantity } = material;
+                const { material_id, quantity } = material
                 
-                // Önce bu siparişin order_item_id'sini bulalım
+                // Ürün-malzeme ilişkisi için bir order_item_id bul
                 const { results: items } = await db.prepare(`
                     SELECT id FROM order_items 
-                    WHERE order_id = ? 
-                    LIMIT 1
+                    WHERE order_id = ? LIMIT 1
                 `).bind(id).all();
                 
                 if (items && items.length > 0) {
                     const order_item_id = items[0].id;
                     
-                    // 1. Order_items_materials tablosuna kaydet
+                    // Malzeme kullanımını kaydet
                     await db.prepare(`
                         INSERT INTO order_items_materials (
-                            order_id,
-                            order_item_id, 
-                            material_id,
-                            quantity,
-                            unit_price,
-                            total_amount
+                            order_id, order_item_id, material_id, 
+                            quantity, unit_price, total_amount
                         ) VALUES (?, ?, ?, ?, 0, 0)
                     `).bind(id, order_item_id, material_id, quantity).run();
-                    
-                    // 2. Stok hareketi oluştur
-                    await db.prepare(`
-                        INSERT INTO stock_movements (
-                            material_id,
-                            movement_type,
-                            quantity,
-                            source_type,
-                            source_id,
-                            notes,
-                            created_by
-                        ) VALUES (?, 'out', ?, 'sale', ?, 'Sipariş hazırlama', ?)
-                    `).bind(material_id, quantity, id, userId).run();
-                    
-                    savedMaterials++;
                 }
             } catch (materialError) {
-                console.error(`Malzeme kaydı hatası:`, materialError);
-                // Hata olsa bile devam et
+                console.error('Malzeme kaydı hatası:', materialError);
+                // Bir malzeme hata verse bile devam et
             }
         }
 
-        // 3. Sipariş durumunu güncelle
+        // 2. Sipariş durumunu güncelle - trigger stok hareketlerini oluşturacak
         await db.prepare(`
             UPDATE orders 
             SET status = 'ready',
-                preparation_end = CURRENT_TIMESTAMP,
-                prepared_by = ?
+                updated_by = 1  -- Bu alan önemli, trigger bunu kullanıyor!
             WHERE id = ?
-        `).bind(userId, id).run();
+        `).bind(id).run();
 
         return c.json({ 
             success: true,
-            status: 'ready',
-            saved_materials: savedMaterials
+            message: 'Sipariş hazır durumuna getirildi'
         });
-
     } catch (error) {
         console.error('Sipariş tamamlama hatası:', error);
         return c.json({ 
