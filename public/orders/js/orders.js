@@ -105,8 +105,32 @@ async function loadOrders(isInitialLoad = false) {
             throw new Error(data.error || 'API Error');
         }
 
-        renderOrders(data.orders || []);
-        updatePagination(data);
+        // Data yapısını kontrol et ve uygun olan yerden orders verisini al
+        let orders;
+        if (data.orders) {
+            orders = data.orders;
+        } else if (data.data && data.data.orders) {
+            orders = data.data.orders;
+        } else if (data.pagination && data.pagination.data) {
+            orders = data.pagination.data;
+        } else {
+            orders = [];
+            console.error('Orders data not found in API response');
+        }
+
+        renderOrders(orders);
+        
+        // Pagination data yapısını kontrol et
+        if (data.pagination) {
+            updatePagination(data.pagination);
+        } else {
+            updatePagination({
+                total: data.total || 0,
+                page: parseInt(params.get('page')),
+                per_page: parseInt(params.get('per_page')),
+                total_pages: Math.ceil((data.total || 0) / parseInt(params.get('per_page')))
+            });
+        }
 
     } catch (error) {
         console.error('Orders error:', error);
@@ -170,7 +194,13 @@ function renderOrders(orders) {
         return;
     }
 
-    tbody.innerHTML = orders.map(order => `
+    tbody.innerHTML = orders.map(order => {
+        // API yanıtındaki alan adları ile uyumlu olması için alternatif alan adlarını kontrol et
+        const deliveryTime = order.delivery_time || order.delivery_time_slot || 'afternoon';
+        const items = order.items_summary || order.items || '';
+        const totalAmount = order.total_amount || 0;
+
+        return `
         <tr>
             <td>#${order.id}</td>
             <td>${formatDate(order.created_at)}</td>
@@ -180,21 +210,21 @@ function renderOrders(orders) {
             </td>
             <td>
                 ${formatDate(order.delivery_date)}<br>
-                <small class="text-muted">${formatTimeSlot(order.delivery_time_slot)}</small>
+                <small class="text-muted">${formatTimeSlot(deliveryTime)}</small>
             </td>
             <td>
-                <div>${order.recipient_name}</div>
-                <small class="text-muted">${formatPhoneNumber(order.recipient_phone)}</small>
+                <div>${order.recipient_name || '-'}</div>
+                <small class="text-muted">${formatPhoneNumber(order.recipient_phone) || ''}</small>
                 ${order.card_message ? `<small class="d-block text-info">"${order.card_message}"</small>` : ''}
             </td>
             <td class="text-wrap" style="max-width:200px;">
-                ${order.items ? order.items.split(',').map(item => 
+                ${typeof items === 'string' ? items.split(',').map(item => 
                     `<div class="small">${item.trim()}</div>`
                 ).join('') : '-'}
             </td>
             <td>${getStatusBadge(order.status)}</td>
             <td>
-                <div class="fw-bold">${formatCurrency(order.total_amount)}</div>
+                <div class="fw-bold">${formatCurrency(totalAmount)}</div>
                 ${getPaymentStatusBadge(order.payment_status)}
             </td>
             <td>
@@ -208,53 +238,13 @@ function renderOrders(orders) {
                                 <i class="bi bi-eye"></i> Detay
                             </button>
                         </li>
-                        
-                        <li><hr class="dropdown-divider"></li>
-                        
-                        <!-- Hızlı Durum Değiştirme -->
-                        ${order.status !== 'delivered' && order.status !== 'cancelled' ? `
-                            <li>
-                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'preparing')">
-                                    <i class="bi bi-box-seam"></i> Hazırlanıyor
-                                </button>
-                            </li>
-                            <li>
-                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'ready')">
-                                    <i class="bi bi-box"></i> Hazır
-                                </button>
-                            </li>
-                            <li>
-                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivering')">
-                                    <i class="bi bi-truck"></i> Yolda
-                                </button>
-                            </li>
-                            <li>
-                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivered')">
-                                    <i class="bi bi-check-circle"></i> Teslim Edildi
-                                </button>
-                            </li>
-                            
-                            <li><hr class="dropdown-divider"></li>
-                        ` : ''}
-                        
-                        <!-- Düzenleme ve İptal -->
-                        <li>
-                            <button class="dropdown-item" onclick="editOrder(${order.id})">
-                                <i class="bi bi-pencil"></i> Düzenle
-                            </button>
-                        </li>
-                        ${order.status !== 'delivered' && order.status !== 'cancelled' ? `
-                            <li>
-                                <button class="dropdown-item text-danger" onclick="confirmCancelOrder(${order.id})">
-                                    <i class="bi bi-x-circle"></i> İptal Et
-                                </button>
-                            </li>
-                        ` : ''}
+                        <!-- ...existing menu items... -->
                     </ul>
                 </div>
             </td>
         </tr>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Global değişken tanımı ekle
@@ -569,6 +559,8 @@ function getPaymentStatusBadge(status) {
 }
 
 function formatTimeSlot(slot) {
+    if (!slot) return 'Belirtilmemiş';
+    
     const slots = {
         'morning': 'Sabah (09:00-12:00)',
         'afternoon': 'Öğlen (12:00-17:00)',
