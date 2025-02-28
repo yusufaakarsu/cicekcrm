@@ -889,7 +889,8 @@ function renderProducts(products) {
     const item = document.createElement('button');
     item.type = 'button';
     item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
-    item.onclick = () => selectProduct(product.id, product.name, product.base_price);
+    // selectProduct yerine addProduct fonksiyonunu kullan
+    item.onclick = () => addProduct(product);
     
     item.innerHTML = `
       <div>
@@ -904,6 +905,7 @@ function renderProducts(products) {
   
   container.appendChild(productsList);
 }
+
 // Kart mesajlarını düzgün yükle
 async function loadCardMessages() {
   try {
