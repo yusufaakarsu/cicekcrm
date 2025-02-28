@@ -232,12 +232,32 @@ function showToast(type, message) {
     bsToast.show();
 }
 
-function showLoading(element) {
-    element.classList.add('loading');
+// Yükleme göstergesini göster/gizle fonksiyonları
+function showLoading() {
+    const loader = document.getElementById('loadingIndicator');
+    if (loader) { // Null check ekledik
+        loader.classList.remove('d-none');
+    } else {
+        console.warn('Loading indicator element not found');
+        
+        // Eğer yükleme göstergesi yoksa oluşturalım
+        const newLoader = document.createElement('div');
+        newLoader.id = 'loadingIndicator';
+        newLoader.className = 'position-fixed top-50 start-50 translate-middle';
+        newLoader.innerHTML = `
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Yükleniyor...</span>
+            </div>
+        `;
+        document.body.appendChild(newLoader);
+    }
 }
 
-function hideLoading(element) {
-    element.classList.remove('loading');
+function hideLoading() {
+    const loader = document.getElementById('loadingIndicator');
+    if (loader) { // Null check ekledik
+        loader.classList.add('d-none');
+    }
 }
 
 // API işlemleri için genel fonksiyonlar
