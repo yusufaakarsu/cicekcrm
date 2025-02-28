@@ -35,7 +35,7 @@
         <div class="flex-grow-1 p-3">
             <div class="container-fluid">
                 <!-- Header -->
-                <div class="d-flex justify-content-between align-items-center mb-3"></div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
                     <h2><i class="bi bi-flower1"></i> Atölye</h2>
                     <div class="d-flex gap-2">
                         <select class="form-select form-select-sm" id="dateFilter">
@@ -58,7 +58,7 @@
                 <!-- Status Cards -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
-                        <div class="card cursor-pointer status-card" data-status="new">
+                        <div class="card cursor-pointer status-card bg-light" data-status="new">
                             <div class="card-body text-center">
                                 <h6 class="mb-2">Yeni</h6>
                                 <span class="badge bg-primary" id="newOrdersCount">0</span>
@@ -66,15 +66,15 @@
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card cursor-pointer status-card" data-status="preparing">
+                        <div class="card cursor-pointer status-card active bg-white" data-status="preparing">
                             <div class="card-body text-center">
                                 <h6 class="mb-2">Hazırlanıyor</h6>
-                                <span class="badge bg-warning" id="preparingOrdersCount">0</span>
+                                <span class="badge bg-warning" id="preparingOrdersCount">2</span>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card cursor-pointer status-card" data-status="ready">
+                        <div class="card cursor-pointer status-card bg-light" data-status="ready">
                             <div class="card-body text-center">
                                 <h6 class="mb-2">Hazır</h6>
                                 <span class="badge bg-success" id="readyOrdersCount">0</span>
@@ -89,20 +89,13 @@
                     <div class="col-md-4 mb-3 mb-md-0">
                         <div class="card h-100">
                             <div class="card-body p-0">
-                                <div id="ordersList" style="height: calc(100vh - 250px); overflow-y: auto;">
-                                    <div class="text-center p-4">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Yükleniyor...</span>
-                                        </div>
-                                        <p class="mt-2">Siparişler yükleniyor...</p>
-                                    </div>
-                                </div>
+                                <div id="ordersList" style="height: calc(100vh - 250px); overflow-y: auto;"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Order Detail -->
-                    <div class="col-md-8"></div>
+                    <!-- Order Detail - DÜZELTİLDİ -->
+                    <div class="col-md-8">
                         <div class="card h-100">
                             <div class="card-body">
                                 <div id="noOrderSelected" class="text-center p-5">
@@ -111,7 +104,7 @@
                                     <p>Hazırlamak için sol taraftan bir sipariş seçin</p>
                                 </div>
                                 <div id="orderDetail" class="d-none">
-                                    <!-- Detaylar buraya dinamik olarak yüklenecek -->
+                                    <!-- Detay içeriği dinamik olarak eklenecek -->
                                 </div>
                             </div>
                         </div>

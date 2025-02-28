@@ -450,13 +450,13 @@ router.get('/recipes/:orderId', async (c) => {
     }
 })
 
-// Sipariş için reçete önerisi
+// Sipariş için reçete önerisi - ÖNEMLİ HATA DÜZELTİLDİ
 router.get('/recipes/:orderId', async (c) => {
     const { orderId } = c.req.param();
     const db = c.get('db')
     
     try {
-        // Sorguyu geliştir: Ürün ID ve adını ekle
+        // Sorguyu geliştir: Ürün ID ve adını doğru şekilde ekle
         const { results } = await db.prepare(`
             SELECT 
                 oi.product_id,
@@ -472,7 +472,7 @@ router.get('/recipes/:orderId', async (c) => {
             JOIN units u ON rm.unit_id = u.id
             WHERE oi.order_id = ?
             AND oi.deleted_at IS NULL
-            ORDER BY oi.id, rm.name
+            ORDER BY oi.product_id, rm.name
         `).bind(orderId).all();
         
         return c.json({

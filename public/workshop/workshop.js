@@ -241,17 +241,22 @@ async function showOrderDetail(orderId) {
         const order = orderResponse.order;
         const recipes = recipesResponse.success ? recipesResponse.recipes : [];
 
-        // Reçeteleri ürün bazında gruplandır
+        // Reçeteleri ürün bazında gruplandır - DEBUG EDİLEN KISIM
         const productRecipes = {};
         
         // Her reçete için ürün gruplarını oluştur
+        console.log("Parsing recipes:", recipes);
+        
         if (recipes && recipes.length > 0) {
             recipes.forEach(recipe => {
                 const productId = recipe.product_id;
+                const productName = recipe.product_name;
+                
+                console.log(`Processing recipe for product: ${productName} (${productId})`);
                 
                 if (!productRecipes[productId]) {
                     productRecipes[productId] = {
-                        product_name: recipe.product_name,
+                        product_name: productName,
                         materials: []
                     };
                 }
@@ -264,6 +269,9 @@ async function showOrderDetail(orderId) {
                 });
             });
         }
+        
+        // Konsola gruplandırılmış ürünleri yazdır (debug)
+        console.log("Grouped products:", productRecipes);
 
         // Detay HTML'i - Ürün gruplarına göre malzemeleri göster
         detailContainer.innerHTML = `
