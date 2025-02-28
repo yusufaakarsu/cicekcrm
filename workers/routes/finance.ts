@@ -571,7 +571,7 @@ router.get('/payments/:type/:id', async (c) => {
       `SELECT o.*, c.name as customer_name, c.phone as customer_phone
        FROM orders o
        JOIN customers c ON c.id = o.customer_id 
-       WHERE o.id = ? AND po.deleted_at IS NULL`;
+       WHERE o.id = ? AND o.deleted_at IS NULL`;
 
     // Ana kaydı ve hesapları getir
     const details = await db.prepare(query).bind(id).first()

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finansal İşlemler - Çiçek CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+</head>
+<body data-page="finance">
+    <div class="vh-100 d-flex flex-row">
+        <!-- Sidebar -->
+        <div id="mainSidebar"></div>
+        
+        <!-- Ana İçerik -->
+        <div class="flex-grow-1 overflow-auto p-3">
+            <!-- Başlık ve Üst Butonlar -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-list-ul"></i> Finansal İşlemler</h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline-success" id="btnExport">
+                        <i class="bi bi-file-earmark-excel"></i> Excel
+                    </button>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newTransactionModal">
+                        <i class="bi bi-plus-lg"></i> Yeni İşlem
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filtreler -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form id="filterForm" class="row g-3">
+                        <!-- Tarih Aralığı -->
+                        <div class="col-md-4">
+                            <label class="form-label">Tarih Aralığı</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="dateRange" placeholder="Tarih seçin">
+                                <button type="button" class="btn btn-outline-secondary" id="btnResetDate">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- İşlem Türü -->
+                        <div class="col-md-2">
+                            <label class="form-label">İşlem Türü</label>
+                            <select class="form-select" name="type" id="typeFilter">
+                                <option value="">Tümü</option>
+                                <option value="in">Gelir</option>
+                                <option value="out">Gider</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Hesap -->
+                        <div class="col-md-2">
+                            <label class="form-label">Hesap</label>
+                            <select class="form-select" name="account_id" id="accountFilter">
+                                <option value="">Tümü</option>
+                                <!-- JavaScript ile doldurulacak -->
+                            </select>
+                        </div>
+                        
+                        <!-- Kategori -->
+                        <div class="col-md-2">
+                            <label class="form-label">Kategori</label>
+                            <select class="form-select" name="category_id" id="categoryFilter">
+                                <option value="">Tümü</option>
+                                <!-- JavaScript ile doldurulacak -->
+                            </select>
+                        </div>
+                        
+                        <!-- Durum -->
+                        <div class="col-md-2">
+                            <label class="form-label">Durum</label>
+                            <select class="form-select" name="status" id="statusFilter">
+                                <option value="">Tümü</option>
+                                <option value="paid">Onaylanmış</option>
+                                <option value="pending">Bekliyor</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Arama ve Filtre Butonları -->
+                        <div class="col-12 d-flex justify-content-end">
+                            <button type="button" class="btn btn-outline-secondary me-2" id="btnResetFilters">
+                                <i class="bi bi-arrow-counterclockwise"></i> Sıfırla
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-filter"></i> Filtrele
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- İşlemler Tablosu -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Tür</th>
+                                    <th>Kategori</th>
+                                    <th>Hesap</th>
+                                    <th>Açıklama</th>
+                                    <th class="text-end">Tutar</th>
+                                    <th>Durum</th>
+                                    <th class="text-end">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionsTable">
+                                <tr>
+                                    <td colspan="8" class="text-center py-4">Yükleniyor...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <!-- Toplam -->
+                        <div>
+                            <span class="text-muted">Toplam:</span>
+                            <span id="totalCount" class="badge bg-secondary">0</span>
+                            <span class="ms-3 text-muted">Gelir:</span>
+                            <span id="totalIncome" class="badge bg-success">₺0,00</span>
+                            <span class="ms-3 text-muted">Gider:</span>
+                            <span id="totalExpense" class="badge bg-danger">₺0,00</span>
+                        </div>
+                        
+                        <!-- Sayfalama -->
+                        <nav>
+                            <ul class="pagination mb-0" id="pagination">
+                                <!-- JavaScript ile doldurulacak -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Yeni İşlem Modal -->
+    <div class="modal fade" id="newTransactionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Yeni İşlem</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="transactionForm">
+                        <input type="hidden" name="id" id="transaction_id">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">İşlem Tipi</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="type" id="type-in" value="in" checked>
+                                <label class="btn btn-outline-success" for="type-in">Gelir</label>
+                                
+                                <input type="radio" class="btn-check" name="type" id="type-out" value="out">
+                                <label class="btn btn-outline-danger" for="type-out">Gider</label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Hesap</label>
+                            <select class="form-select" name="account_id" required>
+                                <option value="">Seçiniz...</option>
+                                <!-- Hesaplar JavaScript ile doldurulacak -->
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Kategori</label>
+                            <select class="form-select" name="category_id" required>
+                                <option value="">Seçiniz...</option>
+                                <!-- Kategoriler JavaScript ile doldurulacak -->
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Tutar</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₺</span>
+                                <input type="number" class="form-control" name="amount" min="0.01" step="0.01" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tarih</label>
+                                <input type="date" class="form-control" name="date" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Durum</label>
+                                <select class="form-select" name="status" required>
+                                    <option value="paid">Onaylanmış</option>
+                                    <option value="pending">Bekliyor</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Ödeme Şekli</label>
+                            <select class="form-select" name="payment_method" required>
+                                <option value="cash">Nakit</option>
+                                <option value="credit_card">Kredi Kartı</option>
+                                <option value="bank_transfer">Banka Havale</option>
+                                <option value="online">Online Ödeme</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">İlişkili Kayıt (Opsiyonel)</label>
+                            <div class="input-group mb-2">
+                                <select class="form-select" name="related_type">
+                                    <option value="">Seçiniz...</option>
+                                    <option value="order">Sipariş</option>
+                                    <option value="purchase">Satın Alma</option>
+                                    <option value="other">Diğer</option>
+                                </select>
+                                <input type="text" class="form-control" name="related_id" placeholder="ID">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Açıklama</label>
+                            <textarea class="form-control" name="description" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" id="saveTransaction">
+                        <i class="bi bi-save"></i> Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- İşlem Detay Modal -->
+    <div class="modal fade" id="transactionDetailModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">İşlem Detayı</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="transactionDetailContent">
+                    <!-- İşlem detayları JavaScript ile doldurulacak -->
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <div>
+                        <button type="button" class="btn btn-outline-danger" id="btnDeleteTransaction">
+                            <i class="bi bi-trash"></i> Sil
+                        </button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                        <button type="button" class="btn btn-primary" id="btnEditTransaction">
+                            <i class="bi bi-pencil"></i> Düzenle
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/tr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="js/transactions.js"></script>
+</body>
+</html>
