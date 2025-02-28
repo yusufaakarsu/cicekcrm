@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teslimat Bölgeleri - Çiçek CRM</title>
+    <title>Birimler - Çiçek CRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 </head>
@@ -20,30 +20,30 @@
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="settings.html">Ayarlar</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Teslimat Bölgeleri</li>
+                            <li class="breadcrumb-item active" aria-current="page">Birimler</li>
                         </ol>
                     </nav>
-                    <h2><i class="bi bi-geo-alt"></i> Teslimat Bölgeleri</h2>
+                    <h2><i class="bi bi-rulers"></i> Birim Yönetimi</h2>
                 </div>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#regionModal">
-                    <i class="bi bi-plus-lg"></i> Yeni Bölge
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#unitModal">
+                    <i class="bi bi-plus-lg"></i> Yeni Birim
                 </button>
             </div>
             
-            <!-- Bölge Listesi -->
+            <!-- Birim Listesi -->
             <div class="card">
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Bölge Adı</th>
-                                    <th class="text-end">Teslimat Ücreti</th>
-                                    <th class="text-center">Durum</th>
+                                    <th>Birim Adı</th>
+                                    <th>Kod</th>
+                                    <th>Açıklama</th>
                                     <th class="text-end">İşlemler</th>
                                 </tr>
                             </thead>
-                            <tbody id="regionsTable">
+                            <tbody id="unitsTable">
                                 <tr><td colspan="4" class="text-center py-4">Yükleniyor...</td></tr>
                             </tbody>
                         </table>
@@ -53,42 +53,38 @@
         </div>
     </div>
     
-    <!-- Bölge Modal -->
-    <div class="modal fade" id="regionModal" tabindex="-1">
+    <!-- Birim Modal -->
+    <div class="modal fade" id="unitModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="regionModalTitle">Yeni Teslimat Bölgesi</h5>
+                    <h5 class="modal-title" id="unitModalTitle">Yeni Birim</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="regionForm">
-                        <input type="hidden" name="id" id="region_id">
+                    <form id="unitForm">
+                        <input type="hidden" name="id" id="unit_id">
                         
                         <div class="mb-3">
-                            <label class="form-label">Bölge Adı</label>
+                            <label class="form-label">Birim Adı</label>
                             <input type="text" class="form-control" name="name" required>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Teslimat Ücreti</label>
-                            <div class="input-group">
-                                <span class="input-group-text">₺</span>
-                                <input type="number" class="form-control" name="base_fee" min="0" step="0.01" required>
-                            </div>
+                            <label class="form-label">Birim Kodu</label>
+                            <input type="text" class="form-control" name="code" required>
+                            <div class="form-text">Örn: kg, adet, dal, deste</div>
                         </div>
                         
                         <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="is_active" id="is_active" checked>
-                                <label class="form-check-label" for="is_active">Aktif</label>
-                            </div>
+                            <label class="form-label">Açıklama</label>
+                            <textarea class="form-control" name="description" rows="2"></textarea>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="button" class="btn btn-primary" id="saveRegion">Kaydet</button>
+                    <button type="button" class="btn btn-primary" id="saveUnit">Kaydet</button>
                 </div>
             </div>
         </div>
@@ -96,6 +92,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/common.js"></script>
-    <script src="js/regions.js"></script>
+    <script src="js/units.js"></script>
 </body>
 </html>

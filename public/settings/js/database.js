@@ -1,28 +1,84 @@
-document.addEventListener('DOMContentLoaded', () => {
-    loadSideBar();
-    loadDatabaseStats();
-    loadTables();
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadSideBar();
+    
+    // Veritabanı istatistiklerini yükle
+    await loadDatabaseStats();
+    
+    // Event listeners
+    document.getElementById('btnBackup').addEventListener('click', backupDatabase);
+    document.getElementById('btnRestore').addEventListener('click', confirmRestore);
 });
 
+// Veritabanı istatistiklerini yükle
 async function loadDatabaseStats() {
     try {
-        const response = await fetch(`${API_URL}/settings/database/stats`);
-        if (!response.ok) throw new Error('API Hatası');
+        const response = await fetchAPI('/settings/database/stats');
+        if (!response.success) throw new Error(response.error);
         
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error);
-
-        // İstatistikleri güncelle
-        document.getElementById('totalRecords').textContent = data.stats.total_records.toLocaleString();
-        document.getElementById('totalTables').textContent = data.stats.total_tables;
-        document.getElementById('databaseSize').textContent = formatFileSize(data.stats.size || 0);
-        document.getElementById('lastBackup').textContent = data.stats.last_backup 
-            ? formatDateTime(data.stats.last_backup) 
-            : 'Hiç yedeklenmemiş';
-
+        // Özet istatistikleri güncelle
+        document.getElementById('customerCount').textContent = formatNumber(response.stats.customers || 0);
+        document.getElementById('orderCount').textContent = formatNumber(response.stats.orders || 0);
+        document.getElementById('productCount').textContent = formatNumber(response.stats.products || 0);
+        document.getElementById('transactionCount').textContent = formatNumber(response.stats.transactions || 0);
+        
+        // Son yedekleme tarihini güncelle
+        if (response.lastBackup) {
+            document.getElementById('lastBackupDate').textContent = formatDateTime(response.lastBackup);
+        }
+        
+        // Tablo istatistiklerini güncelle
+        const tableStats = response.tableStats || [];
+        const tbody = document.getElementById('tableStats');
+        
+        if (tableStats.length) {
+            tbody.innerHTML = tableStats.map(table => `
+                <tr>
+                    <td>${table.name}</td>
+                    <td class="text-end">${formatNumber(table.count)}</td>
+                    <td class="text-end">${formatFileSize(table.size)}</td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center">Veri bulunamadı</td></tr>';
+        }
     } catch (error) {
-        console.error('Database stats error:', error);
-        showError('Veritabanı istatistikleri alınamadı');
+        console.error('Database stats loading error:', error);
+        showError('Veritabanı istatistikleri yüklenemedi');
+        document.getElementById('tableStats').innerHTML = 
+            '<tr><td colspan="3" class="text-danger text-center">İstatistikler yüklenemedi!</td></tr>';
+    }
+}
+
+// Veritabanını yedekle
+async function backupDatabase() {
+    try {
+        document.getElementById('btnBackup').disabled = true;
+        document.getElementById('btnBackup').innerHTML = 
+            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Yedekleniyor...';
+        
+        const response = await fetchAPI('/settings/database/backup', {
+            method: 'POST'
+        });
+        
+        if (!response.success) throw new Error(response.error);
+        
+        // Yedek dosyasını indir
+        if (response.downloadUrl) {
+            const link = document.createElement('a');
+            link.href = response.downloadUrl;
+            link.download = `database_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        showSuccess('Veritabanı yedeği başarıyla alındı');
+    } catch (error) {
+        console.error('Database backup error:', error);
+        showError('Veritabanı yedeği alınamadı: ' + error.message);
+    } finally {
+        document.getElementById('btnBackup').disabled = false;
+        document.getElementById('btnBackup').innerHTML = 'Yedekle';
     }
 }
 
@@ -148,34 +204,6 @@ function renderQueryResult(results) {
             <small class="text-muted">Toplam ${results.length} kayıt gösteriliyor</small>
         </div>
     `;
-}
-
-async function backupDatabase() {
-    try {
-        const response = await fetch(`${API_URL}/settings/database/backup`, {
-            method: 'POST'
-        });
-        
-        if (!response.ok) throw new Error('API Hatası');
-        
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error);
-
-        // Yedekleme başarılı, dosyayı indir
-        const backupUrl = data.backup_url;
-        const a = document.createElement('a');
-        a.href = backupUrl;
-        a.download = `backup_${formatDate(new Date())}.sqlite`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        await loadDatabaseStats(); // İstatistikleri güncelle
-        showSuccess('Veritabanı yedeği alındı');
-    } catch (error) {
-        console.error('Backup error:', error);
-        showError('Yedek alınamadı: ' + error.message);
-    }
 }
 
 function formatFileSize(bytes) {

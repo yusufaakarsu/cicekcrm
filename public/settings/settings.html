@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Ayarları - Çiçek CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body data-page="settings">
+    <div class="vh-100 d-flex flex-row">
+        <!-- Sidebar -->
+        <div id="mainSidebar"></div>
+        
+        <!-- Ana İçerik -->
+        <div class="flex-grow-1 overflow-auto p-3">
+            <!-- Başlık -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-gear"></i> Sistem Ayarları</h2>
+            </div>
+            
+            <!-- Ayar Kartları -->
+            <div class="row g-4">
+                <!-- Kullanıcı Yönetimi -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-people"></i> Kullanıcı Yönetimi</h5>
+                            <p class="card-text text-muted">Sistem kullanıcılarını ve yetkilerini yönetin</p>
+                        </div>
+                        <div class="card-footer d-flex justify-content-end">
+                            <a href="users.html" class="btn btn-primary">
+                                <i class="bi bi-arrow-right"></i> Yönet
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Teslimat Bölgeleri -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-geo-alt"></i> Teslimat Bölgeleri</h5>
+                            <p class="card-text text-muted">Teslimat bölgelerini ve ücretlendirmeleri yönetin</p>
+                        </div>
+                        <div class="card-footer d-flex justify-content-end">
+                            <a href="regions.html" class="btn btn-primary">
+                                <i class="bi bi-arrow-right"></i> Yönet
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hazır Mesajlar -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-chat-left-text"></i> Hazır Mesajlar</h5>
+                            <p class="card-text text-muted">Kart mesajları ve şablonlarını yönetin</p>
+                        </div>
+                        <div class="card-footer d-flex justify-content-end">
+                            <a href="messages.html" class="btn btn-primary">
+                                <i class="bi bi-arrow-right"></i> Yönet
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Birimler -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-rulers"></i> Birimler</h5>
+                            <p class="card-text text-muted">Ölçü birimlerini (kg, adet, vb.) yönetin</p>
+                        </div>
+                        <div class="card-footer d-flex justify-content-end">
+                            <a href="units.html" class="btn btn-primary">
+                                <i class="bi bi-arrow-right"></i> Yönet
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Veritabanı Yönetimi -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-database"></i> Veritabanı</h5>
+                            <p class="card-text text-muted">Veri yedekleme ve geri yükleme işlemleri</p>
+                        </div>
+                        <div class="card-footer d-flex justify-content-end">
+                            <a href="database.html" class="btn btn-primary">
+                                <i class="bi bi-arrow-right"></i> Yönet
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sistem Durumu -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-speedometer2"></i> Sistem Durumu</h5>
+                            <p class="card-text text-muted">Sistem bilgileri ve performans metrikleri</p>
+                        </div>
+                        <div class="card-footer d-flex justify-content-end">
+                            <a href="status.html" class="btn btn-primary">
+                                <i class="bi bi-arrow-right"></i> Görüntüle
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="js/settings.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSideBar();
+        });
+    </script>
+</body>
+</html>

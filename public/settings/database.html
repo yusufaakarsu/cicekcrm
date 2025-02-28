@@ -9,107 +9,122 @@
 </head>
 <body data-page="settings">
     <div class="vh-100 d-flex flex-row">
+        <!-- Sidebar -->
         <div id="mainSidebar"></div>
         
-        <!-- Ana içerik -->
+        <!-- Ana İçerik -->
         <div class="flex-grow-1 overflow-auto p-3">
-            <!-- Üst Başlık -->
+            <!-- Başlık -->
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="bi bi-database"></i> Veritabanı Yönetimi</h2>
                 <div>
-                    <button class="btn btn-success me-2" onclick="backupDatabase()">
-                        <i class="bi bi-download"></i> Yedek Al
-                    </button>
-                    <button class="btn btn-primary" onclick="showRestoreModal()">
-                        <i class="bi bi-upload"></i> Yedek Yükle
-                    </button>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="settings.html">Ayarlar</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Veritabanı Yönetimi</li>
+                        </ol>
+                    </nav>
+                    <h2><i class="bi bi-database"></i> Veritabanı Yönetimi</h2>
                 </div>
             </div>
-
-            <!-- İstatistik Kartları -->
-            <div class="row g-4 mb-4">
-                <div class="col-md-3">
-                    <div class="card border-primary">
+            
+            <div class="row g-4">
+                <!-- Veritabanı Yedekleme -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Veri Yedekleme</h5>
+                        </div>
                         <div class="card-body">
-                            <h6 class="card-title">Toplam Kayıt</h6>
-                            <h3 id="totalRecords">0</h3>
+                            <p class="card-text">
+                                Tüm veritabanını yedekleyin. Bu işlem birkaç dakika sürebilir.
+                                Yedekleme dosyası indirilecektir.
+                            </p>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> Son yedekleme: 
+                                <span id="lastBackupDate">Henüz yedek alınmamış</span>
+                            </div>
+                        </div>
+                        <div class="card-footer text-end">
+                            <button class="btn btn-primary" id="btnBackup">
+                                <i class="bi bi-cloud-download"></i> Yedeği İndir
+                            </button>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-success">
+                
+                <!-- Veritabanı Geri Yükleme -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Veri Geri Yükleme</h5>
+                        </div>
                         <div class="card-body">
-                            <h6 class="card-title">Tablo Sayısı</h6>
-                            <h3 id="totalTables">0</h3>
+                            <p class="card-text">
+                                Bir yedek dosyasından veritabanını geri yükleyin.
+                                <strong>Bu işlem mevcut verilerin üzerine yazacaktır!</strong>
+                            </p>
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle"></i> Dikkat: Bu işlem geri alınamaz!
+                            </div>
+                            <div class="mb-3">
+                                <label for="backupFile" class="form-label">Yedek Dosyası</label>
+                                <input class="form-control" type="file" id="backupFile">
+                            </div>
+                        </div>
+                        <div class="card-footer text-end">
+                            <button class="btn btn-danger" id="btnRestore">
+                                <i class="bi bi-cloud-upload"></i> Geri Yükle
+                            </button>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-warning">
-                        <div class="card-body">
-                            <h6 class="card-title">Veritabanı Boyutu</h6>
-                            <h3 id="databaseSize">0 MB</h3>
+                
+                <!-- Veritabanı İstatistikleri -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Veritabanı İstatistikleri</h5>
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-info">
                         <div class="card-body">
-                            <h6 class="card-title">Son Yedekleme</h6>
-                            <h3 id="lastBackup">-</h3>
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h3" id="customerCount">-</div>
+                                        <div class="text-muted">Müşteri</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h3" id="orderCount">-</div>
+                                        <div class="text-muted">Sipariş</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h3" id="productCount">-</div>
+                                        <div class="text-muted">Ürün</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h3" id="transactionCount">-</div>
+                                        <div class="text-muted">İşlem</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <table class="table table-sm mt-3">
+                                <thead>
+                                    <tr>
+                                        <th>Tablo Adı</th>
+                                        <th class="text-end">Kayıt Sayısı</th>
+                                        <th class="text-end">Boyut</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableStats">
+                                    <tr><td colspan="3" class="text-center">Yükleniyor...</td></tr>
+                                </tbody>
+                            </table>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tablo Listesi -->
-            <div class="card">
-                <div class="card-header bg-transparent">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Tablolar</h5>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="refreshTableList()">
-                            <i class="bi bi-arrow-clockwise"></i> Yenile
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Tablo Adı</th>
-                                    <th class="text-end">Kayıt Sayısı</th>
-                                    <th class="text-end">Boyut</th>
-                                    <th>Son Güncelleme</th>
-                                    <th>İşlemler</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tablesTable">
-                                <!-- JavaScript ile doldurulacak -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SQL Query Panel -->
-            <div class="card mt-4">
-                <div class="card-header bg-transparent">
-                    <h5 class="mb-0">SQL Sorgu Paneli</h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <textarea class="form-control font-monospace" id="sqlQuery" 
-                                rows="3" placeholder="SELECT * FROM ..."></textarea>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <button class="btn btn-primary" onclick="executeQuery()">
-                            <i class="bi bi-play-fill"></i> Çalıştır
-                        </button>
-                        <small class="text-muted">Sorgu sonucu en fazla 100 kayıt gösterilir</small>
-                    </div>
-                    <div id="queryResult" class="mt-3">
-                        <!-- Sorgu sonucu burada gösterilecek -->
                     </div>
                 </div>
             </div>
@@ -118,6 +133,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/common.js"></script>
-    <script src="/settings/js/database.js"></script>
+    <script src="js/database.js"></script>
 </body>
 </html>
