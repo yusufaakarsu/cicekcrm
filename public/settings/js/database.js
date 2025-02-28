@@ -224,3 +224,22 @@ function showRestoreModal() {
     // TODO: Implement restore functionality
     showError('Bu özellik henüz aktif değil');
 }
+
+// Geri yükleme onay fonksiyonu
+function confirmRestore() {
+    const fileInput = document.getElementById('backupFile');
+    if (!fileInput.files || !fileInput.files[0]) {
+        showError('Lütfen bir yedek dosyası seçin');
+        return;
+    }
+
+    if (confirm('DİKKAT: Veritabanını geri yüklemek mevcut verilerinizin üzerine yazacaktır. Bu işlem geri alınamaz. Devam etmek istiyor musunuz?')) {
+        // Gerçek uygulamada burada dosyayı sunucuya yükleyip geri yükleme işlemini başlatırdık
+        showInfo('Geri yükleme işlemi henüz uygulanmamış - Bu bir test mesajıdır');
+    }
+}
+
+// Formatlamalar için yardımcı fonksiyonlar (common.js'den gelmiyorsa)
+function formatNumber(number) {
+    return number?.toLocaleString('tr-TR') || '0';
+}
