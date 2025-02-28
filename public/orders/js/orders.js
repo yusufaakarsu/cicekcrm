@@ -1,6 +1,29 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Siparişler sayfası yükleniyor...');
     initializePage();
+    
+    // API URL'i debug etmek için kontrol et
+    console.log('API_URL:', API_URL);
+    
+    // Test API çağrısı yap
+    testApiConnection();
 });
+
+// API bağlantısını test et
+function testApiConnection() {
+    console.log('API bağlantısı test ediliyor...');
+    fetch(`${API_URL}/orders`)
+        .then(res => {
+            console.log('API yanıt status:', res.status);
+            return res.json();
+        })
+        .then(data => {
+            console.log('API test yanıtı:', data);
+        })
+        .catch(err => {
+            console.error('API test hatası:', err);
+        });
+}
 
 // Sayfa başlangıç durumu
 function initializePage() {
@@ -53,100 +76,6 @@ function resetToDefaultFilters() {
     loadOrders(true); // true = ilk yükleme
 }
 
-// Temel veri yükleme fonksiyonu güncellendi
-async function loadOrders(isInitialLoad = false) {
-    try {
-        console.log('LoadOrders çalışıyor...');
-        
-        // API URL'i doğru oluşturulmuş mu kontrol et
-        console.log('API_URL:', API_URL);
-        
-        const params = new URLSearchParams({
-            page: document.querySelector('[name="page"]').value,
-            per_page: document.querySelector('[name="per_page"]').value,
-            sort: document.getElementById('sortFilter').value
-        });
-
-        // Durum filtresi
-        const status = document.getElementById('statusFilter').value;
-        if (status) {
-            params.append('status', status);
-        }
-
-        // Tarih filtresi - düzeltildi
-        const dateFilter = document.getElementById('dateFilter').value;
-        if (dateFilter && dateFilter !== 'all') {
-            params.append('date_filter', dateFilter);
-            
-            if (dateFilter === 'custom') {
-                const startDate = document.getElementById('startDate').value;
-                const endDate = document.getElementById('endDate').value;
-                
-                if (startDate && endDate) {
-                    // Tarihleri doğru formatta gönder
-                    params.append('start_date', startDate);
-                    params.append('end_date', endDate);
-                }
-            }
-        }
-
-        // URL yapısını düzelt ve debug log ekle
-        const url = `${API_URL}/orders/filtered?${params.toString()}`;
-        console.log('Loading orders from:', url);
-
-        const response = await fetch(url);
-        console.log('API response status:', response.status);
-        
-        // Response içeriğini detaylı kontrol et
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API Error Response:', errorText);
-            console.error('Response status:', response.status);
-            console.error('Response headers:', Object.fromEntries([...response.headers]));
-            throw new Error('API Error: ' + response.status);
-        }
-
-        const data = await response.json();
-        console.log('API Response full data structure:', data);
-
-        if (!data.success) {
-            throw new Error(data.error || 'API Error');
-        }
-
-        // Data yapısını kontrol et ve uygun olan yerden orders verisini al
-        let orders;
-        if (data.orders) {
-            orders = data.orders;
-        } else if (data.data && data.data.orders) {
-            orders = data.data.orders;
-        } else if (data.pagination && data.pagination.data) {
-            orders = data.pagination.data;
-        } else {
-            orders = [];
-            console.error('Orders data not found in API response');
-        }
-
-        renderOrders(orders);
-        
-        // Pagination data yapısını kontrol et
-        if (data.pagination) {
-            updatePagination(data.pagination);
-        } else {
-            updatePagination({
-                total: data.total || 0,
-                page: parseInt(params.get('page')),
-                per_page: parseInt(params.get('per_page')),
-                total_pages: Math.ceil((data.total || 0) / parseInt(params.get('per_page')))
-            });
-        }
-
-    } catch (error) {
-        console.error('Orders error details:', error);
-        console.error('Error stack:', error.stack);
-        showError('Siparişler yüklenemedi: ' + error.message);
-    }
-}
-
 // Filtre dinleyicilerini ayarla
 function setupFilterListeners() {
     // Durum filtresi
@@ -194,6 +123,41 @@ function resetFilters() {
     resetToDefaultFilters();
 }
 
+// Temel veri yükleme fonksiyonu - basitleştirildi
+async function loadOrders(isInitialLoad = false) {
+    try {
+        console.log('Siparişler yükleniyor...');
+        
+        // Basit URL kullan
+        const url = `${API_URL}/orders`;
+        console.log('API çağrısı URL:', url);
+        
+        const response = await fetch(url);
+        console.log('API yanıt status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
+            throw new Error('API Error: ' + response.status);
+        }
+        
+        const data = await response.json();
+        console.log('API yanıtı:', data);
+        
+        // Yanıt başarılıysa, siparişleri render et
+        if (data && data.success && data.orders) {
+            renderOrders(data.orders);
+        } else {
+            console.error('API yanıtında orders verisi bulunamadı');
+            document.getElementById('ordersTable').innerHTML = 
+                '<tr><td colspan="9" class="text-center">Sipariş verisi alınamadı.</td></tr>';
+        }
+    } catch (error) {
+        console.error('Sipariş yükleme hatası:', error);
+        showError('Siparişler yüklenemedi: ' + error.message);
+    }
+}
+
 // Siparişleri tabloya render et
 function renderOrders(orders) {
     const tbody = document.getElementById('ordersTable');
@@ -204,8 +168,8 @@ function renderOrders(orders) {
     }
 
     tbody.innerHTML = orders.map(order => {
-        // API yanıtındaki alan adları ile uyumlu olması için alternatif alan adlarını kontrol et
-        const deliveryTime = order.delivery_time || order.delivery_time_slot || 'afternoon';
+        // Alternatif alan adlarını kontrol et
+        const deliveryTime = order.delivery_time || order.delivery_time_slot || '';
         const items = order.items_summary || order.items || '';
         const totalAmount = order.total_amount || 0;
 
@@ -247,7 +211,38 @@ function renderOrders(orders) {
                                 <i class="bi bi-eye"></i> Detay
                             </button>
                         </li>
-                        <!-- ...existing menu items... -->
+                        
+                        <!-- Durum Değiştirme -->
+                        ${order.status !== 'delivered' && order.status !== 'cancelled' ? `
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'preparing')">
+                                    <i class="bi bi-box-seam"></i> Hazırlanıyor
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'ready')">
+                                    <i class="bi bi-box"></i> Hazır
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivering')">
+                                    <i class="bi bi-truck"></i> Yolda
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivered')">
+                                    <i class="bi bi-check-circle"></i> Teslim Edildi
+                                </button>
+                            </li>
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <button class="dropdown-item text-danger" onclick="confirmCancelOrder(${order.id})">
+                                    <i class="bi bi-x-circle"></i> İptal Et
+                                </button>
+                            </li>
+                        ` : ''}
                     </ul>
                 </div>
             </td>
@@ -256,16 +251,24 @@ function renderOrders(orders) {
     }).join('');
 }
 
-// Global değişken tanımı ekle
+// Global değişken tanımı
 let currentOrderId = null;
 
 // Sipariş detaylarını göster
 async function showOrderDetails(orderId) {
     try {
-        const response = await fetch(getApiUrl(`/orders/${orderId}/details`));
+        const response = await fetch(`${API_URL}/orders/${orderId}/details`);
+        
         if (!response.ok) throw new Error('API Hatası');
         
-        const order = await response.json();
+        const data = await response.json();
+        console.log('Sipariş detay verileri:', data);
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Veri alınamadı');
+        }
+        
+        const order = data.order;
         const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
         
         // Global değişkene kaydet
@@ -306,10 +309,9 @@ function fillOrderDetails(order) {
     // Müşteri bilgileri
     document.getElementById('order-detail-customer_name').textContent = order.customer_name || '-';
     document.getElementById('order-detail-customer_phone').textContent = formatPhoneNumber(order.customer_phone) || '-';
-    document.getElementById('order-detail-payment_method').textContent = formatPaymentMethod(order.payment_method) || '-';
     
     // Teslimat bilgileri
-    document.getElementById('order-detail-delivery_date').textContent = formatDate(order.delivery_date) || '-';
+    document.getElementById('order-detail-delivery_date').textContent = formatDate(order.delivery_date) + ' ' + formatTimeSlot(order.delivery_time || order.delivery_time_slot) || '-';
     document.getElementById('order-detail-delivery_address').textContent = order.delivery_address || '-';
     
     // Alıcı bilgileri
@@ -320,7 +322,8 @@ function fillOrderDetails(order) {
     
     // Ürün listesi
     const itemsList = document.getElementById('order-detail-items');
-    if (order.items) {
+    if (order.items && typeof order.items === 'string') {
+        // String ise virgülle ayrılmış ürün listesi
         itemsList.innerHTML = order.items.split(',').map(item => `
             <div class="list-group-item px-0">
                 <div class="d-flex justify-content-between align-items-center">
@@ -328,336 +331,8 @@ function fillOrderDetails(order) {
                 </div>
             </div>
         `).join('');
-    } else {
-        itemsList.innerHTML = '<div class="list-group-item px-0 text-muted">Ürün bilgisi bulunamadı</div>';
-    }
-}
-
-// Sayfalama güncelleme
-function updatePagination(data) {
-    const pagination = document.getElementById('pagination');
-    const totalPages = Math.ceil(data.total / parseInt(document.querySelector('[name="per_page"]').value));
-    const currentPage = parseInt(data.page);
-
-    // Toplam sayfa sayısını sakla
-    pagination.dataset.totalPages = totalPages;
-
-    let html = '';
-    
-    // Önceki sayfa
-    html += `
-        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${currentPage - 1})" ${currentPage === 1 ? 'tabindex="-1"' : ''}>Önceki</a>
-        </li>
-    `;
-
-    // İlk sayfa her zaman göster
-    html += `
-        <li class="page-item ${currentPage === 1 ? 'active' : ''}">
-            <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(1)">1</a>
-        </li>
-    `;
-
-    // Sayfa numaraları için aralık hesapla
-    let startPage = Math.max(2, currentPage - 2);
-    let endPage = Math.min(totalPages - 1, currentPage + 2);
-
-    // Başlangıçta üç nokta
-    if (startPage > 2) {
-        html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-    }
-
-    // Orta sayfalar
-    for (let i = startPage; i <= endPage; i++) {
-        html += `
-            <li class="page-item ${i === currentPage ? 'active' : ''}">
-                <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${i})">${i}</a>
-            </li>
-        `;
-    }
-
-    // Sonda üç nokta
-    if (endPage < totalPages - 1) {
-        html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-    }
-
-    // Son sayfa (1'den farklıysa)
-    if (totalPages > 1) {
-        html += `
-            <li class="page-item ${currentPage === totalPages ? 'active' : ''}">
-                <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${totalPages})">${totalPages}</a>
-            </li>
-        `;
-    }
-
-    // Sonraki sayfa
-    html += `
-        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-            <a class="page-link" href="javascript:void(0)" onclick="event.preventDefault(); goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'tabindex="-1"' : ''}>Sonraki</a>
-        </li>
-    `;
-
-    pagination.innerHTML = html;
-}
-
-// Sayfaya git fonksiyonu güncellendi
-function goToPage(page) {
-    // Toplam sayfa sayısını kontrol et
-    const totalPages = parseInt(document.querySelector('[data-total-pages]')?.dataset.totalPages || '1');
-    
-    // Geçerli sayfa kontrolü
-    if (page < 1 || page > totalPages) return;
-    
-    // Page input'u güncelle
-    document.querySelector('[name="page"]').value = page;
-    
-    // Siparişleri yükle
-    loadOrders();
-}
-
-// Hızlı durum güncelleme
-async function quickUpdateStatus(orderId, newStatus) {
-    try {
-        // API çağrıları güncellendi
-        const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ status: newStatus })
-        });
-
-        if (!response.ok) throw new Error('API Hatası');
-
-        // Toast mesajı göster
-        const toastHTML = `
-            <div class="toast-container position-fixed bottom-0 end-0 p-3">
-                <div class="toast align-items-center text-bg-success border-0" role="alert">
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            <i class="bi bi-check-circle"></i> Sipariş durumu güncellendi: ${getStatusText(newStatus)}
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', toastHTML);
-        const toastEl = document.querySelector('.toast');
-        const bsToast = new bootstrap.Toast(toastEl);
-        bsToast.show();
-
-        // Tabloyu yenile
-        await loadOrders();
-
-    } catch (error) {
-        console.error('Durum güncellenirken hata:', error);
-        showError('Durum güncellenemedi!');
-    }
-}
-
-// Durum metinleri
-function getStatusText(status) {
-    const statusMap = {
-        'new': 'Yeni',
-        'preparing': 'Hazırlanıyor',
-        'ready': 'Hazır',
-        'delivering': 'Yolda',
-        'delivered': 'Teslim Edildi',
-        'cancelled': 'İptal'
-    };
-    return statusMap[status] || status;
-}
-
-// Hızlı durum güncelleme
-async function quickUpdateStatus(orderId, newStatus) {
-    try {
-        const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ status: newStatus })
-        });
-
-        if (!response.ok) throw new Error('API Hatası');
-
-        // Toast mesajı göster
-        const toastHTML = `
-            <div class="toast-container position-fixed bottom-0 end-0 p-3">
-                <div class="toast align-items-center text-bg-success border-0" role="alert">
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            <i class="bi bi-check-circle"></i> Sipariş durumu güncellendi: ${getStatusText(newStatus)}
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', toastHTML);
-        const toastEl = document.querySelector('.toast');
-        const bsToast = new bootstrap.Toast(toastEl);
-        bsToast.show();
-
-        // Tabloyu yenile
-        await loadOrders();
-
-    } catch (error) {
-        console.error('Durum güncellenirken hata:', error);
-        showError('Durum güncellenemedi!');
-    }
-}
-
-// İptal onayı
-function confirmCancelOrder(orderId) {
-    const modal = new bootstrap.Modal(document.createElement('div'));
-    modal.element.innerHTML = `
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Sipariş İptal Onayı</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Bu siparişi iptal etmek istediğinizden emin misiniz?</p>
-                    <p class="text-danger"><small>Bu işlem geri alınamaz!</small></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
-                    <button type="button" class="btn btn-danger" onclick="cancelOrder(${orderId})">
-                        Siparişi İptal Et
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal.element);
-    modal.show();
-}
-
-// Sipariş iptal
-async function cancelOrder(orderId) {
-    try {
-        const response = await fetch(`${API_URL}/orders/${orderId}/cancel`, {
-            method: 'PUT'
-        });
-
-        if (!response.ok) throw new Error('API Hatası');
-
-        showSuccess('Sipariş iptal edildi');
-        await loadOrders(); // Tabloyu yenile
-        
-        // Modalı kapat
-        const modal = bootstrap.Modal.getInstance(document.querySelector('.modal'));
-        modal.hide();
-    } catch (error) {
-        console.error('Sipariş iptal edilirken hata:', error);
-        showError('Sipariş iptal edilemedi!');
-    }
-}
-
-// Helper fonksiyonlar
-function getPaymentStatusBadge(status) {
-    const badges = {
-        'pending': '<span class="badge bg-warning">Bekliyor</span>',
-        'paid': '<span class="badge bg-success">Ödendi</span>',
-        'cancelled': '<span class="badge bg-danger">İptal</span>'
-    };
-    return badges[status] || `<span class="badge bg-secondary">${status}</span>`;
-}
-
-function formatTimeSlot(slot) {
-    if (!slot) return 'Belirtilmemiş';
-    
-    const slots = {
-        'morning': 'Sabah (09:00-12:00)',
-        'afternoon': 'Öğlen (12:00-17:00)',
-        'evening': 'Akşam (17:00-21:00)'
-    };
-    return slots[slot] || slot;
-}
-
-// Teslimatı geri al
-async function revertDeliveryStatus() {
-    if (!currentOrderId) return;
-    
-    try {
-        const response = await fetch(`${API_URL}/orders/${currentOrderId}/status`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ status: 'ready' })
-        });
-
-        if (!response.ok) throw new Error('API Hatası');
-
-        // Toast mesajı göster
-        const toastHTML = `
-            <div class="toast-container position-fixed bottom-0 end-0 p-3">
-                <div class="toast align-items-center text-bg-success border-0" role="alert">
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            <i class="bi bi-check-circle"></i> Sipariş durumu: Hazır'a alındı
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', toastHTML);
-        const toastEl = document.querySelector('.toast');
-        const bsToast = new bootstrap.Toast(toastEl);
-        bsToast.show();
-
-        // Modalı kapat ve tabloyu yenile
-        bootstrap.Modal.getInstance(document.getElementById('orderDetailModal')).hide();
-        await loadOrders();
-
-    } catch (error) {
-        console.error('Durum güncellenirken hata:', error);
-        showError('Durum güncellenemedi!');
-    }
-}
-
-// Sipariş listesini yükle - Toplam ve öğeleri düzgün göster
-async function loadOrders(page = 1, filters = {}) {
-    try {
-        // ...existing code...
-        
-        // Siparişleri tabloya doldur
-        ordersTable.innerHTML = data.orders.map(order => `
-            <tr>
-                <!-- Diğer bilgiler... -->
-                <td class="text-end">
-                    <strong>${formatCurrency(order.total_amount)}</strong>
-                    <div>
-                        <span class="badge ${getPaymentStatusClass(order.payment_status)}">
-                            ${getPaymentStatusText(order.payment_status)}
-                        </span>
-                    </div>
-                </td>
-                <!-- Diğer alanlar... -->
-            </tr>
-        `).join('');
-        
-        // ...existing code...
-    } catch (error) {
-        // ...existing code...
-    }
-}
-
-// Sipariş detayını göster - Tutarı düzgün görüntüle
-function fillOrderDetailModal(order) {
-    // ...existing code...
-    
-    // Toplam tutarı doğru formatta göster
-    document.getElementById('order-detail-total_amount').textContent = formatCurrency(order.total_amount);
-    
-    // Ürün listesini doldur
-    const itemsContainer = document.getElementById('order-detail-items');
-    if (order.items && order.items.length > 0) {
+    } else if (order.items && Array.isArray(order.items)) {
+        // Array ise detaylı ürün bilgisi
         let itemsHtml = '';
         let total = 0;
         
@@ -676,23 +351,96 @@ function fillOrderDetailModal(order) {
             `;
         });
         
-        // Toplam satırını ekle
+        // Toplam satırı
         itemsHtml += `
             <div class="d-flex justify-content-between align-items-center pt-2">
                 <div class="fw-bold">Toplam</div>
                 <div class="fw-bold">${formatCurrency(total)}</div>
             </div>
+        `;
+        
+        itemsList.innerHTML = itemsHtml;
+    } else {
+        itemsList.innerHTML = '<div class="list-group-item px-0 text-muted">Ürün bilgisi bulunamadı</div>';
+    }
+}
 
+// Hızlı durum güncelleme
+async function quickUpdateStatus(orderId, newStatus) {
+    try {
+        const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
 
+        if (!response.ok) throw new Error('API Hatası');
 
+        // Toast mesajı göster
+        showSuccess(`Sipariş durumu güncellendi: ${getStatusText(newStatus)}`);
 
+        // Tabloyu yenile
+        await loadOrders();
+    } catch (error) {
+        console.error('Durum güncellenirken hata:', error);
+        showError('Durum güncellenemedi!');
+    }
+}
 
+// İptal onayı
+function confirmCancelOrder(orderId) {
+    if (confirm('Bu siparişi iptal etmek istediğinizden emin misiniz? Bu işlem geri alınamaz!')) {
+        cancelOrder(orderId);
+    }
+}
 
+// Sipariş iptal
+async function cancelOrder(orderId) {
+    try {
+        const response = await fetch(`${API_URL}/orders/${orderId}/cancel`, {
+            method: 'PUT'
+        });
 
+        if (!response.ok) throw new Error('API Hatası');
 
+        showSuccess('Sipariş iptal edildi');
+        await loadOrders(); // Tabloyu yenile
+    } catch (error) {
+        console.error('Sipariş iptal edilirken hata:', error);
+        showError('Sipariş iptal edilemedi!');
+    }
+}
 
-}    // ...existing code...        }        itemsContainer.innerHTML = '<div class="text-muted">Ürün bilgisi bulunamadı</div>';    } else {        itemsContainer.innerHTML = itemsHtml;                `;
-// Eksik badge fonksiyonları ekle
+// Teslimatı geri al
+async function revertDeliveryStatus() {
+    if (!currentOrderId) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/orders/${currentOrderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: 'ready' })
+        });
+
+        if (!response.ok) throw new Error('API Hatası');
+
+        // Toast mesajı göster
+        showSuccess('Sipariş durumu "Hazır" olarak güncellendi');
+        
+        // Modalı kapat ve tabloyu yenile
+        bootstrap.Modal.getInstance(document.getElementById('orderDetailModal')).hide();
+        await loadOrders();
+    } catch (error) {
+        console.error('Durum güncellenirken hata:', error);
+        showError('Durum güncellenemedi!');
+    }
+}
+
+// Helper fonksiyonlar
 function getStatusBadge(status) {
     const statusMap = {
         'new': '<span class="badge status-new">Yeni</span>',
@@ -706,7 +454,29 @@ function getStatusBadge(status) {
     return statusMap[status] || `<span class="badge bg-secondary">${status || 'Belirsiz'}</span>`;
 }
 
-// Eksik ödeme durumu sınıf fonksiyonunu ekle
+function getStatusText(status) {
+    const statusMap = {
+        'new': 'Yeni',
+        'confirmed': 'Onaylandı',
+        'preparing': 'Hazırlanıyor',
+        'ready': 'Hazır',
+        'delivering': 'Yolda',
+        'delivered': 'Teslim Edildi',
+        'cancelled': 'İptal'
+    };
+    return statusMap[status] || status;
+}
+
+function getPaymentStatusBadge(status) {
+    const badges = {
+        'pending': '<span class="badge payment-pending">Bekliyor</span>',
+        'partial': '<span class="badge payment-partial">Kısmi</span>',
+        'paid': '<span class="badge payment-paid">Ödendi</span>',
+        'cancelled': '<span class="badge payment-cancelled">İptal</span>'
+    };
+    return badges[status] || `<span class="badge bg-secondary">${status || ''}</span>`;
+}
+
 function getPaymentStatusClass(status) {
     const classes = {
         'pending': 'payment-pending',
@@ -717,7 +487,6 @@ function getPaymentStatusClass(status) {
     return classes[status] || 'bg-secondary';
 }
 
-// Eksik ödeme durumu metin fonksiyonu ekle
 function getPaymentStatusText(status) {
     const texts = {
         'pending': 'Bekliyor',
@@ -728,7 +497,6 @@ function getPaymentStatusText(status) {
     return texts[status] || status || 'Belirsiz';
 }
 
-// Eksik formatlama fonksiyonu ekle
 function formatPaymentMethod(method) {
     const methods = {
         'cash': 'Nakit',
@@ -739,13 +507,13 @@ function formatPaymentMethod(method) {
     return methods[method] || method;
 }
 
-// API URL'ini elde etme fonksiyonu - ortak.js'e taşınmış olabilir, yoksa ekle
-function getApiUrl(path) {
-    // Path'in başında / varsa kontrol et ve düzelt
-    if (path && path.startsWith('/')) {
-        path = path.substring(1);
-    }
-    return `${API_URL}/${path}`;
+function formatTimeSlot(slot) {
+    if (!slot) return 'Belirtilmemiş';
+    
+    const slots = {
+        'morning': 'Sabah (09:00-12:00)',
+        'afternoon': 'Öğlen (12:00-17:00)',
+        'evening': 'Akşam (17:00-21:00)'
+    };
+    return slots[slot] || slot;
 }
-
-// ...existing code...
