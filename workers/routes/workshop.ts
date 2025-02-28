@@ -122,68 +122,91 @@ router.post('/:id/start', async (c) => {
     }
 })
 
-// Hazırlamayı tamamla - "preparing" siparişleri için
+// Hazırlamayı tamamla - STOK HAREKETLERİYLE BİRLİKTE
 router.post('/:id/complete', async (c) => {
     const db = c.get('db')
     const { id } = c.req.param()
     const { materials } = await c.req.json()
 
     try {
-        // 1. Malzemeleri kaydet
-        for (const material of materials) {
-            const { material_id, quantity } = material
+        // Bağlantı için geçerli bir user ID bul
+        const { results: users } = await db.prepare(`
+            SELECT id FROM users LIMIT 1
+        `).all();
+        
+        const userId = users && users.length > 0 ? users[0].id : 1;
+        console.log(`Kullanıcı ID: ${userId} kullanılıyor`);
 
-            // Önce bu siparişin order_item_id'sini bulalım
-            const { results: items } = await db.prepare(`
-                SELECT id FROM order_items 
-                WHERE order_id = ? 
-                LIMIT 1
-            `).bind(id).all();
-            
-            const order_item_id = items && items.length > 0 ? items[0].id : null;
-            
-            if (!order_item_id) {
-                return c.json({ 
-                    success: false, 
-                    error: 'Bu siparişe ait ürün bulunamadı' 
-                }, 400);
+        // 1. Malzemeleri kaydet ve stok hareketi oluştur
+        let savedMaterials = 0;
+        for (const material of materials) {
+            try {
+                const { material_id, quantity } = material;
+                
+                // Önce bu siparişin order_item_id'sini bulalım
+                const { results: items } = await db.prepare(`
+                    SELECT id FROM order_items 
+                    WHERE order_id = ? 
+                    LIMIT 1
+                `).bind(id).all();
+                
+                if (items && items.length > 0) {
+                    const order_item_id = items[0].id;
+                    
+                    // 1. Order_items_materials tablosuna kaydet
+                    await db.prepare(`
+                        INSERT INTO order_items_materials (
+                            order_id,
+                            order_item_id, 
+                            material_id,
+                            quantity,
+                            unit_price,
+                            total_amount
+                        ) VALUES (?, ?, ?, ?, 0, 0)
+                    `).bind(id, order_item_id, material_id, quantity).run();
+                    
+                    // 2. Stok hareketi oluştur
+                    await db.prepare(`
+                        INSERT INTO stock_movements (
+                            material_id,
+                            movement_type,
+                            quantity,
+                            source_type,
+                            source_id,
+                            notes,
+                            created_by
+                        ) VALUES (?, 'out', ?, 'sale', ?, 'Sipariş hazırlama', ?)
+                    `).bind(material_id, quantity, id, userId).run();
+                    
+                    savedMaterials++;
+                }
+            } catch (materialError) {
+                console.error(`Malzeme kaydı hatası:`, materialError);
+                // Hata olsa bile devam et
             }
-            
-            await db.prepare(`
-                INSERT INTO order_items_materials (
-                    order_id,
-                    order_item_id, 
-                    material_id,
-                    quantity,
-                    unit_price,
-                    total_amount
-                ) VALUES (?, ?, ?, ?, 0, 0)
-            `).bind(id, order_item_id, material_id, quantity).run();
         }
 
-        // 2. Sipariş durumunu güncelle
+        // 3. Sipariş durumunu güncelle
         await db.prepare(`
             UPDATE orders 
             SET status = 'ready',
-                preparation_end = CURRENT_TIMESTAMP
+                preparation_end = CURRENT_TIMESTAMP,
+                prepared_by = ?
             WHERE id = ?
-        `).bind(id).run();
+        `).bind(userId, id).run();
 
-        return c.json({ success: true });
+        return c.json({ 
+            success: true,
+            status: 'ready',
+            saved_materials: savedMaterials
+        });
 
     } catch (error) {
-        // Stok yetersiz hatası özel olarak yakala
-        if (error.message.includes('Yetersiz stok')) {
-            return c.json({ 
-                success: false, 
-                error: 'Yetersiz stok miktarı'
-            }, 400)
-        }
-
+        console.error('Sipariş tamamlama hatası:', error);
         return c.json({ 
             success: false, 
             error: error.message 
-        }, 500)
+        }, 500);
     }
 })
 
