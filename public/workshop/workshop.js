@@ -1,4 +1,5 @@
 let currentFilter = 'new';
+let currentOrderId = null; // Eksik değişkeni tanımla
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSideBar();
@@ -157,6 +158,7 @@ async function startPreparation(orderId) {
             showSuccess('Hazırlama başlatıldı');
             loadOrders(currentFilter);
             
+            // Şimdi currentOrderId tanımlandığı için sorun çıkmaz
             if (orderId === currentOrderId) {
                 showOrderDetail(orderId);
             }
@@ -200,7 +202,9 @@ async function completePreparation(orderId) {
 
 async function showOrderDetail(orderId) {
     try {
-        // Debug log
+        // Mevcut sipariş ID'sini kaydet
+        currentOrderId = orderId;
+        
         console.log('Loading order detail:', orderId);
 
         const detailContainer = document.getElementById('orderDetail');

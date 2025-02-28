@@ -125,24 +125,40 @@ router.post('/:id/start', async (c) => {
 // Hazırlamayı tamamla - "preparing" siparişleri için
 router.post('/:id/complete', async (c) => {
     const db = c.get('db')
-    const tenant_id = c.get('tenant_id')
     const { id } = c.req.param()
     const { materials } = await c.req.json()
 
     try {
-        // 1. Malzemeleri kaydet - fiyatlar trigger ile hesaplanacak
+        // 1. Malzemeleri kaydet
         for (const material of materials) {
             const { material_id, quantity } = material
 
+            // Önce bu siparişin order_item_id'sini bulalım
+            const { results: items } = await db.prepare(`
+                SELECT id FROM order_items 
+                WHERE order_id = ? 
+                LIMIT 1
+            `).bind(id).all();
+            
+            const order_item_id = items && items.length > 0 ? items[0].id : null;
+            
+            if (!order_item_id) {
+                return c.json({ 
+                    success: false, 
+                    error: 'Bu siparişe ait ürün bulunamadı' 
+                }, 400);
+            }
+            
             await db.prepare(`
                 INSERT INTO order_items_materials (
-                    tenant_id,
                     order_id,
+                    order_item_id, 
                     material_id,
                     quantity,
-                    created_at
-                ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-            `).bind(tenant_id, id, material_id, quantity).run()
+                    unit_price,
+                    total_amount
+                ) VALUES (?, ?, ?, ?, 0, 0)
+            `).bind(id, order_item_id, material_id, quantity).run();
         }
 
         // 2. Sipariş durumunu güncelle
@@ -150,10 +166,10 @@ router.post('/:id/complete', async (c) => {
             UPDATE orders 
             SET status = 'ready',
                 preparation_end = CURRENT_TIMESTAMP
-            WHERE id = ? AND tenant_id = ?
-        `).bind(id, tenant_id).run()
+            WHERE id = ?
+        `).bind(id).run();
 
-        return c.json({ success: true })
+        return c.json({ success: true });
 
     } catch (error) {
         // Stok yetersiz hatası özel olarak yakala
