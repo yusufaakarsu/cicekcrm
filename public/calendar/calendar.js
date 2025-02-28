@@ -265,35 +265,34 @@ function switchToDay(dateStr) {
 // API'den ay verilerini yükle
 async function loadMonthData() {
     try {
-        console.log('Loading month data...'); // Debug log
+        console.log('Loading month data...');
 
         const startDate = formatDateISO(new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1));
         const endDate = formatDateISO(new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0));
 
-        console.log('Date range:', { startDate, endDate }); // Debug log
+        console.log('Tarih aralığı:', { startDate, endDate });
 
-        const response = await fetch(`${API_URL}/orders/filtered?` + new URLSearchParams({
+        // Güncellenmiş API endpoint ve parametreler
+        const response = await fetchAPI(`/orders?` + new URLSearchParams({
+            status: 'all',
             start_date: startDate,
             end_date: endDate,
-            date_filter: 'delivery_date'
+            date_type: 'delivery', // "delivery_date" yerine "delivery" olarak değiştirildi
+            page: 1,
+            per_page: 1000
         }));
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`API Error (${response.status}): ${errorText}`);
+        if (!response.success) {
+            throw new Error(response.error || 'API Hatası');
         }
-        
-        const data = await response.json();
-        console.log('API Response:', data); // Debug log
-        
-        if (!data.success) {
-            throw new Error(data.error || 'API Error');
-        }
+
+        console.log('API Yanıtı:', response);
 
         // Siparişleri tarihe göre grupla
         const ordersByDay = {};
-        data.orders.forEach(order => {
-            const deliveryDate = order.delivery_date.split(' ')[0]; // Tarih kısmını al
+        response.orders.forEach(order => {
+            // Tarih formatı değişmiş olabilir - ISO formatından (YYYY-MM-DD) tarih al
+            const deliveryDate = order.delivery_date.split('T')[0]; // ISO formatı için
             
             if (!ordersByDay[deliveryDate]) {
                 ordersByDay[deliveryDate] = {
@@ -304,20 +303,21 @@ async function loadMonthData() {
                 };
             }
             
-            const timeSlot = order.delivery_time_slot;
+            // Teslimat zamanı alanı değişmiş olabilir
+            const timeSlot = order.delivery_time; // "delivery_time_slot" yerine "delivery_time"
             if (timeSlot) {
                 ordersByDay[deliveryDate][timeSlot]++;
                 ordersByDay[deliveryDate].total++;
             }
         });
 
-        console.log('Grouped orders:', ordersByDay); // Debug log
+        console.log('Gruplandırılmış siparişler:', ordersByDay);
 
         // Takvim günlerini güncelle
         updateCalendarDays(ordersByDay);
 
     } catch (error) {
-        console.error('Month data loading error:', error);
+        console.error('Ay verilerini yükleme hatası:', error);
         showError('Veriler yüklenemedi: ' + error.message);
     }
 }
@@ -353,16 +353,27 @@ async function loadDayData() {
         const date = formatDateISO(state.currentDate);
         console.log('Gün verileri yükleniyor:', date);
 
-        const response = await fetch(`${API_URL}/orders/filtered?start_date=${date}&end_date=${date}&date_filter=delivery_date&per_page=1000`);
-        if (!response.ok) throw new Error('API Hatası: ' + response.status);
-        
-        const data = await response.json();
+        // Güncellenmiş API endpoint ve parametreler
+        const response = await fetchAPI(`/orders?` + new URLSearchParams({
+            status: 'all',
+            start_date: date,
+            end_date: date,
+            date_type: 'delivery',
+            page: 1,
+            per_page: 1000
+        }));
+
+        if (!response.success) {
+            throw new Error(response.error || 'API Hatası');
+        }
+
+        console.log('Gün verileri:', response);
 
         // Her zaman dilimi için siparişleri filtrele ve render et
         ['morning', 'afternoon', 'evening'].forEach(slot => {
-            const orders = data.orders.filter(order => 
-                order.delivery_time_slot === slot && 
-                order.delivery_date.split(' ')[0] === date
+            const orders = response.orders.filter(order => 
+                order.delivery_time === slot && 
+                order.delivery_date.split('T')[0] === date
             );
             
             const container = document.getElementById(`${slot}-deliveries`);
@@ -388,19 +399,17 @@ function renderDayOrders(container, orders) {
                             <div class="card-body p-2">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h6 class="mb-1 text-truncate">${order.recipient_name}</h6>
+                                        <h6 class="mb-1 text-truncate">${order.recipient_name || 'İsimsiz Alıcı'}</h6>
                                         <div class="small text-muted mb-1 text-truncate">
-                                            <i class="bi bi-geo-alt"></i> ${order.delivery_address}
+                                            <i class="bi bi-geo-alt"></i> ${getOrderAddress(order)}
                                         </div>
                                         <div class="small text-truncate">
-                                            <i class="bi bi-phone"></i> ${order.recipient_phone}
+                                            <i class="bi bi-phone"></i> ${order.recipient_phone || '-'}
                                         </div>
-                                        ${order.card_message ? 
-                                            `<div class="small text-primary mt-1 text-truncate">
-                                                <i class="bi bi-chat-quote"></i> ${order.card_message}
-                                            </div>` : ''
-                                        }
-                                        <div>
+                                        <div class="small text-truncate mt-1">
+                                            ${getOrderItemsSummary(order)}
+                                        </div>
+                                        <div class="mt-1">
                                             ${getStatusBadge(order.status)}
                                         </div>
                                     </div>
@@ -426,13 +435,17 @@ function formatTimeSlot(slot) {
     return slots[slot] || slot;
 }
 
-// Sipariş detaylarını göster fonksiyonu - Eklendi
+// Sipariş detaylarını göster fonksiyonu - Güncellendi
 async function showOrderDetails(orderId) {
     try {
-        const response = await fetch(`${API_URL}/orders/${orderId}`);
-        if (!response.ok) throw new Error('API Hatası');
+        const response = await fetchAPI(`/orders/${orderId}/details`);
         
-        const order = await response.json();
+        if (!response.success) {
+            throw new Error(response.error || 'Sipariş detayları alınamadı');
+        }
+        
+        const order = response.order;
+        console.log('Sipariş detayları:', order);
         
         // Modalı göster
         const modalHTML = `
@@ -446,18 +459,30 @@ async function showOrderDetails(orderId) {
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label class="fw-bold">Teslimat Bilgileri</label>
-                                <p>${formatDate(order.delivery_date)} - ${formatTimeSlot(order.delivery_time_slot)}</p>
-                                <p>${order.delivery_address}</p>
+                                <p>${formatDate(order.delivery_date)} - ${formatTimeSlot(order.delivery_time)}</p>
+                                <p>${order.district || ''} ${order.neighborhood || ''} ${order.street || ''}</p>
                             </div>
                             <div class="mb-3">
                                 <label class="fw-bold">Alıcı Bilgileri</label>
-                                <p>${order.recipient_name}<br>${order.recipient_phone}</p>
-                                ${order.card_message ? `<p class="text-muted">"${order.card_message}"</p>` : ''}
+                                <p>${order.recipient_name || '-'}<br>${order.recipient_phone || '-'}</p>
+                                ${order.custom_card_message ? `<p class="text-muted">"${order.custom_card_message}"</p>` : ''}
                             </div>
                             <div>
                                 <label class="fw-bold">Ürünler</label>
-                                <p>${order.items}</p>
+                                <ul class="list-group">
+                                    ${order.items && order.items.map ? order.items.map(item => `
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            ${item.product_name}
+                                            <span class="badge bg-primary rounded-pill">${item.quantity}</span>
+                                        </li>
+                                    `).join('') : '<li class="list-group-item">Ürün bilgisi yok</li>'}
+                                </ul>
                             </div>
+                        </div>
+                        <div class="modal-footer">
+                            <a href="/orders/edit-order.html?id=${order.id}" class="btn btn-primary">
+                                <i class="bi bi-pencil"></i> Düzenle
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -475,20 +500,8 @@ async function showOrderDetails(orderId) {
 
     } catch (error) {
         console.error('Sipariş detayları yüklenirken hata:', error);
-        showError('Sipariş detayları yüklenemedi');
+        showError('Sipariş detayları yüklenemedi: ' + error.message);
     }
-}
-
-// Teslimat durumuna göre renk belirleme
-function getDeliveryStatusColor(status) {
-    const colors = {
-        'pending': 'primary',
-        'assigned': 'info',
-        'on_way': 'warning',
-        'completed': 'success',
-        'failed': 'danger'
-    };
-    return colors[status] || 'secondary';
 }
 
 // Helper fonksiyonlar
@@ -501,4 +514,38 @@ function formatDateISO(date) {
 
 function formatDayName(date) {
     return new Intl.DateTimeFormat('tr-TR', { weekday: 'short' }).format(date);
+}
+
+// Helper fonksiyonlar - yeni
+function getOrderAddress(order) {
+    // Adresi farklı alanlardan bir araya getir (veri yapısı değişmiş olabilir)
+    const district = order.district || '';
+    const neighborhood = order.neighborhood || '';
+    
+    if (order.address) return order.address;
+    if (district && neighborhood) return `${district}, ${neighborhood}`;
+    return district || neighborhood || 'Adres bilgisi yok';
+}
+
+function getOrderItemsSummary(order) {
+    // Sipariş ürünlerinin özeti (veri yapısı değişmiş olabilir)
+    if (order.items_summary) return order.items_summary;
+    if (Array.isArray(order.items) && order.items.length > 0) {
+        return order.items.map(item => `${item.product_name} x${item.quantity}`).join(', ');
+    }
+    return 'Ürün bilgisi yok';
+}
+
+// Sipariş durumunu badge olarak gösteren fonksiyon
+function getStatusBadge(status) {
+    const badges = {
+        'new': '<span class="badge bg-primary">Yeni</span>',
+        'confirmed': '<span class="badge bg-info text-dark">Onaylandı</span>',
+        'preparing': '<span class="badge bg-warning text-dark">Hazırlanıyor</span>',
+        'ready': '<span class="badge bg-success">Hazır</span>',
+        'delivering': '<span class="badge bg-info">Yolda</span>',
+        'delivered': '<span class="badge bg-success">Teslim Edildi</span>',
+        'cancelled': '<span class="badge bg-danger">İptal</span>'
+    };
+    return badges[status] || `<span class="badge bg-secondary">${status}</span>`;
 }
