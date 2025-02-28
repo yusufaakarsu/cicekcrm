@@ -1,26 +1,47 @@
 import { Context } from 'hono';
 import { D1Database } from '@cloudflare/workers-types';
 
+// Alıcı kaydetme fonksiyonunda kontrolü güçlendir
+async function saveRecipient(db, data) {
+  // Önce var olan aynı isim/telefona sahip alıcıyı kontrol et
+  const existingRecipient = await db.prepare(`
+    SELECT id FROM recipients 
+    WHERE customer_id = ? AND phone = ? AND name = ? AND deleted_at IS NULL
+  `).bind(data.customer_id, data.phone, data.name).first();
+  
+  if (existingRecipient) {
+    return existingRecipient.id; // Eğer varsa mevcut ID'yi döndür
+  }
+  
+  // Yoksa yeni alıcı ekle
+  const recipientResult = await db.prepare(`
+    INSERT INTO recipients (
+      customer_id, name, phone, 
+      notes, special_dates
+    ) VALUES (?, ?, ?, ?, ?)
+  `).bind(
+    data.customer_id,
+    data.name,
+    data.phone,
+    data.notes || null,
+    null // special_dates - gerekirse doldurulabilir
+  ).run();
+
+  return recipientResult.meta?.last_row_id;
+}
+
 // Sipariş oluşturma fonksiyonu
 export async function createOrder(c: Context, db: D1Database, body: any) {
   try {
     console.log('Order request body:', body);
 
     // 1. Önce alıcı (recipient) kaydı yap
-    const recipientResult = await db.prepare(`
-      INSERT INTO recipients (
-        customer_id, name, phone, 
-        notes, special_dates
-      ) VALUES (?, ?, ?, ?, ?)
-    `).bind(
-      body.customer_id,
-      body.recipient_name,
-      body.recipient_phone,
-      body.recipient_note || null,
-      null // special_dates - gerekirse doldurulabilir
-    ).run();
-
-    const recipient_id = recipientResult.meta?.last_row_id;
+    const recipient_id = await saveRecipient(db, {
+      customer_id: body.customer_id,
+      name: body.recipient_name,
+      phone: body.recipient_phone,
+      notes: body.recipient_note
+    });
     if (!recipient_id) throw new Error('Alıcı kaydedilemedi');
 
     // 2. Siparişi kaydet - tablo şemasına uygun alanlar

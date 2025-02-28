@@ -873,36 +873,83 @@ async function createNewAddress(addressData) {
 
 // Ürünleri listele
 function renderProducts(products) {
-    const container = document.getElementById('productList');
+  const container = document.getElementById('productsContainer');
+  container.innerHTML = '';
+  
+  if (!products || !products.length) {
+    container.innerHTML = '<p class="text-center text-muted">Ürün bulunamadı</p>';
+    return;
+  }
+  
+  // Resimsiz basit liste oluştur
+  const productsList = document.createElement('div');
+  productsList.className = 'list-group mb-3';
+  
+  products.forEach(product => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+    item.onclick = () => selectProduct(product.id, product.name, product.base_price);
     
-    if (!products || products.length === 0) {
-        container.innerHTML = '<div class="col-12"><div class="alert alert-info">Ürün bulunamadı</div></div>';
-        return;
+    item.innerHTML = `
+      <div>
+        <strong>${product.name}</strong>
+        <small class="d-block text-muted">${product.description || ''}</small>
+      </div>
+      <span class="badge bg-primary rounded-pill">${formatCurrency(product.base_price)}</span>
+    `;
+    
+    productsList.appendChild(item);
+  });
+  
+  container.appendChild(productsList);
+}
+// Kart mesajlarını düzgün yükle
+async function loadCardMessages() {
+  try {
+    // Debug edelim
+    console.log('Kart mesajları yükleniyor...');
+    
+    const response = await fetch(`${API_URL}/settings/card-messages`);
+    console.log('Kart mesajları response:', response.status);
+    
+    if (!response.ok) throw new Error('API Hatası');
+    
+    const data = await response.json();
+    console.log('Kart mesajları data:', data);
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Veri alınamadı');
     }
-
-    container.innerHTML = products.map(product => `
-        <div class="col-md-3 col-sm-6">
-            <div class="card h-100">
-                ${product.image_url ? `
-                    <img src="${product.image_url}" class="card-img-top" alt="${product.name}">
-                ` : `
-                    <div class="card-img-top bg-light text-center py-4">
-                        <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
-                    </div>
-                `}
-                <div class="card-body">
-                    <h6 class="card-title">${product.name}</h6>
-                    <p class="card-text text-success fw-bold mb-2">
-                        ${formatCurrency(product.base_price)}
-                    </p>
-                </div>
-                <div class="card-footer bg-white border-top-0">
-                    <button type="button" class="btn btn-primary btn-sm w-100" 
-                            onclick="addProduct(${JSON.stringify(product).replace(/"/g, '&quot;')})">
-                        <i class="bi bi-plus-lg"></i> Sepete Ekle
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
+    
+    // Select elementini doldur
+    const cardSelect = document.getElementById('cardMessageId');
+    cardSelect.innerHTML = `<option value="">Seçiniz...</option>`;
+    
+    if (data.messages && data.messages.length > 0) {
+      // Kategorilere göre grupla
+      const categories = {};
+      data.messages.forEach(msg => {
+        if (!categories[msg.category]) categories[msg.category] = [];
+        categories[msg.category].push(msg);
+      });
+      
+      // Kategorilere göre option grupları oluştur
+      for (const category in categories) {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = category;
+        
+        categories[category].forEach(msg => {
+          const option = document.createElement('option');
+          option.value = msg.id;
+          option.textContent = msg.title;
+          optgroup.appendChild(option);
+        });
+        
+        cardSelect.appendChild(optgroup);
+      }
+    }
+  } catch (error) {
+    console.error('Kart mesajları yüklenirken hata:', error);
+  }
 }
