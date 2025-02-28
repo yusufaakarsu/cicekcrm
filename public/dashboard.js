@@ -439,3 +439,53 @@ function formatDeliveryTime(time) {
     };
     return times[time] || time;
 }
+
+// Sipariş durumu için badge sınıfı
+function getStatusBadgeClass(status) {
+    const badges = {
+        'new': 'bg-info',
+        'confirmed': 'bg-primary',
+        'preparing': 'bg-warning',
+        'ready': 'bg-success',
+        'delivering': 'bg-danger',
+        'delivered': 'bg-success',
+        'cancelled': 'bg-dark'
+    };
+    return badges[status] || 'bg-secondary';
+}
+
+// Sipariş durumu için metin
+function getStatusText(status) {
+    const texts = {
+        'new': 'Yeni',
+        'confirmed': 'Onaylandı',
+        'preparing': 'Hazırlanıyor',
+        'ready': 'Hazır',
+        'delivering': 'Taşınıyor',
+        'delivered': 'Teslim Edildi',
+        'cancelled': 'İptal'
+    };
+    return texts[status] || status;
+}
+
+// Ödeme durumu için badge sınıfı
+function getPaymentStatusBadgeClass(status) {
+    const badges = {
+        'pending': 'bg-warning text-dark',
+        'partial': 'bg-info',
+        'paid': 'bg-success',
+        'cancelled': 'bg-dark'
+    };
+    return badges[status] || 'bg-secondary';
+}
+
+// Ödeme durumu için metin
+function getPaymentStatusText(status) {
+    const texts = {
+        'pending': 'Bekliyor',
+        'partial': 'Kısmi',
+        'paid': 'Ödendi',
+        'cancelled': 'İptal'
+    };
+    return texts[status] || status;
+}

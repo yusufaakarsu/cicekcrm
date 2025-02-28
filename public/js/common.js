@@ -1,12 +1,20 @@
-// API URL configuration
+/**
+ * Çiçek CRM Ortak Fonksiyonlar
+ * Tüm sistem için paylaşılan utility kodları
+ */
+
+// API ve Yapılandırma
 const CONFIG = {
     API_URL: window.location.hostname.includes('pages.dev')
-        ? 'https://cicek-crm-api.yusufaakarsu.workers.dev/api'  // <-- /api eklendi
+        ? 'https://cicek-crm-api.yusufaakarsu.workers.dev/api'
         : `${window.location.protocol}//${window.location.host}/api`,
     HERE_API_KEY: '8ga3iUSKvwTytKYkk8PbpnnH5iCFlNDsvFoSyCghhjI'
 };
 
-// İstanbul ilçeleri
+// API URL değişkeni oluştur - Tek bir API URL tanımı
+const API_URL = CONFIG.API_URL;
+
+// İstanbul ilçeleri - Adres işlemleri için
 const ISTANBUL_DISTRICTS = [
     'Adalar', 'Arnavutköy', 'Ataşehir', 'Avcılar', 'Bağcılar', 'Bahçelievler',
     'Bakırköy', 'Başakşehir', 'Bayrampaşa', 'Beşiktaş', 'Beykoz', 'Beylikdüzü',
@@ -17,105 +25,120 @@ const ISTANBUL_DISTRICTS = [
     'Üsküdar', 'Zeytinburnu'
 ];
 
-// API ve uygulama URL'leri - düzeltildi
-const BASE_URL = window.location.origin; // Mevcut domaini kullan
+// ===============================================
+// SIDEBAR & NAVIGATION
+// ===============================================
 
-// API URL Configuration
-const API_BASE = window.location.hostname.includes('pages.dev') 
-    ? 'https://cicek-crm-api.yusufaakarsu.workers.dev'
-    : `${window.location.protocol}//${window.location.host}`;
-
-const API_URL = `${API_BASE}/api`;
-
-// API URL düzeltmesi
-const API_URL = `${window.location.hostname.includes('pages.dev')
-    ? 'https://cicek-crm-api.yusufaakarsu.workers.dev'
-    : `${window.location.protocol}//${window.location.host}`}/api`;
-
-// Bunu global olarak export et
-window.getApiUrl = (path) => `${API_URL}${path}`;
-
-// Genel utility fonksiyonları
-// Sidebar yükleme fonksiyonu düzeltildi - doğru path kullanılması için
+/**
+ * Sidebar modülünü yükler ve aktif sayfayı işaretler
+ */
 async function loadSideBar() {
     try {
         console.log('Sidebar yükleniyor...');
         
-        // Sidebar HTML dosyasının yolunu düzelt
         const response = await fetch('/common/sidebar.html');
         
         if (!response.ok) {
-            console.error('Sidebar yüklenemedi:', response.status, response.statusText);
-            
-            // Sidebar HTML dosyası bulunamadığında inline HTML oluştur
-            const sidebarContainer = document.getElementById('mainSidebar');
-            if (sidebarContainer) {
-                sidebarContainer.innerHTML = `
-                    <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 200px; min-height: 100vh;">
-                        <h5 class="mb-4">Çiçek CRM</h5>
-                        <ul class="nav nav-pills flex-column mb-auto">
-                            <li class="nav-item">
-                                <a href="/index.html" class="nav-link text-white active">
-                                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="/orders/orders.html" class="nav-link text-white">
-                                    <i class="bi bi-box me-2"></i> Siparişler
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="/products/products.html" class="nav-link text-white">
-                                    <i class="bi bi-box-seam me-2"></i> Ürünler
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="/stock/stock.html" class="nav-link text-white">
-                                    <i class="bi bi-cart me-2"></i> Stok
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                `;
-            }
+            console.error('Sidebar yüklenemedi:', response.status);
+            createFallbackSidebar();
             return;
         }
         
         const html = await response.text();
         const sidebarEl = document.getElementById('mainSidebar');
-        if (sidebarEl) {
-            sidebarEl.innerHTML = html;
-        } else {
-            console.error('Sidebar element bulunamadı: #mainSidebar');
-        }
-
-        // Aktif sayfayı işaretle
-        const currentPage = document.body.dataset.page;
-        console.log('Current page:', currentPage);
         
-        if (currentPage) {
-            // Daha esnek eşleşme için
-            const links = document.querySelectorAll('#mainSidebar a');
-            for (const link of links) {
-                // Path'i lowercase yaparak karşılaştır
-                const href = link.getAttribute('href').toLowerCase();
-                if (href.includes('/' + currentPage.toLowerCase()) || 
-                    (currentPage.toLowerCase() === 'dashboard' && href.includes('index.html'))) {
-                    link.classList.add('active');
-                    break;
-                }
-            }
+        if (!sidebarEl) {
+            console.error('Sidebar elementi bulunamadı: #mainSidebar');
+            return;
         }
+        
+        sidebarEl.innerHTML = html;
+        markActiveNavItem();
+        
     } catch (error) {
         console.error('Sidebar yükleme hatası:', error);
-        showError('Menü yüklenemedi: ' + error.message);
+        createFallbackSidebar();
     }
 }
 
-// Sayfa yüklendiğinde header'ı yükle
-document.addEventListener('DOMContentLoaded', loadSideBar);
+/**
+ * Yedek sidebar oluştur - Ana sidebar yüklenemediğinde
+ */
+function createFallbackSidebar() {
+    const sidebarContainer = document.getElementById('mainSidebar');
+    if (!sidebarContainer) return;
+    
+    sidebarContainer.innerHTML = `
+        <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 200px; min-height: 100vh;">
+            <h5 class="mb-4">Çiçek CRM</h5>
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item">
+                    <a href="/index.html" class="nav-link text-white">
+                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/orders/orders.html" class="nav-link text-white">
+                        <i class="bi bi-box me-2"></i> Siparişler
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/products/products.html" class="nav-link text-white">
+                        <i class="bi bi-box-seam me-2"></i> Ürünler
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/stock/stock.html" class="nav-link text-white">
+                        <i class="bi bi-cart me-2"></i> Stok
+                    </a>
+                </li>
+            </ul>
+        </div>
+    `;
+    
+    // Yedek sidebar'da da aktif sayfayı işaretle
+    markActiveNavItem();
+}
 
-// Para formatları
+/**
+ * Mevcut sayfaya göre sidebar'daki ilgili item'ı aktif olarak işaretler
+ */
+function markActiveNavItem() {
+    const currentPage = document.body.dataset.page;
+    if (!currentPage) return;
+    
+    const links = document.querySelectorAll('#mainSidebar a');
+    
+    for (const link of links) {
+        const href = link.getAttribute('href').toLowerCase();
+        
+        // Sayfanın pathinde ilgili route var mı?
+        const isActive = href.includes('/' + currentPage.toLowerCase()) || 
+                        (currentPage.toLowerCase() === 'dashboard' && href.includes('index.html'));
+                        
+        if (isActive) {
+            link.classList.add('active');
+            
+            // Eğer dropdown içindeyse, parent dropdown'ı da aç
+            const parentDropdown = link.closest('.collapse');
+            if (parentDropdown) {
+                parentDropdown.classList.add('show');
+            }
+            
+            break;
+        }
+    }
+}
+
+// ===============================================
+// FORMAT UTILITIES
+// ===============================================
+
+/**
+ * Para miktarını formatlar (₺ sembolü ile)
+ * @param {number} amount - Formatlanacak miktar
+ * @returns {string} Formatlanmış para miktarı (₺)
+ */
 function formatCurrency(amount) {
     if (amount === null || amount === undefined) return '0,00 ₺';
     return new Intl.NumberFormat('tr-TR', { 
@@ -125,24 +148,39 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
+/**
+ * Metin içindeki para değerini sayısal değere çevirir
+ * @param {string} text - Para miktarı içeren metin
+ * @returns {number} Sayısal değer
+ */
 function parseCurrency(text) {
     if (!text) return 0;
     return parseFloat(text.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
 }
 
-// Para formatı
+/**
+ * Para miktarını formatlı sayı olarak gösterir (₺ sembolü olmadan)
+ * @param {number} amount - Formatlanacak miktar
+ * @returns {string} Formatlanmış sayı
+ */
 function formatPrice(amount) {
+    if (amount === null || amount === undefined) return '0,00';
     return new Intl.NumberFormat('tr-TR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }).format(amount);
 }
 
-// Format tarih - sadece tarih için
+/**
+ * Tarihi formatlı şekilde gösterir (gün.ay.yıl)
+ * @param {string} dateString - Tarih string'i
+ * @returns {string} Formatlanmış tarih
+ */
 function formatDate(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
+    
     return new Intl.DateTimeFormat('tr-TR', {
         year: 'numeric', 
         month: '2-digit', 
@@ -150,7 +188,13 @@ function formatDate(dateString) {
     }).format(date);
 }
 
+/**
+ * Tarihi kısa gün adı ile gösterir (Pzt, 4 Oca)
+ * @param {string|Date} date - Tarih
+ * @returns {string} Formatlanmış tarih
+ */
 function formatDateLocale(date) {
+    if (!date) return '-';
     return new Intl.DateTimeFormat('tr-TR', {
         weekday: 'short',
         day: 'numeric',
@@ -158,46 +202,69 @@ function formatDateLocale(date) {
     }).format(new Date(date));
 }
 
+/**
+ * Tarih ve saati formatlı şekilde gösterir (gün.ay.yıl saat:dakika)
+ * @param {string} dateStr - Tarih string'i
+ * @returns {string} Formatlanmış tarih ve saat
+ */
 function formatDateTime(dateStr) {
     if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    
     return new Intl.DateTimeFormat('tr-TR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-    }).format(new Date(dateStr));
+    }).format(date);
 }
 
-// Telefon numarası formatlama
+/**
+ * Telefon numarasını formatlı şekilde gösterir (0530 123 45 67)
+ * @param {string} phone - Telefon numarası
+ * @returns {string} Formatlanmış telefon numarası
+ */
 function formatPhoneNumber(phone) {
     if (!phone) return '';
-    // 5301234567 -> 0530 123 45 67
+    
     phone = phone.toString().trim().replace(/\D/g, '');
     if (phone.length === 10 && !phone.startsWith('0')) {
         phone = '0' + phone;
     }
+    
     return phone.replace(/(\d{4})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4');
 }
 
-// Teslimat saati formatı güncellendi
+/**
+ * Teslimat saatini formatlı şekilde gösterir (emoji ile)
+ * @param {string} slot - Teslimat dilimi (morning, afternoon, evening)
+ * @returns {string} Formatlanmış teslimat saati
+ */
 function formatDeliveryTime(slot) {
     const slots = {
         'morning': '📅 Sabah (09:00-12:00)', 
-        'afternoon': '🌞 Öğlen (12:00-17:00)',
+        'afternoon': '🌞 Öğleden Sonra (12:00-17:00)',
         'evening': '🌙 Akşam (17:00-21:00)'
     };
+    
     return slots[slot] || slot;
 }
 
-// Status badge oluştur
+/**
+ * Durum badge'i oluşturur
+ * @param {string} status - Durum kodu
+ * @returns {string} HTML badge elementi
+ */
 function getStatusBadge(status) {
     const statusMap = {
         'new': ['Yeni', 'warning'],
+        'confirmed': ['Onaylandı', 'primary'],
         'preparing': ['Hazırlanıyor', 'info'],
-        'ready': ['Hazır', 'primary'],          // Eklendi
+        'ready': ['Hazır', 'primary'],
         'delivering': ['Yolda', 'info'],
-        'delivered': ['Teslim Edildi', 'success'], // Eklendi
+        'delivered': ['Teslim Edildi', 'success'],
         'cancelled': ['İptal', 'danger']
     };
 
@@ -205,78 +272,101 @@ function getStatusBadge(status) {
     return `<span class="badge bg-${color}">${text}</span>`;
 }
 
-// Ödeme yöntemi formatla
+/**
+ * Ödeme yöntemi adını gösterir
+ * @param {string} method - Ödeme yöntemi kodu
+ * @returns {string} Ödeme yöntemi adı
+ */
 function formatPaymentMethod(method) {
     const methodMap = {
         'credit_card': 'Kredi Kartı',
         'bank_transfer': 'Havale/EFT',
         'cash': 'Nakit'
     };
+    
     return methodMap[method] || method;
 }
 
-// Hata gösterme fonksiyonu
+// ===============================================
+// UI NOTIFICATIONS
+// ===============================================
+
+/**
+ * Hata mesajı gösterir
+ * @param {string} message - Hata mesajı
+ */
 function showError(message) {
     console.error(message);
-    
-    // Toast mesajı göster
-    const toast = document.createElement('div');
-    toast.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-    toast.innerHTML = `
-        <div class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(toast);
-    
-    const bsToast = new bootstrap.Toast(toast.querySelector('.toast'), {
-        autohide: true,
-        delay: 5000
-    });
-    bsToast.show();
-    
-    // 5.5 saniye sonra DOM'dan kaldır
-    setTimeout(() => {
-        toast.remove();
-    }, 5500);
+    showNotification('error', message);
 }
 
-// Başarı mesajı gösterme fonksiyonu
+/**
+ * Başarı mesajı gösterir
+ * @param {string} message - Başarı mesajı
+ */
 function showSuccess(message) {
-    // Toast mesajı göster
+    showNotification('success', message);
+}
+
+/**
+ * Bildirim toastı gösterir
+ * @param {string} type - Bildirim tipi ('error' veya 'success')
+ * @param {string} message - Bildirim mesajı
+ */
+function showNotification(type, message) {
+    // Mevcut toast var mı? Varsa kaldır
+    const existingToast = document.querySelector('.toast-container');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    const isError = type === 'error';
+    const bgColor = isError ? 'bg-danger' : 'bg-success';
+    const icon = isError ? 'bi-exclamation-triangle-fill' : 'bi-check-circle-fill';
+    const delay = isError ? 5000 : 3000;
+    
+    // Toast elementi oluştur
     const toast = document.createElement('div');
     toast.className = 'toast-container position-fixed bottom-0 end-0 p-3';
     toast.innerHTML = `
-        <div class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast align-items-center text-white ${bgColor} border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
                 <div class="toast-body">
-                    <i class="bi bi-check-circle-fill me-2"></i> ${message}
+                    <i class="bi ${icon} me-2"></i> ${message}
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
         </div>
     `;
+    
     document.body.appendChild(toast);
     
+    // Bootstrap toast'u göster
     const bsToast = new bootstrap.Toast(toast.querySelector('.toast'), {
         autohide: true,
-        delay: 3000
+        delay: delay
     });
     bsToast.show();
     
-    // 3.5 saniye sonra DOM'dan kaldır
+    // Toast kapandıktan sonra kaldır
     setTimeout(() => {
         toast.remove();
-    }, 3500);
+    }, delay + 500);
 }
 
+/**
+ * Mevcut toast elementini kullanarak bildirim gösterir
+ * @param {string} type - Bildirim tipi ('error' veya 'success')
+ * @param {string} message - Bildirim mesajı
+ */
 function showToast(type, message) {
     const toast = document.getElementById('toast');
+    if (!toast) {
+        // Hazır toast element yoksa, dinamik oluştur
+        showNotification(type, message);
+        return;
+    }
+    
     const toastTitle = document.getElementById('toastTitle');
     const toastMessage = document.getElementById('toastMessage');
     
@@ -292,38 +382,54 @@ function showToast(type, message) {
     bsToast.show();
 }
 
-// Yükleme göstergesini göster/gizle fonksiyonları
+// ===============================================
+// LOADING INDICATOR
+// ===============================================
+
+/**
+ * Yükleme göstergesini gösterir
+ */
 function showLoading() {
-    const loader = document.getElementById('loadingIndicator');
-    if (loader) { // Null check ekledik
-        loader.classList.remove('d-none');
-    } else {
-        console.warn('Loading indicator element not found');
-        
-        // Eğer yükleme göstergesi yoksa oluşturalım
-        const newLoader = document.createElement('div');
-        newLoader.id = 'loadingIndicator';
-        newLoader.className = 'position-fixed top-50 start-50 translate-middle';
-        newLoader.innerHTML = `
+    let loader = document.getElementById('loadingIndicator');
+    
+    if (!loader) {
+        loader = document.createElement('div');
+        loader.id = 'loadingIndicator';
+        loader.className = 'position-fixed top-50 start-50 translate-middle d-none';
+        loader.innerHTML = `
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Yükleniyor...</span>
             </div>
         `;
-        document.body.appendChild(newLoader);
+        document.body.appendChild(loader);
     }
+    
+    loader.classList.remove('d-none');
 }
 
+/**
+ * Yükleme göstergesini gizler
+ */
 function hideLoading() {
     const loader = document.getElementById('loadingIndicator');
-    if (loader) { // Null check ekledik
+    if (loader) {
         loader.classList.add('d-none');
     }
 }
 
-// API işlemleri için genel fonksiyonlar
-// fetchAPI fonksiyonunu debug için geliştir
+// ===============================================
+// API UTILS
+// ===============================================
+
+/**
+ * API endpoint'ine istek yapar
+ * @param {string} endpoint - API endpoint
+ * @param {object} options - Fetch options
+ * @returns {Promise<object>} API yanıtı
+ */
 async function fetchAPI(endpoint, options = {}) {
     const apiUrl = API_URL + endpoint;
+    
     console.log(`API Request to ${apiUrl}:`, { 
         method: options.method || 'GET',
         body: options.body ? JSON.parse(options.body) : undefined 
@@ -357,20 +463,42 @@ async function fetchAPI(endpoint, options = {}) {
     }
 }
 
-// getApiUrl fonksiyonu sadeleştirildi
+/**
+ * API URL oluşturur
+ * @param {string} endpoint - Endpoint
+ * @returns {string} Tam API URL
+ */
 function getApiUrl(endpoint) {
+    // Başında /api/ varsa kaldır
     const cleanEndpoint = endpoint.startsWith('/api/') ? endpoint.substring(4) : endpoint;
-    return `${CONFIG.API_URL}${cleanEndpoint.startsWith('/') ? '' : '/'}${cleanEndpoint}`;
+    
+    // Başında / yoksa ekle
+    const path = cleanEndpoint.startsWith('/') ? cleanEndpoint : '/' + cleanEndpoint;
+    
+    return API_URL + path;
 }
 
-// Export common utilities
-window.API_URL = CONFIG.API_URL;
+// ===============================================
+// INITIALIZATION
+// ===============================================
+
+// Sayfa yüklendiğinde sidebar'ı yükle
+document.addEventListener('DOMContentLoaded', loadSideBar);
+
+// Global değişkenleri window nesnesine ekle
+window.API_URL = API_URL;
 window.formatCurrency = formatCurrency;
 window.formatPrice = formatPrice;
 window.formatDate = formatDate;
+window.formatDateTime = formatDateTime;
+window.formatPhoneNumber = formatPhoneNumber;
+window.formatDeliveryTime = formatDeliveryTime;
+window.getStatusBadge = getStatusBadge;
 window.loadSideBar = loadSideBar;
 window.showError = showError;
 window.showSuccess = showSuccess;
 window.showToast = showToast;
+window.showLoading = showLoading;
+window.hideLoading = hideLoading;
+window.fetchAPI = fetchAPI;
 window.getApiUrl = getApiUrl;
-window.formatDateTime = formatDateTime;
