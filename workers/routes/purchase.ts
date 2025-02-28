@@ -161,14 +161,14 @@ router.get('/orders/:id', async (c) => {
     }
 });
 
-// Yeni satın alma ekle - tenant_id kaldırıldı, hata yönetimi geliştirildi
+// Yeni satın alma ekle - Mevcut veritabanı şemasına uygun
 router.post('/orders', async (c) => {
     const db = c.get('db');
     const user_id = c.get('user_id') || 1;
     
     try {
         const data = await c.req.json();
-        console.log('Purchase order received data:', data); // Debug info
+        console.log('Satın alma verisi:', data); 
         const { supplier_id, order_date, items, total_amount } = data;
 
         // Validasyonlar
@@ -179,29 +179,29 @@ router.post('/orders', async (c) => {
             }, 400);
         }
 
-        // 1. Ana siparişi oluştur ve ID'sini al - tenant_id kaldırıldı 
+        // 1. Ana siparişi oluştur - created_at alanı kaldırıldı
         const orderResult = await db.prepare(`
             INSERT INTO purchase_orders (
                 supplier_id, order_date, created_by,
-                created_at, payment_status, total_amount
-            ) VALUES (?, ?, ?, datetime('now'), 'pending', ?)
+                payment_status, total_amount
+            ) VALUES (?, ?, ?, 'pending', ?)
             RETURNING id
         `).bind(
             supplier_id,
             order_date,
             user_id,
-            total_amount || 0 // Total amount ekledik
+            total_amount || 0
         ).first();
 
         const order_id = orderResult.id;
 
-        // 2. Kalemleri batch olarak ekle (boş değilse)
+        // 2. Kalemleri batch olarak ekle
         if (items && items.length > 0) {
             const itemInserts = items.map(item => 
                 db.prepare(`
                     INSERT INTO purchase_order_items (
-                        order_id, material_id, quantity, unit_price, created_at
-                    ) VALUES (?, ?, ?, ?, datetime('now'))
+                        order_id, material_id, quantity, unit_price
+                    ) VALUES (?, ?, ?, ?)
                 `).bind(
                     order_id, 
                     item.material_id,
@@ -221,12 +221,10 @@ router.post('/orders', async (c) => {
 
     } catch (error) {
         console.error('Purchase order error:', error);
-        // Daha detaylı hata mesajı döndür
         return c.json({ 
             success: false, 
             error: 'İşlem başarısız',
-            details: error.message,
-            stack: error.stack // Debug için stack trace ekledik
+            details: error.message
         }, 500);
     }
 });
@@ -289,7 +287,7 @@ router.put('/orders/:id/status', async (c) => {
     }
 });
 
-// Ödeme endpoint'i - transaction yerine batch kullanım
+// Ödeme endpoint'i - updated_at alanı kaldırıldı
 router.post('/orders/:id/payment', async (c) => {
   const db = c.get('db');
   const { id } = c.req.param();
@@ -323,6 +321,23 @@ router.post('/orders/:id/payment', async (c) => {
     const accountId = body.account_id || 1;
     const notes = body.notes || null;
     
+    // Ödeme yöntemine göre doğru kategori ID'sini belirle
+    let categoryId = 2; // Varsayılan değer
+    
+    switch (paymentMethod) {
+      case 'cash':
+        categoryId = 1; // Nakit Alışveriş
+        break;
+      case 'credit_card':
+        categoryId = 2; // Kredi Kartı Alışveriş
+        break;
+      case 'bank_transfer':
+        categoryId = 3; // Banka Havalesi
+        break;
+      default:
+        categoryId = 1; // Bilinmeyen durumda nakit varsay
+    }
+    
     // Validasyonlar
     if (isNaN(amount) || amount <= 0) {
       return c.json({ 
@@ -348,16 +363,15 @@ router.post('/orders/:id/payment', async (c) => {
     
     // Batch kullanarak tüm işlemleri atomik olarak yap
     await db.batch([
-      // Sipariş güncelle
+      // Sipariş güncelle - updated_at alanı kaldırıldı
       db.prepare(`
         UPDATE purchase_orders
         SET paid_amount = ?,
-            payment_status = ?,
-            updated_at = datetime('now')
+            payment_status = ?
         WHERE id = ?
       `).bind(newPaidAmount, newPaymentStatus, id),
       
-      // Finansal kayıt oluştur
+      // Finansal kayıt oluştur - kategori ID'si dinamik olarak atanıyor
       db.prepare(`
         INSERT INTO transactions (
           account_id,
@@ -372,9 +386,10 @@ router.post('/orders/:id/payment', async (c) => {
           notes,
           status,
           created_by
-        ) VALUES (?, 2, 'out', ?, datetime('now'), 'purchase', ?, ?, ?, ?, 'paid', 1)
+        ) VALUES (?, ?, 'out', ?, datetime('now'), 'purchase', ?, ?, ?, ?, 'paid', 1)
       `).bind(
         accountId,
+        categoryId, // Artık dinamik olarak belirleniyor
         amount,
         id,
         paymentMethod,
