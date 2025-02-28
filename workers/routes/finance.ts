@@ -504,7 +504,7 @@ router.post('/expenses/:id/approve', async (c) => {
   }
 })
 
-// Bekleyen ödemeler (Satın alma ve Siparişler) - tenant_id kaldırıldı
+// Bekleyen ödemeler (Satın alma ve Siparişler) - Düzeltildi
 router.get('/pending', async (c) => {
   const db = c.get('db')
 
@@ -517,11 +517,11 @@ router.get('/pending', async (c) => {
         s.name as supplier_name,
         po.total_amount as amount,
         po.paid_amount,
-        po.status,
+        po.payment_status,
         'purchase' as type
       FROM purchase_orders po
-      JOIN suppliers s ON s.id = po.supplier_id
-      WHERE po.payment_status = 'pending'
+      LEFT JOIN suppliers s ON s.id = po.supplier_id
+      WHERE po.payment_status IN ('pending', 'partial')
       AND po.deleted_at IS NULL
     `).all();
 
@@ -533,11 +533,11 @@ router.get('/pending', async (c) => {
         c.name as customer_name,
         o.total_amount as amount,
         o.paid_amount,
-        o.status,
+        o.payment_status,
         'order' as type
       FROM orders o
-      JOIN customers c ON c.id = o.customer_id
-      WHERE o.payment_status = 'pending'
+      LEFT JOIN customers c ON c.id = o.customer_id
+      WHERE o.payment_status IN ('pending', 'partial')
       AND o.deleted_at IS NULL
     `).all();
 
