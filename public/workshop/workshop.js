@@ -241,7 +241,31 @@ async function showOrderDetail(orderId) {
         const order = orderResponse.order;
         const recipes = recipesResponse.success ? recipesResponse.recipes : [];
 
-        // Detay HTML'i
+        // Reçeteleri ürün bazında gruplandır
+        const productRecipes = {};
+        
+        // Her reçete için ürün gruplarını oluştur
+        if (recipes && recipes.length > 0) {
+            recipes.forEach(recipe => {
+                const productId = recipe.product_id;
+                
+                if (!productRecipes[productId]) {
+                    productRecipes[productId] = {
+                        product_name: recipe.product_name,
+                        materials: []
+                    };
+                }
+                
+                productRecipes[productId].materials.push({
+                    material_id: recipe.material_id,
+                    material_name: recipe.material_name,
+                    unit_code: recipe.unit_code,
+                    suggested_quantity: recipe.suggested_quantity
+                });
+            });
+        }
+
+        // Detay HTML'i - Ürün gruplarına göre malzemeleri göster
         detailContainer.innerHTML = `
             <div class="card">
                 <div class="card-body">
@@ -287,39 +311,51 @@ async function showOrderDetail(orderId) {
                         </div>
                     </div>
 
-                    <!-- Malzeme Kullanımı -->
+                    <!-- Malzeme Kullanımı - Artık ürünlere göre gruplanmış -->
                     <div class="mb-4">
                         <h6 class="border-bottom pb-2">Malzeme Kullanımı</h6>
-                        ${recipes.length > 0 ? `
-                            <div class="table-responsive">
-                                <table class="table table-sm align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>Malzeme</th>
-                                            <th width="100">Önerilen</th>
-                                            <th width="120">Kullanılan</th>
-                                            <th width="80">Birim</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${recipes.map(recipe => `
-                                            <tr>
-                                                <td>${recipe.material_name}</td>
-                                                <td class="text-center">${recipe.suggested_quantity}</td>
-                                                <td>
-                                                    <input type="number" 
-                                                        class="form-control form-control-sm used-quantity"
-                                                        data-material-id="${recipe.material_id}"
-                                                        value="${recipe.suggested_quantity}"
-                                                        ${order.status !== 'preparing' ? 'disabled' : ''}>
-                                                </td>
-                                                <td class="text-center">${recipe.unit_code}</td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ` : `
+                        ${Object.keys(productRecipes).length > 0 ? 
+                            Object.keys(productRecipes).map(productId => {
+                                const product = productRecipes[productId];
+                                return `
+                                    <div class="card mb-3">
+                                        <div class="card-header bg-light py-2">
+                                            <strong>${product.product_name}</strong>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm align-middle mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Malzeme</th>
+                                                            <th width="100">Önerilen</th>
+                                                            <th width="120">Kullanılan</th>
+                                                            <th width="80">Birim</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${product.materials.map(material => `
+                                                            <tr>
+                                                                <td>${material.material_name}</td>
+                                                                <td class="text-center">${material.suggested_quantity}</td>
+                                                                <td>
+                                                                    <input type="number" 
+                                                                        class="form-control form-control-sm used-quantity"
+                                                                        data-material-id="${material.material_id}"
+                                                                        value="${material.suggested_quantity}"
+                                                                        ${order.status !== 'preparing' ? 'disabled' : ''}>
+                                                                </td>
+                                                                <td class="text-center">${material.unit_code}</td>
+                                                            </tr>
+                                                        `).join('')}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')
+                            : `
                             <div class="alert alert-warning py-2">
                                 Bu ürünler için malzeme bilgisi bulunamadı
                             </div>
@@ -341,7 +377,6 @@ async function showOrderDetail(orderId) {
                 </div>
             </div>
         `;
-
     } catch (error) {
         console.error('Detail loading error:', error);
         

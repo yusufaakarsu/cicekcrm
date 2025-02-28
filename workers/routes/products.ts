@@ -450,4 +450,43 @@ router.get('/recipes/:orderId', async (c) => {
     }
 })
 
+// Sipariş için reçete önerisi
+router.get('/recipes/:orderId', async (c) => {
+    const { orderId } = c.req.param();
+    const db = c.get('db')
+    
+    try {
+        // Sorguyu geliştir: Ürün ID ve adını ekle
+        const { results } = await db.prepare(`
+            SELECT 
+                oi.product_id,
+                p.name as product_name,
+                pm.material_id,
+                rm.name as material_name,
+                u.code as unit_code,
+                (pm.default_quantity * oi.quantity) as suggested_quantity
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.id
+            JOIN product_materials pm ON p.id = pm.product_id AND pm.deleted_at IS NULL
+            JOIN raw_materials rm ON pm.material_id = rm.id
+            JOIN units u ON rm.unit_id = u.id
+            WHERE oi.order_id = ?
+            AND oi.deleted_at IS NULL
+            ORDER BY oi.id, rm.name
+        `).bind(orderId).all();
+        
+        return c.json({
+            success: true, 
+            recipes: results || []
+        });
+    } catch (error) {
+        console.error('Recipe suggestion error:', error);
+        return c.json({
+            success: false,
+            error: 'Database error',
+            details: error.message
+        }, 500);
+    }
+});
+
 export default router
