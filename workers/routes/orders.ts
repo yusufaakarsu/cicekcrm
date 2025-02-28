@@ -410,4 +410,105 @@ router.post("/delivery", async (c) => {
   }
 })
 
+// Sipariş ödeme al endpoint'i
+router.post('/:id/payment', async (c) => {
+  const db = c.get('db');
+  const { id } = c.req.param();
+  const body = await c.req.json();
+  
+  try {
+    // Sipariş var mı kontrol et
+    const order = await db.prepare(`
+      SELECT * FROM orders 
+      WHERE id = ? AND deleted_at IS NULL
+    `).bind(id).first();
+    
+    if (!order) {
+      return c.json({ 
+        success: false, 
+        error: 'Sipariş bulunamadı' 
+      }, 404);
+    }
+    
+    // Transaction başlat
+    await db.exec('BEGIN TRANSACTION');
+    
+    // Ödeme tutarı ve yöntemi doğrula
+    const amount = parseFloat(body.amount);
+    const paymentMethod = body.payment_method || 'cash';
+    
+    if (isNaN(amount) || amount <= 0) {
+      await db.exec('ROLLBACK');
+      return c.json({ 
+        success: false, 
+        error: 'Geçersiz ödeme tutarı' 
+      }, 400);
+    }
+    
+    // Siparişi güncelle - ödenen miktarı artır, durumu güncelle
+    const newPaidAmount = (parseFloat(order.paid_amount) || 0) + amount;
+    const newPaymentStatus = newPaidAmount >= parseFloat(order.total_amount) ? 'paid' : 'partial';
+    
+    // Siparişi güncelle
+    await db.prepare(`
+      UPDATE orders
+      SET 
+        paid_amount = ?,
+        payment_status = ?,
+        updated_at = datetime('now'),
+        updated_by = 1
+      WHERE id = ?
+    `).bind(
+      newPaidAmount,
+      newPaymentStatus,
+      id
+    ).run();
+    
+    // Ödeme işlemini finansal tabloya kaydet
+    await db.prepare(`
+      INSERT INTO transactions (
+        account_id, 
+        category_id,
+        type,
+        amount,
+        date,
+        related_type,
+        related_id,
+        payment_method,
+        description,
+        notes,
+        status,
+        created_by
+      ) VALUES (?, 1, 'in', ?, datetime('now'), 'order', ?, ?, ?, ?, 'paid', 1)
+    `).bind(
+      paymentMethod === 'cash' ? 1 : (paymentMethod === 'credit_card' ? 2 : 3), // Hesap ID'sini ödeme yöntemine göre seç
+      amount,
+      id,
+      paymentMethod,
+      `Sipariş #${id} ödemesi`,
+      body.notes || null
+    ).run();
+    
+    // Transaction'ı commitle
+    await db.exec('COMMIT');
+    
+    return c.json({
+      success: true,
+      payment_status: newPaymentStatus,
+      paid_amount: newPaidAmount
+    });
+    
+  } catch (error) {
+    // Hata durumunda transaction'ı rollback yap
+    await db.exec('ROLLBACK');
+    
+    console.error('Payment error:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Ödeme kaydedilirken bir hata oluştu',
+      details: error.message 
+    }, 500);
+  }
+});
+
 export default router

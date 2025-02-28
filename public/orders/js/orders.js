@@ -206,37 +206,27 @@ function renderOrders(orders) {
                         <i class="bi bi-gear"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
+                        <!-- Sipariş detayları -->
                         <li>
                             <button class="dropdown-item" onclick="showOrderDetails(${order.id})">
                                 <i class="bi bi-eye"></i> Detay
                             </button>
                         </li>
                         
-                        <!-- Durum Değiştirme -->
+                        <!-- Sadece ödeme ve iptal işlemleri olacak -->
+                        <li><hr class="dropdown-divider"></li>
+                        
+                        <!-- Ödeme Alma -->
+                        ${order.payment_status !== 'paid' && order.status !== 'cancelled' ? `
+                            <li>
+                                <button class="dropdown-item" onclick="showPaymentModal(${order.id}, ${totalAmount})">
+                                    <i class="bi bi-cash-coin"></i> Ödeme Al
+                                </button>
+                            </li>
+                        ` : ''}
+                        
+                        <!-- İptal İşlemi -->
                         ${order.status !== 'delivered' && order.status !== 'cancelled' ? `
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'preparing')">
-                                    <i class="bi bi-box-seam"></i> Hazırlanıyor
-                                </button>
-                            </li>
-                            <li>
-                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'ready')">
-                                    <i class="bi bi-box"></i> Hazır
-                                </button>
-                            </li>
-                            <li>
-                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivering')">
-                                    <i class="bi bi-truck"></i> Yolda
-                                </button>
-                            </li>
-                            <li>
-                                <button class="dropdown-item" onclick="quickUpdateStatus(${order.id}, 'delivered')">
-                                    <i class="bi bi-check-circle"></i> Teslim Edildi
-                                </button>
-                            </li>
-                            
-                            <li><hr class="dropdown-divider"></li>
                             <li>
                                 <button class="dropdown-item text-danger" onclick="confirmCancelOrder(${order.id})">
                                     <i class="bi bi-x-circle"></i> İptal Et
@@ -437,6 +427,119 @@ async function revertDeliveryStatus() {
     } catch (error) {
         console.error('Durum güncellenirken hata:', error);
         showError('Durum güncellenemedi!');
+    }
+}
+
+// Ödeme modalı göster
+function showPaymentModal(orderId, totalAmount) {
+    // Modal HTML dinamik olarak oluştur
+    const modalHTML = `
+        <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="paymentModalLabel">Sipariş #${orderId} - Ödeme Al</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="paymentForm">
+                            <div class="mb-3">
+                                <label class="form-label">Sipariş Tutarı</label>
+                                <div class="form-control bg-light">${formatCurrency(totalAmount)}</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="paymentAmount" class="form-label">Ödeme Tutarı</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="paymentAmount" value="${totalAmount}">
+                                    <span class="input-group-text">₺</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="paymentMethod" class="form-label">Ödeme Yöntemi</label>
+                                <select class="form-select" id="paymentMethod">
+                                    <option value="cash">Nakit</option>
+                                    <option value="credit_card">Kredi Kartı</option>
+                                    <option value="bank_transfer">Havale/EFT</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="paymentNote" class="form-label">Not</label>
+                                <textarea class="form-control" id="paymentNote" rows="2"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                        <button type="button" class="btn btn-primary" onclick="processPayment(${orderId})">
+                            Ödemeyi Kaydet
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Eğer varsa eski modalı temizle
+    const oldModal = document.getElementById('paymentModal');
+    if (oldModal) oldModal.remove();
+    
+    // Yeni modalı ekle ve göster
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    paymentModal.show();
+}
+
+// Ödeme işlemi
+async function processPayment(orderId) {
+    const paymentAmount = document.getElementById('paymentAmount').value.trim();
+    const paymentMethod = document.getElementById('paymentMethod').value;
+    const paymentNote = document.getElementById('paymentNote').value.trim();
+    
+    if (!paymentAmount || isNaN(parseFloat(paymentAmount.replace(/\./g, '').replace(',', '.')))) {
+        showError('Lütfen geçerli bir ödeme tutarı girin');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/orders/${orderId}/payment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                amount: parseFloat(paymentAmount.replace(/\./g, '').replace(',', '.')),
+                payment_method: paymentMethod,
+                notes: paymentNote
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Ödeme kaydedilirken bir hata oluştu');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Modal kapat
+            const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+            modal.hide();
+            
+            // Başarı mesajı göster
+            showSuccess('Ödeme başarıyla kaydedildi');
+            
+            // Siparişleri yenile
+            loadOrders();
+        } else {
+            throw new Error(result.error || 'Ödeme kaydedilirken bir hata oluştu');
+        }
+        
+    } catch (error) {
+        console.error('Ödeme işlemi hatası:', error);
+        showError('Ödeme kaydedilemedi: ' + error.message);
     }
 }
 
