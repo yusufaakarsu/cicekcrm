@@ -27,6 +27,11 @@ const API_BASE = window.location.hostname.includes('pages.dev')
 
 const API_URL = `${API_BASE}/api`;
 
+// API URL düzeltmesi
+const API_URL = `${window.location.hostname.includes('pages.dev')
+    ? 'https://cicek-crm-api.yusufaakarsu.workers.dev'
+    : `${window.location.protocol}//${window.location.host}`}/api`;
+
 // Bunu global olarak export et
 window.getApiUrl = (path) => `${API_URL}${path}`;
 
