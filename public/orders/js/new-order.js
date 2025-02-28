@@ -822,6 +822,17 @@ async function createNewAddress(addressData) {
     try {
         console.log("Gönderilecek adres verisi:", addressData);
         
+        // Alıcı bilgilerini de ekle
+        const recipientName = document.getElementById('recipientName')?.value;
+        const recipientPhone = document.getElementById('recipientPhone')?.value;
+        const recipientNote = document.getElementById('recipientNote')?.value;
+        
+        if (recipientName && recipientPhone) {
+            addressData.recipient_name = recipientName;
+            addressData.recipient_phone = recipientPhone;
+            addressData.recipient_note = recipientNote || null;
+        }
+        
         // Fetch API kullanarak address API'sine direkt istek yap
         const addressResponse = await fetch(`${API_URL}/addresses`, {
             method: 'POST',

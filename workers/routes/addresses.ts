@@ -82,17 +82,47 @@ async function saveAddress(c) {
     // ...save to database code...
 }
 
-// Adres ekleme endpointi - created_at sütunu kaldırıldı
+// Adres ekleme endpointi - Alıcı ilişkisi için güncellendi
 router.post('/', async (c) => {
   const db = c.get('db');
   
   try {
     const body = await c.req.json();
+    console.log("Adres oluşturma isteği:", body);
     
-    // SQL sorgusundan created_at sütunu kaldırıldı
+    // Önce alıcı kaydı oluştur veya mevcut alıcıyı bul
+    let recipientId = null;
+    if (body.recipient_name && body.recipient_phone) {
+      // Aynı telefon numarası ile kayıtlı alıcı var mı kontrol et
+      const existingRecipient = await db.prepare(`
+        SELECT id FROM recipients 
+        WHERE phone = ? AND customer_id = ? AND deleted_at IS NULL
+      `).bind(body.recipient_phone, body.customer_id).first();
+      
+      if (existingRecipient) {
+        recipientId = existingRecipient.id;
+      } else {
+        // Yoksa yeni alıcı kaydı oluştur
+        const recipientResult = await db.prepare(`
+          INSERT INTO recipients (
+            customer_id, name, phone, notes
+          ) VALUES (?, ?, ?, ?)
+        `).bind(
+          body.customer_id,
+          body.recipient_name,
+          body.recipient_phone,
+          body.recipient_note || null
+        ).run();
+        
+        recipientId = recipientResult.meta?.last_row_id;
+      }
+    }
+    
+    // Şimdi adresi kaydet - recipient_id alanını da doldurarak
     const result = await db.prepare(`
       INSERT INTO addresses (
         customer_id, 
+        recipient_id,
         label, 
         district,
         street, 
@@ -104,9 +134,10 @@ router.post('/', async (c) => {
         lng,
         neighborhood,
         directions
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       body.customer_id,
+      recipientId,  // recipient_id alanını dolduruyoruz
       body.label || 'Teslimat Adresi',
       body.district,
       body.street,
@@ -119,17 +150,24 @@ router.post('/', async (c) => {
       body.neighborhood || null,
       body.directions || null
     ).run();
-
+    
     const address_id = result.meta?.last_row_id;
+    
+    if (!address_id) {
+      return c.json({
+        success: false,
+        error: "Could not create address"
+      }, 500);
+    }
     
     return c.json({
       success: true,
-      address_id: address_id
+      address_id,
+      recipient_id: recipientId
     });
     
   } catch (error) {
     console.error('Address creation error:', error);
-    
     return c.json({
       success: false,
       error: 'Database error',

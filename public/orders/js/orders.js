@@ -619,3 +619,74 @@ async function revertDeliveryStatus() {
         showError('Durum güncellenemedi!');
     }
 }
+
+// Sipariş listesini yükle - Toplam ve öğeleri düzgün göster
+async function loadOrders(page = 1, filters = {}) {
+    try {
+        // ...existing code...
+        
+        // Siparişleri tabloya doldur
+        ordersTable.innerHTML = data.orders.map(order => `
+            <tr>
+                <!-- Diğer bilgiler... -->
+                <td class="text-end">
+                    <strong>${formatCurrency(order.total_amount)}</strong>
+                    <div>
+                        <span class="badge ${getPaymentStatusClass(order.payment_status)}">
+                            ${getPaymentStatusText(order.payment_status)}
+                        </span>
+                    </div>
+                </td>
+                <!-- Diğer alanlar... -->
+            </tr>
+        `).join('');
+        
+        // ...existing code...
+    } catch (error) {
+        // ...existing code...
+    }
+}
+
+// Sipariş detayını göster - Tutarı düzgün görüntüle
+function fillOrderDetailModal(order) {
+    // ...existing code...
+    
+    // Toplam tutarı doğru formatta göster
+    document.getElementById('order-detail-total_amount').textContent = formatCurrency(order.total_amount);
+    
+    // Ürün listesini doldur
+    const itemsContainer = document.getElementById('order-detail-items');
+    if (order.items && order.items.length > 0) {
+        let itemsHtml = '';
+        let total = 0;
+        
+        order.items.forEach(item => {
+            const itemTotal = item.quantity * item.unit_price;
+            total += itemTotal;
+            
+            itemsHtml += `
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                    <div>
+                        <div class="fw-bold">${item.product_name}</div>
+                        <div class="small">${item.quantity} x ${formatCurrency(item.unit_price)}</div>
+                    </div>
+                    <div class="fw-bold">${formatCurrency(itemTotal)}</div>
+                </div>
+            `;
+        });
+        
+        // Toplam satırını ekle
+        itemsHtml += `
+            <div class="d-flex justify-content-between align-items-center pt-2">
+                <div class="fw-bold">Toplam</div>
+                <div class="fw-bold">${formatCurrency(total)}</div>
+            </div>
+        `;
+        
+        itemsContainer.innerHTML = itemsHtml;
+    } else {
+        itemsContainer.innerHTML = '<div class="text-muted">Ürün bilgisi bulunamadı</div>';
+    }
+    
+    // ...existing code...
+}

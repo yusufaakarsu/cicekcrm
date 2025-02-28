@@ -104,6 +104,10 @@ async function loadOrderDetails() {
                                     <td colspan="3" class="text-end fw-bold">Ara Toplam:</td>
                                     <td class="text-end fw-bold">${formatCurrency(order.subtotal)}</td>
                                 </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end fw-bold">Toplam:</td>
+                                    <td class="text-end fw-bold">${formatCurrency(order.total_amount)}</td>
+                                </tr>
                             </tfoot>
                         </table>
                     </div>
