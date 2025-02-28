@@ -70,7 +70,7 @@ function updateOrdersList(orders) {
     if (!orders?.length) {
         container.innerHTML = `
             <div class="text-center text-muted p-3">
-                Sipariş bulunmuyor
+                Bu durumda sipariş bulunmuyor
             </div>
         `;
         return;
@@ -81,7 +81,7 @@ function updateOrdersList(orders) {
             <div class="card-body p-2">
                 <div class="d-flex justify-content-between">
                     <strong>#${order.id} - ${order.recipient_name}</strong>
-                    <span class="badge bg-${getStatusBadgeColor(order.status)}">
+                    <span class="badge ${getStatusBadgeColor(order.status)}">
                         ${getStatusText(order.status)}
                     </span>
                 </div>
@@ -90,6 +90,9 @@ function updateOrdersList(orders) {
                 </div>
                 <div class="small">
                     ${order.items_summary || 'Ürün bilgisi yok'}
+                </div>
+                <div class="small text-muted">
+                    <i class="bi bi-geo-alt"></i> ${order.district}
                 </div>
             </div>
         </div>
@@ -111,10 +114,10 @@ function updateCountBadges(orders) {
 // Helper fonksiyonlar
 function getStatusBadgeColor(status) {
     return {
-        'new': 'warning',
-        'preparing': 'info',
-        'ready': 'success'
-    }[status] || 'secondary';
+        'new': 'bg-primary',
+        'preparing': 'bg-warning',
+        'ready': 'bg-success'
+    }[status] || 'bg-secondary';
 }
 
 function getStatusText(status) {
@@ -144,6 +147,8 @@ function formatDate(date) {
 
 async function startPreparation(orderId) {
     try {
+        showLoading();
+        
         const result = await fetchAPI(`/workshop/${orderId}/start`, {
             method: 'POST'
         });
@@ -151,11 +156,17 @@ async function startPreparation(orderId) {
         if (result.success) {
             showSuccess('Hazırlama başlatıldı');
             loadOrders(currentFilter);
+            
+            if (orderId === currentOrderId) {
+                showOrderDetail(orderId);
+            }
         } else {
             throw new Error(result.error);
         }
     } catch (error) {
         showError('Hazırlama başlatılamadı: ' + error.message);
+    } finally {
+        hideLoading();
     }
 }
 
