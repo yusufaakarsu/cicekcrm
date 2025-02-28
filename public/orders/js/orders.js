@@ -158,7 +158,7 @@ async function loadOrders(isInitialLoad = false) {
     }
 }
 
-// Siparişleri tabloya render et
+// Siparişleri tabloya render et - ödeme bilgilerini ekle
 function renderOrders(orders) {
     const tbody = document.getElementById('ordersTable');
     
@@ -172,6 +172,11 @@ function renderOrders(orders) {
         const deliveryTime = order.delivery_time || order.delivery_time_slot || '';
         const items = order.items_summary || order.items || '';
         const totalAmount = order.total_amount || 0;
+        const paidAmount = order.paid_amount || 0;
+        const remainingAmount = totalAmount - paidAmount;
+        
+        // İptal durumundaysa ödeme durumunu iptal göster
+        const paymentStatus = order.status === 'cancelled' ? 'cancelled' : order.payment_status;
 
         return `
         <tr>
@@ -198,7 +203,16 @@ function renderOrders(orders) {
             <td>${getStatusBadge(order.status)}</td>
             <td>
                 <div class="fw-bold">${formatCurrency(totalAmount)}</div>
-                ${getPaymentStatusBadge(order.payment_status)}
+                ${getPaymentStatusBadge(paymentStatus)}
+                
+                ${paidAmount > 0 && paymentStatus !== 'cancelled' ? `
+                    <div class="mt-1 small">
+                        <span class="text-success">Ödenen: ${formatCurrency(paidAmount)}</span>
+                        ${remainingAmount > 0 ? `
+                            <br><span class="text-danger">Kalan: ${formatCurrency(remainingAmount)}</span>
+                        ` : ''}
+                    </div>
+                ` : ''}
             </td>
             <td>
                 <div class="dropdown">
@@ -217,7 +231,7 @@ function renderOrders(orders) {
                         <li><hr class="dropdown-divider"></li>
                         
                         <!-- Ödeme Alma -->
-                        ${order.payment_status !== 'paid' && order.status !== 'cancelled' ? `
+                        ${paymentStatus !== 'paid' && paymentStatus !== 'cancelled' ? `
                             <li>
                                 <button class="dropdown-item" onclick="showPaymentModal(${order.id}, ${totalAmount})">
                                     <i class="bi bi-cash-coin"></i> Ödeme Al

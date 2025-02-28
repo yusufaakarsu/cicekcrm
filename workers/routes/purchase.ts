@@ -285,4 +285,115 @@ router.put('/orders/:id/status', async (c) => {
     }
 });
 
+// Ödeme endpoint'i - transaction yerine batch kullanım
+router.post('/orders/:id/payment', async (c) => {
+  const db = c.get('db');
+  const { id } = c.req.param();
+  
+  try {
+    // Önce siparişi kontrol et
+    const order = await db.prepare(`
+      SELECT * FROM purchase_orders 
+      WHERE id = ? AND deleted_at IS NULL
+    `).bind(id).first();
+    
+    if (!order) {
+      return c.json({ 
+        success: false, 
+        error: 'Sipariş bulunamadı' 
+      }, 404);
+    }
+    
+    // İptal edilmiş siparişe ödeme yapılamaz
+    if (order.payment_status === 'cancelled') {
+      return c.json({
+        success: false, 
+        error: 'İptal edilmiş siparişe ödeme yapılamaz'
+      }, 400);
+    }
+    
+    // Ödeme verilerini al
+    const body = await c.req.json();
+    const amount = parseFloat(body.amount);
+    const paymentMethod = body.payment_method || 'cash';
+    const accountId = body.account_id || 1;
+    const notes = body.notes || null;
+    
+    // Validasyonlar
+    if (isNaN(amount) || amount <= 0) {
+      return c.json({ 
+        success: false, 
+        error: 'Geçersiz ödeme tutarı' 
+      }, 400);
+    }
+    
+    // Ödeme tutarı kontrolü
+    const currentPaid = parseFloat(order.paid_amount || '0');
+    const totalAmount = parseFloat(order.total_amount);
+    
+    if (currentPaid + amount > totalAmount) {
+      return c.json({
+        success: false,
+        error: 'Ödeme tutarı, kalan tutardan fazla olamaz'
+      }, 400);
+    }
+    
+    // Yeni ödeme durumu
+    const newPaidAmount = currentPaid + amount;
+    const newPaymentStatus = newPaidAmount >= totalAmount ? 'paid' : 'partial';
+    
+    // Batch kullanarak tüm işlemleri atomik olarak yap
+    await db.batch([
+      // Sipariş güncelle
+      db.prepare(`
+        UPDATE purchase_orders
+        SET paid_amount = ?,
+            payment_status = ?,
+            updated_at = datetime('now')
+        WHERE id = ?
+      `).bind(newPaidAmount, newPaymentStatus, id),
+      
+      // Finansal kayıt oluştur
+      db.prepare(`
+        INSERT INTO transactions (
+          account_id,
+          category_id,
+          type,
+          amount, 
+          date,
+          related_type,
+          related_id,
+          payment_method,
+          description,
+          notes,
+          status,
+          created_by
+        ) VALUES (?, 2, 'out', ?, datetime('now'), 'purchase', ?, ?, ?, ?, 'paid', 1)
+      `).bind(
+        accountId,
+        amount,
+        id,
+        paymentMethod,
+        `Satın alma #${id} ödemesi`,
+        notes
+      )
+    ]);
+    
+    return c.json({
+      success: true,
+      payment_status: newPaymentStatus,
+      paid_amount: newPaidAmount,
+      message: 'Ödeme başarıyla kaydedildi'
+    });
+    
+  } catch (error) {
+    console.error('Payment error:', error);
+    return c.json({
+      success: false,
+      error: 'Ödeme kaydedilemedi',
+      details: error.message
+    }, 500);
+  }
+});
+
 export default router;

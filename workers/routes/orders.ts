@@ -3,7 +3,7 @@ import { createOrder, saveDeliveryInfo } from './new-order'
 
 const router = new Hono()
 
-// Sipariş listesi SQL'i düzeltildi - tenant_id kaldırıldı
+// Sipariş listesi SQL'i düzeltildi - tenant_id kaldırıldındi
 router.get('/', async (c) => {
   const db = c.get('db')
   
@@ -18,7 +18,8 @@ router.get('/', async (c) => {
         a.district,
         a.label as delivery_address,
         COALESCE(o.total_amount, 0) as total_amount,
-        COALESCE(o.payment_status, 'pending') as payment_status,
+        COALESCE(o.paid_amount, 0) as paid_amount,
+        CASE WHEN o.status = 'cancelled' THEN 'cancelled' ELSE COALESCE(o.payment_status, 'pending') END as payment_status,
         GROUP_CONCAT(
           p.name || ' x' || oi.quantity
         ) as items_summary
@@ -354,192 +355,200 @@ router.put('/:id/cancel', async (c) => {
   try {
     await db.prepare(`
       UPDATE orders 
-      SET status = 'cancelled',
-          updated_at = DATETIME('now'),
-          updated_by = ?
+      SET status = 'cancelled', -- Ödeme durumunu da iptal olarak işaretle
+          updated_at = DATETIME('now'),ATETIME('now'),
+          updated_by = ?by = ?
       WHERE id = ?
       AND deleted_at IS NULL
-    `).bind(1, id).run() // updated_by = 1 (admin user için)
+    `).bind(1, id).run() // updated_by = 1 (admin user için)    `).bind(1, id).run() // updated_by = 1 (admin user için)
 
-    return c.json({ success: true })
+    return c.json({ success: true }) success: true })
   } catch (error) {
     return c.json({ 
       success: false,
-      error: 'Database error',
-      details: error.message 
-    }, 500)
-  }
-})
+      error: 'Database error',,
+      details: error.message ls: error.message 
+    }, 500) }, 500)
+  }}
+})})
 
-// Sipariş oluşturma endpoint'i - createOrder fonksiyonunu kullanır
-router.post('/', async (c) => {
-  const db = c.get('db')
+// Sipariş oluşturma endpoint'i - createOrder fonksiyonunu kullanır - createOrder fonksiyonunu kullanır
+router.post('/', async (c) => {c) => {
+  const db = c.get('db')const db = c.get('db')
   
   try {
     const body = await c.req.json()
-    const result = await createOrder(c, db, body)
-    return c.json(result)
+    const result = await createOrder(c, db, body)createOrder(c, db, body)
+    return c.json(result)esult)
   } catch (error) {
     return c.json({
       success: false,
-      error: 'Sipariş oluşturulamadı',
-      details: error.message
-    }, 500)
-  }
-})
+      error: 'Sipariş oluşturulamadı',rulamadı',
+      details: error.messagels: error.message
+    }, 500) }, 500)
+  }}
+})})
 
 // Sipariş teslimat bilgilerini kaydet
-router.post("/delivery", async (c) => {
-  const db = c.get("db")
+router.post("/delivery", async (c) => { async (c) => {
+  const db = c.get("db")const db = c.get("db")
   
   try {
     const body = await c.req.json()
-    const result = await saveDeliveryInfo(c, db, body)
+    const result = await saveDeliveryInfo(c, db, body)const result = await saveDeliveryInfo(c, db, body)
     
     if (!result.success) {
-      return c.json(result, 400)
-    }
+      return c.json(result, 400) return c.json(result, 400)
+    }}
     
-    return c.json(result)
+    return c.json(result)esult)
   } catch (error) {
     return c.json({
       success: false,
-      error: "Teslimat bilgileri kaydedilemedi",
-      details: error.message
-    }, 500)
-  }
-})
+      error: "Teslimat bilgileri kaydedilemedi",leri kaydedilemedi",
+      details: error.messagels: error.message
+    }, 500) }, 500)
+  }}
+})})
 
-// Sipariş ödeme al endpoint'i kontrolü
-router.post('/:id/payment', async (c) => {
+// Sipariş ödeme al endpoint'i - D1 transaction API ile düzeltildiction API ile düzeltildi
+router.post('/:id/payment', async (c) => {', async (c) => {
   const db = c.get('db');
   const { id } = c.req.param();
+  const body = await c.req.json();const body = await c.req.json();
   
   try {
-    // Transaction başlat
-    await db.exec('BEGIN TRANSACTION');
-    
-    // 1. Siparişi kontrol et
-    const order = await db.prepare(`
+    // Sipariş mevcut mu kontrolü
+    const order = await db.prepare(`prepare(`
       SELECT * FROM orders 
-      WHERE id = ? AND deleted_at IS NULL
-    `).bind(id).first();
+      WHERE id = ? AND deleted_at IS NULLeleted_at IS NULL
+    `).bind(id).first();`).bind(id).first();
     
     if (!order) {
-      await db.exec('ROLLBACK');
       return c.json({ 
         success: false, 
-        error: 'Sipariş bulunamadı' 
-      }, 404);
-    }
+        error: 'Sipariş bulunamadı'  'Sipariş bulunamadı' 
+      }, 404); }, 404);
+    }    }
 
     // İptal edilmiş siparişe ödeme yapılamaz
-    if (order.payment_status === 'cancelled' || order.status === 'cancelled') {
-      await db.exec('ROLLBACK');
+    if (order.payment_status === 'cancelled' || order.status === 'cancelled') {_status === 'cancelled' || order.status === 'cancelled') {
       return c.json({
         success: false,
-        error: 'İptal edilmiş siparişe ödeme yapılamaz'
-      }, 400);
-    }
+        error: 'İptal edilmiş siparişe ödeme yapılamaz' 'İptal edilmiş siparişe ödeme yapılamaz'
+      }, 400); }, 400);
+    }}
     
-    // 2. Ödeme verilerini doğrula
-    const body = await c.req.json();
+    // Ödeme verilerini doğrula
     const amount = parseFloat(body.amount);
-    const paymentMethod = body.payment_method || 'cash';
-    const accountId = body.account_id || 1;
-    const notes = body.notes || null;
+    const paymentMethod = body.payment_method || 'cash';od || 'cash';
+    const accountId = body.account_id || 1; || 1;
+    const notes = body.notes || null;const notes = body.notes || null;
     
     // Tutar validasyonu
-    if (isNaN(amount) || amount <= 0) {
-      await db.exec('ROLLBACK');
+    if (isNaN(amount) || amount <= 0) {|| amount <= 0) {
       return c.json({ 
         success: false, 
-        error: 'Geçersiz ödeme tutarı' 
-      }, 400);
-    }
+        error: 'Geçersiz ödeme tutarı'  'Geçersiz ödeme tutarı' 
+      }, 400); }, 400);
+    }}
     
     // Toplam tutarı aşan ödeme kontrolü
-    const currentPaid = parseFloat(order.paid_amount || '0');
-    const totalAmount = parseFloat(order.total_amount);
+    const currentPaid = parseFloat(order.paid_amount || '0'); '0');
+    const totalAmount = parseFloat(order.total_amount);const totalAmount = parseFloat(order.total_amount);
     
-    if (currentPaid + amount > totalAmount) {
-      await db.exec('ROLLBACK');
+    if (currentPaid + amount > totalAmount) { amount > totalAmount) {
       return c.json({
         success: false,
-        error: 'Ödeme tutarı, kalan tutardan fazla olamaz'
-      }, 400);
-    }
+        error: 'Ödeme tutarı, kalan tutardan fazla olamaz' 'Ödeme tutarı, kalan tutardan fazla olamaz'
+      }, 400); }, 400);
+    }}
     
-    // 3. Siparişi güncelle - ödenen miktarı artır, durumu güncelle
+    // Yeni ödeme durumu ve tutarı hesapla
     const newPaidAmount = currentPaid + amount;
-    const newPaymentStatus = newPaidAmount >= totalAmount ? 'paid' : currentPaid > 0 ? 'partial' : 'pending';
+    const newPaymentStatus = newPaidAmount >= totalAmount ? 'paid' : currentPaid > 0 ? 'partial' : 'pending';const newPaymentStatus = newPaidAmount >= totalAmount ? 'paid' : currentPaid > 0 ? 'partial' : 'pending';
     
-    await db.prepare(`
-      UPDATE orders
-      SET 
-        paid_amount = ?,
-        payment_status = ?,
-        updated_at = datetime('now'),
-        updated_by = 1
-      WHERE id = ?
-    `).bind(
-      newPaidAmount,
-      newPaymentStatus,
-      id
-    ).run();
-    
-    // 4. Ödeme işlemini finans tablosuna kaydet
-    await db.prepare(`
-      INSERT INTO transactions (
-        account_id, 
-        category_id,
-        type,
-        amount,
-        date,
-        related_type,
-        related_id,
-        payment_method,
-        description,
-        notes,
-        status,
-        created_by
-      ) VALUES (?, 1, 'in', ?, datetime('now'), 'order', ?, ?, ?, ?, 'paid', 1)
-    `).bind(
-      accountId,
-      amount,
-      id,
-      paymentMethod,
-      `Sipariş #${id} ödemesi`,
-      notes
-    ).run();
-    
-    // 5. Hesap bakiyesini güncelle (isteğe bağlı)
-    await db.prepare(`
-      UPDATE accounts
-      SET balance_calculated = balance_calculated + ?
-      WHERE id = ?
-    `).bind(amount, accountId).run();
-    
-    // Transaction'ı commitle
-    await db.exec('COMMIT');
+    // Transaction yerine batch kullanarak tüm işlemleri tek seferde yaperine batch kullanarak tüm işlemleri tek seferde yap
+    await db.batch([
+      // 1. Siparişi güncelleşi güncelle
+      db.prepare(`
+        UPDATE orders
+        SET paid_amount = ?,
+            payment_status = ?,
+            updated_at = datetime('now'),atetime('now'),
+            updated_by = 1by = 1
+        WHERE id = ?
+      `).bind(newPaidAmount, newPaymentStatus, id),`).bind(newPaidAmount, newPaymentStatus, id),
+      
+      // 2. Ödeme işlemini finansal tabloya kaydetişlemini finansal tabloya kaydet
+      db.prepare(`
+        INSERT INTO transactions (ansactions (
+          account_id, 
+          category_id,ory_id,
+          type,
+          amount,t,
+          date,
+          related_type,e,
+          related_id,
+          payment_method,od,
+          description,ption,
+          notes,
+          status,
+          created_by
+        ) VALUES (?, 1, 'in', ?, datetime('now'), 'order', ?, ?, ?, ?, 'paid', 1)ES (?, 1, 'in', ?, datetime('now'), 'order', ?, ?, ?, ?, 'paid', 1)
+      `).bind(
+        accountId,Id,
+        amount,unt,
+        id,
+        paymentMethod,
+        `Sipariş #${id} ödemesi`,riş #${id} ödemesi`,
+        notes notes
+      )
+    ]);]);
     
     return c.json({
       success: true,
-      payment_status: newPaymentStatus,
-      paid_amount: newPaidAmount
-    });
+      payment_status: newPaymentStatus,Status,
+      paid_amount: newPaidAmountaid_amount: newPaidAmount
+    });});
     
   } catch (error) {
-    // Hata durumunda transaction'ı rollback yap
-    await db.exec('ROLLBACK');
-    
-    console.error('Payment error:', error);
+    console.error('Payment error:', error);ayment error:', error);
     return c.json({ 
       success: false, 
-      error: 'Ödeme kaydedilirken bir hata oluştu',
-      details: error.message 
-    }, 500);
+      error: 'Ödeme kaydedilirken bir hata oluştu',rken bir hata oluştu',
+      details: error.message s: error.message 
+    }, 500); }, 500);
   }
-});
+});});
+tme - Tüm iptal edilmiş siparişlerin payment_status'ünü güncelle
 
 export default router
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export default router});  }    }, 500);      details: error.message      error: 'İşlem başarısız oldu',      success: false,    return c.json({    console.error('Fix cancelled orders error:', error);  } catch (error) {    });      changed: result.changes      message: 'İptal edilmiş siparişlerin ödeme durumları güncellendi',      success: true,    return c.json({
+        `).run();      AND payment_status != 'cancelled'      WHERE status = 'cancelled'       SET payment_status = 'cancelled'      UPDATE orders    const result = await db.prepare(`    // İptal edilmiş ama ödeme durumu iptal olmayan siparişleri bul ve düzelt  try {    const db = c.get('db')router.post('/fix-cancelled-orders', async (c) => {export default router
