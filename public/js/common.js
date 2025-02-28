@@ -57,11 +57,12 @@ document.addEventListener('DOMContentLoaded', loadSideBar);
 
 // Para formatları
 function formatCurrency(amount) {
-    if (!amount && amount !== 0) return '0,00 ₺';
-    return amount.toLocaleString('tr-TR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }) + ' ₺';
+    if (amount === null || amount === undefined) return '0,00 ₺';
+    return new Intl.NumberFormat('tr-TR', { 
+        style: 'currency', 
+        currency: 'TRY',
+        minimumFractionDigits: 2
+    }).format(amount);
 }
 
 function parseCurrency(text) {
@@ -78,13 +79,15 @@ function formatPrice(amount) {
 }
 
 // Format tarih - sadece tarih için
-function formatDate(date) {
-    if (!date) return '-';
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
     return new Intl.DateTimeFormat('tr-TR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    }).format(new Date(date));
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit'
+    }).format(date);
 }
 
 function formatDateLocale(date) {
@@ -108,15 +111,13 @@ function formatDateTime(dateStr) {
 
 // Telefon numarası formatlama
 function formatPhoneNumber(phone) {
-    if (!phone) return '-';
-    // Sadece rakamları al
-    const numbers = phone.replace(/\D/g, '');
-    // Türkiye formatına çevir
-    if (numbers.length === 10) {
-        return `0${numbers.slice(0,3)} ${numbers.slice(3,6)} ${numbers.slice(6,8)} ${numbers.slice(8)}`;
+    if (!phone) return '';
+    // 5301234567 -> 0530 123 45 67
+    phone = phone.toString().trim().replace(/\D/g, '');
+    if (phone.length === 10 && !phone.startsWith('0')) {
+        phone = '0' + phone;
     }
-    // 10 haneli değilse orijinal numarayı döndür
-    return phone;
+    return phone.replace(/(\d{4})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4');
 }
 
 // Teslimat saati formatı güncellendi
@@ -156,88 +157,62 @@ function formatPaymentMethod(method) {
 
 // Hata gösterme fonksiyonu
 function showError(message) {
-    // Önce varsa eski toast container'ı temizle
-    const existingContainer = document.querySelector('.toast-container');
-    if (existingContainer) {
-        existingContainer.remove();
-    }
-
-    const toastContainer = document.createElement('div');
-    toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-    toastContainer.style.zIndex = '1050';
-
+    console.error(message);
+    
+    // Toast mesajı göster
     const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
-
+    toast.className = 'toast-container position-fixed bottom-0 end-0 p-3';
     toast.innerHTML = `
-        <div class="toast-header bg-danger text-white">
-            <i class="bi bi-exclamation-circle me-2"></i>
-            <strong class="me-auto">Hata</strong>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-        </div>
-        <div class="toast-body">
-            ${message}
+        <div class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
         </div>
     `;
-
-    toastContainer.appendChild(toast);
-    document.body.appendChild(toastContainer);
-
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-
-    // Toast kapandığında container'ı kaldır
-    toast.addEventListener('hidden.bs.toast', () => {
-        if (toastContainer && toastContainer.parentNode === document.body) {
-            document.body.removeChild(toastContainer);
-        }
+    document.body.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast.querySelector('.toast'), {
+        autohide: true,
+        delay: 5000
     });
+    bsToast.show();
+    
+    // 5.5 saniye sonra DOM'dan kaldır
+    setTimeout(() => {
+        toast.remove();
+    }, 5500);
 }
 
 // Başarı mesajı gösterme fonksiyonu
 function showSuccess(message) {
-    // Önce varsa eski toast container'ı temizle
-    const existingContainer = document.querySelector('.toast-container');
-    if (existingContainer) {
-        existingContainer.remove();
-    }
-
-    const toastContainer = document.createElement('div');
-    toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-    toastContainer.style.zIndex = '1050';
-
+    // Toast mesajı göster
     const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
-
+    toast.className = 'toast-container position-fixed bottom-0 end-0 p-3';
     toast.innerHTML = `
-        <div class="toast-header bg-success text-white">
-            <i class="bi bi-check-circle me-2"></i>
-            <strong class="me-auto">Başarılı</strong>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-        </div>
-        <div class="toast-body">
-            ${message}
+        <div class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="bi bi-check-circle-fill me-2"></i> ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
         </div>
     `;
-
-    toastContainer.appendChild(toast);
-    document.body.appendChild(toastContainer);
-
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-
-    // Toast kapandığında container'ı kaldır
-    toast.addEventListener('hidden.bs.toast', () => {
-        if (toastContainer && toastContainer.parentNode === document.body) {
-            document.body.removeChild(toastContainer);
-        }
+    document.body.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast.querySelector('.toast'), {
+        autohide: true,
+        delay: 3000
     });
+    bsToast.show();
+    
+    // 3.5 saniye sonra DOM'dan kaldır
+    setTimeout(() => {
+        toast.remove();
+    }, 3500);
 }
 
 function showToast(type, message) {

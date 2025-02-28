@@ -56,6 +56,11 @@ function resetToDefaultFilters() {
 // Temel veri yükleme fonksiyonu güncellendi
 async function loadOrders(isInitialLoad = false) {
     try {
+        console.log('LoadOrders çalışıyor...');
+        
+        // API URL'i doğru oluşturulmuş mu kontrol et
+        console.log('API_URL:', API_URL);
+        
         const params = new URLSearchParams({
             page: document.querySelector('[name="page"]').value,
             per_page: document.querySelector('[name="per_page"]').value,
@@ -86,20 +91,23 @@ async function loadOrders(isInitialLoad = false) {
         }
 
         // URL yapısını düzelt ve debug log ekle
-        const url = getApiUrl('/orders/filtered') + '?' + params.toString();
+        const url = `${API_URL}/orders/filtered?${params.toString()}`;
         console.log('Loading orders from:', url);
 
         const response = await fetch(url);
+        console.log('API response status:', response.status);
         
-        // Response içeriğini kontrol et
+        // Response içeriğini detaylı kontrol et
         if (!response.ok) {
             const errorText = await response.text();
             console.error('API Error Response:', errorText);
+            console.error('Response status:', response.status);
+            console.error('Response headers:', Object.fromEntries([...response.headers]));
             throw new Error('API Error: ' + response.status);
         }
 
         const data = await response.json();
-        console.log('API Response:', data); // Debug için
+        console.log('API Response full data structure:', data);
 
         if (!data.success) {
             throw new Error(data.error || 'API Error');
@@ -133,7 +141,8 @@ async function loadOrders(isInitialLoad = false) {
         }
 
     } catch (error) {
-        console.error('Orders error:', error);
+        console.error('Orders error details:', error);
+        console.error('Error stack:', error.stack);
         showError('Siparişler yüklenemedi: ' + error.message);
     }
 }
@@ -673,12 +682,70 @@ function fillOrderDetailModal(order) {
                 <div class="fw-bold">Toplam</div>
                 <div class="fw-bold">${formatCurrency(total)}</div>
             </div>
-        `;
-        
-        itemsContainer.innerHTML = itemsHtml;
-    } else {
-        itemsContainer.innerHTML = '<div class="text-muted">Ürün bilgisi bulunamadı</div>';
-    }
-    
-    // ...existing code...
+
+
+
+
+
+
+
+
+
+}    // ...existing code...        }        itemsContainer.innerHTML = '<div class="text-muted">Ürün bilgisi bulunamadı</div>';    } else {        itemsContainer.innerHTML = itemsHtml;                `;
+// Eksik badge fonksiyonları ekle
+function getStatusBadge(status) {
+    const statusMap = {
+        'new': '<span class="badge status-new">Yeni</span>',
+        'confirmed': '<span class="badge status-confirmed">Onaylandı</span>',
+        'preparing': '<span class="badge status-preparing">Hazırlanıyor</span>',
+        'ready': '<span class="badge status-ready">Hazır</span>',
+        'delivering': '<span class="badge status-delivering">Yolda</span>',
+        'delivered': '<span class="badge status-delivered">Teslim Edildi</span>',
+        'cancelled': '<span class="badge status-cancelled">İptal</span>'
+    };
+    return statusMap[status] || `<span class="badge bg-secondary">${status || 'Belirsiz'}</span>`;
 }
+
+// Eksik ödeme durumu sınıf fonksiyonunu ekle
+function getPaymentStatusClass(status) {
+    const classes = {
+        'pending': 'payment-pending',
+        'partial': 'payment-partial',
+        'paid': 'payment-paid',
+        'cancelled': 'payment-cancelled'
+    };
+    return classes[status] || 'bg-secondary';
+}
+
+// Eksik ödeme durumu metin fonksiyonu ekle
+function getPaymentStatusText(status) {
+    const texts = {
+        'pending': 'Bekliyor',
+        'partial': 'Kısmi Ödeme',
+        'paid': 'Ödendi',
+        'cancelled': 'İptal'
+    };
+    return texts[status] || status || 'Belirsiz';
+}
+
+// Eksik formatlama fonksiyonu ekle
+function formatPaymentMethod(method) {
+    const methods = {
+        'cash': 'Nakit',
+        'credit_card': 'Kredi Kartı',
+        'bank_transfer': 'Banka Havalesi',
+        'online': 'Online Ödeme'
+    };
+    return methods[method] || method;
+}
+
+// API URL'ini elde etme fonksiyonu - ortak.js'e taşınmış olabilir, yoksa ekle
+function getApiUrl(path) {
+    // Path'in başında / varsa kontrol et ve düzelt
+    if (path && path.startsWith('/')) {
+        path = path.substring(1);
+    }
+    return `${API_URL}/${path}`;
+}
+
+// ...existing code...
