@@ -241,18 +241,27 @@ async function showOrderDetail(orderId) {
         const order = orderResponse.order;
         const recipes = recipesResponse.success ? recipesResponse.recipes : [];
 
-        // Reçeteleri ürün bazında gruplandır - DEBUG EDİLEN KISIM
+        // Reçeteleri ürün bazında gruplandır - FİX EDİLDİ
         const productRecipes = {};
         
-        // Her reçete için ürün gruplarını oluştur
-        console.log("Parsing recipes:", recipes);
+        console.log("Raw recipes data:", JSON.stringify(recipes));
         
         if (recipes && recipes.length > 0) {
+            // Önce her ürün için bir product id - name eşleştirme tablosu oluşturalım
+            const productMap = {};
+            
+            recipes.forEach(recipe => {
+                if (recipe.product_id && recipe.product_name) {
+                    productMap[recipe.product_id] = recipe.product_name;
+                }
+            });
+            
+            console.log("Product map:", productMap);
+            
+            // Şimdi reçeteleri gruplandıralım
             recipes.forEach(recipe => {
                 const productId = recipe.product_id;
-                const productName = recipe.product_name;
-                
-                console.log(`Processing recipe for product: ${productName} (${productId})`);
+                const productName = productMap[productId] || `Ürün #${productId}`;
                 
                 if (!productRecipes[productId]) {
                     productRecipes[productId] = {
@@ -270,7 +279,6 @@ async function showOrderDetail(orderId) {
             });
         }
         
-        // Konsola gruplandırılmış ürünleri yazdır (debug)
         console.log("Grouped products:", productRecipes);
 
         // Detay HTML'i - Ürün gruplarına göre malzemeleri göster

@@ -341,7 +341,7 @@ router.post('/', async (c) => {
   } catch (error) {
     console.error('Ürün kaydetme hatası:', error);
     return c.json({ 
-      success: false, 
+      success: false,
       error: error.message,
       details: 'Veritabanı işlemi sırasında bir hata oluştu'
     }, 500)
@@ -450,13 +450,15 @@ router.get('/recipes/:orderId', async (c) => {
     }
 })
 
-// Sipariş için reçete önerisi - ÖNEMLİ HATA DÜZELTİLDİ
+// Sipariş için reçete önerisi
 router.get('/recipes/:orderId', async (c) => {
     const { orderId } = c.req.param();
     const db = c.get('db')
     
     try {
-        // Sorguyu geliştir: Ürün ID ve adını doğru şekilde ekle
+        console.log('Fetching recipes for order:', orderId);
+        
+        // Ürün bazlı gruplandırma için optimize edilmiş sorgu:
         const { results } = await db.prepare(`
             SELECT 
                 oi.product_id,
@@ -467,13 +469,21 @@ router.get('/recipes/:orderId', async (c) => {
                 (pm.default_quantity * oi.quantity) as suggested_quantity
             FROM order_items oi
             JOIN products p ON oi.product_id = p.id
-            JOIN product_materials pm ON p.id = pm.product_id AND pm.deleted_at IS NULL
+            JOIN product_materials pm ON oi.product_id = pm.product_id AND pm.deleted_at IS NULL
             JOIN raw_materials rm ON pm.material_id = rm.id
             JOIN units u ON rm.unit_id = u.id
             WHERE oi.order_id = ?
             AND oi.deleted_at IS NULL
             ORDER BY oi.product_id, rm.name
         `).bind(orderId).all();
+        
+        // Debug log ekleyelim
+        if (results) {
+            console.log('Recipe query results:', {
+                count: results.length,
+                sample: results.length > 0 ? results[0] : null
+            });
+        }
         
         return c.json({
             success: true, 
