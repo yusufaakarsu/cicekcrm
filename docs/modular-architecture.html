@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCRM - Modüler Mimari Rehberi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .sidebar {
+            position: sticky;
+            top: 20px;
+        }
+        .tree-view {
+            list-style-type: none;
+            padding-left: 1.5rem;
+        }
+        .tree-view li {
+            position: relative;
+            padding: 3px 0;
+        }
+        .tree-view li:before {
+            content: "";
+            position: absolute;
+            left: -15px;
+            top: 12px;
+            width: 10px;
+            height: 1px;
+            background-color: #ccc;
+        }
+        .tree-view li:after {
+            content: "";
+            position: absolute;
+            left: -15px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background-color: #ccc;
+        }
+        .tree-view li:last-child:after {
+            height: 13px;
+        }
+        .tree-view li > span {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .folder {
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .file {
+            color: #333;
+        }
+        .js-file { color: #f0db4f; background-color: #323330; }
+        .css-file { color: #264de4; background-color: #f0f8ff; }
+        .html-file { color: #e34c26; background-color: #fffaf0; }
+        code {
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #0d6efd;
+            overflow-x: auto;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .benefits-list li {
+            margin-bottom: 10px;
+        }
+        .code-example {
+            margin: 15px 0;
+        }
+        .text-accent {
+            color: #0d6efd;
+        }
+        .highlight {
+            background-color: #ffff99;
+            padding: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-5">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-xl-2 mb-4">
+                <div class="sidebar">
+                    <h5>İçindekiler</h5>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#intro">Giriş</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#structure">Dosya Yapısı</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#core">Core Modüller</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#components">Bileşenler</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#services">Servisler</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#utils">Yardımcı Fonksiyonlar</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#assets">Varlıklar</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#practices">En İyi Uygulamalar</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#migration">Geçiş Stratejisi</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <main class="col-md-9 col-xl-10">
+                <div class="container">
+                    <header class="section text-center">
+                        <h1>CCRM Modüler Mimari Rehberi</h1>
+                        <p class="lead">Sürdürülebilir, anlaşılır ve ölçeklenebilir JavaScript frontend yapısı</p>
+                    </header>
+                    
+                    <section id="intro" class="section">
+                        <h2>Giriş</h2>
+                        <p>
+                            Bu belge, CCRM projesinin frontend mimarisinin modüler bir yapıya kavuşturulması için bir rehber niteliğindedir.
+                            Karmaşık ve sürekli büyüyen bir projenin sürdürülebilirliğini sağlamak, kod tekrarını önlemek ve geliştirme süreçlerini
+                            hızlandırmak amacıyla oluşturulmuştur.
+                        </p>
+                        
+                        <div class="alert alert-info">
+                            <strong><i class="bi bi-info-circle"></i> Neden Modüler Yapı?</strong>
+                            <p class="mb-0">
+                                Modüler yapı, büyük projelerde kodun daha yönetilebilir parçalara ayrılmasını sağlar. Bu sayede
+                                ekip üyeleri arasında iş bölümü kolaylaşır, bakım ve geliştirme süreçleri hızlanır, test edilebilirlik artar
+                                ve kod tekrarı azalır.
+                            </p>
+                        </div>
+                    </section>
+                    
+                    <section id="structure" class="section">
+                        <h2>Dosya Yapısı</h2>
+                        <p>
+                            CCRM projesi için önerilen modüler dosya yapısı aşağıdaki gibidir:
+                        </p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h4>Önerilen Yapı</h4>
+                                <ul class="tree-view">
+                                    <li><span class="folder">public/</span>
+                                        <ul class="tree-view">
+                                            <li><span class="folder">js/</span>
+                                                <ul class="tree-view">
+                                                    <li><span class="folder">core/</span>
+                                                        <ul class="tree-view">
+                                                            <li><span class="file js-file">api.js</span></li>
+                                                            <li><span class="file js-file">auth.js</span></li>
+                                                            <li><span class="file js-file">config.js</span></li>
+                                                            <li><span class="file js-file">events.js</span></li>
+                                                        </ul>
+                                                    </li>
+                                                    <li><span class="folder">components/</span>
+                                                        <ul class="tree-view">
+                                                            <li><span class="file js-file">datePicker.js</span></li>
+                                                            <li><span class="file js-file">addressSelector.js</span></li>
+                                                            <li><span class="file js-file">orderTable.js</span></li>
+                                                            <li><span class="file js-file">modal.js</span></li>
+                                                            <li><span class="file js-file">toast.js</span></li>
+                                                        </ul>
+                                                    </li>
+                                                    <li><span class="folder">services/</span>
+                                                        <ul class="tree-view">
+                                                            <li><span class="file js-file">orderService.js</span></li>
+                                                            <li><span class="file js-file">customerService.js</span></li>
+                                                            <li><span class="file js-file">productService.js</span></li>
+                                                            <li><span class="file js-file">addressService.js</span></li>
+                                                            <li><span class="file js-file">paymentService.js</span></li>
+                                                        </ul>
+                                                    </li>
+                                                    <li><span class="folder">utils/</span>
+                                                        <ul class="tree-view">
+                                                            <li><span class="file js-file">formatters.js</span></li>
+                                                            <li><span class="file js-file">validators.js</span></li>
+                                                            <li><span class="file js-file">domHelpers.js</span></li>
+                                                            <li><span class="file js-file">dateUtils.js</span></li>
+                                                        </ul>
+                                                    </li>
+                                                    <li><span class="file js-file">common.js</span></li>
+                                                </ul>
+                                            </li>
+                                            <li><span class="folder">css/</span>
+                                                <ul class="tree-view">
+                                                    <li><span class="file css-file">main.css</span></li>
+                                                    <li><span class="file css-file">components.css</span></li>
+                                                    <li><span class="file css-file">utilities.css</span></li>
+                                                </ul>
+                                            </li>
+                                            <li><span class="folder">assets/</span>
+                                                <ul class="tree-view">
+                                                    <li><span class="folder">images/</span></li>
+                                                    <li><span class="folder">icons/</span></li>
+                                                </ul>
+                                            </li>
+                                            <li><span class="folder">orders/</span>
+                                                <ul class="tree-view">
+                                                    <li><span class="file html-file">orders.html</span></li>
+                                                    <li><span class="file html-file">new-order.html</span></li>
+                                                    <li><span class="folder">js/</span>
+                                                        <ul class="tree-view">
+                                                            <li><span class="file js-file">orders.js</span></li>
+                                                            <li><span class="file js-file">new-order.js</span></li>
+                                                        </ul>
+                                                    </li>
+                                                </ul>
+                                            </li>
+                                            <!-- Diğer modüller benzer yapıda -->
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">Modüler Yapının Avantajları</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="benefits-list">
+                                            <li><strong>Endişelerin Ayrılması:</strong> Her modül kendi sorumluluklarını yerine getirir.</li>
+                                            <li><strong>Yeniden Kullanılabilirlik:</strong> Bileşenler ve yardımcı fonksiyonlar çeşitli sayfalarda kullanılabilir.</li>
+                                            <li><strong>Bakım Kolaylığı:</strong> Herhangi bir değişiklik yapmak için yalnızca ilgili modülü güncellemek yeterlidir.</li>
+                                            <li><strong>Ölçeklenebilirlik:</strong> Proje büyüdükçe sorunsuzca yeni modüller eklenebilir.</li>
+                                            <li><strong>Paralel Geliştirme:</strong> Ekip üyeleri aynı anda farklı modüller üzerinde çalışabilir.</li>
+                                            <li><strong>Test Edilebilirlik:</strong> İzole modüller daha kolay ve kapsamlı test edilebilir.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <section id="core" class="section">
+                        <h2>Core Modüller</h2>
+                        <p>
+                            Core modüller, uygulamanın temel işlevselliğini sağlayan yapı taşlarıdır. Bunlar diğer tüm modüller tarafından kullanılır
+                            ve uygulamanın genel davranışını belirler.
+                        </p>
+                        
+                        <h4>Örnek Modüller:</h4>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Dosya</th>
+                                        <th>Sorumluluk</th>
+                                        <th>İçerik</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>api.js</code></td>
+                                        <td>API iletişimi</td>
+                                        <td>
+                                            <ul>
+                                                <li>API URL konfigürasyonu</li>
+                                                <li>Fetch işlemleri için wrapper fonksiyonlar</li>
+                                                <li>Hata yönetimi</li>
+                                                <li>Response parsing</li>
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>auth.js</code></td>
+                                        <td>Kimlik doğrulama</td>
+                                        <td>
+                                            <ul>
+                                                <li>Kullanıcı oturum yönetimi</li>
+                                                <li>Token işlemleri</li>
+                                                <li>Yetkilendirme kontrolleri</li>
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>config.js</code></td>
+                                        <td>Uygulama ayarları</td>
+                                        <td>
+                                            <ul>
+                                                <li>API URL'leri</li>
+                                                <li>HERE API KEY</li>
+                                                <li>Diğer çevresel değişkenler</li>
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>events.js</code></td>
+                                        <td>Olay yönetimi</td>
+                                        <td>
+                                            <ul>
+                                                <li>Özel uygulama olayları</li>
+                                                <li>Olay yayımlama/abone olma mekanizması</li>
+                                                <li>Global olay dinleyiciler</li>
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="code-example">
+                            <h5>Örnek: api.js</h5>
+                            <pre><code>// Core API modülü
+import { API_URL } from './config.js';
+
+// Gelişmiş fetch fonksiyonu
+export async function fetchAPI(endpoint, options = {}) {
+    const url = `${API_URL}/${endpoint.startsWith('/') ? endpoint.substring(1) : endpoint}`;
+    
+    // Default başlıkları ekle
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+    };
+    
+    try {
+        // İstek gönder
+        const response = await fetch(url, {
+            ...options,
+            headers
+        });
+        
+        // Başarısız yanıtları kontrol et
+        if (!response.ok) {
+            // Hata ayrıntılarını al
+            let errorMessage;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorData.message;
+            } catch (e) {
+                errorMessage = await response.text();
+            }
+            
+            throw new Error(`API Error: ${response.status} - ${errorMessage}`);
+        }
+        
+        // JSON yanıtı parse et ve döndür
+        return await response.json();
+    } catch (error) {
+        console.error(`API Error for ${endpoint}:`, error);
+        throw error;
+    }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section id="components" class="section">
+                        <h2>Bileşenler</h2>
+                        <p>
+                            Bileşenler, kullanıcı arayüzünün yeniden kullanılabilir parçalarıdır. Her bileşen, kendi görünümünü ve davranışını yönetir.
+                            Bileşenler, diğer bileşenler veya sayfa betikleri tarafından kullanılır.
+                        </p>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Bileşen Özellikleri</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul>
+                                            <li>Kapsüllenmiş - iç işleyişi gizler</li>
+                                            <li>Yapılandırılabilir - özelleştirilebilir</li>
+                                            <li>Yeniden kullanılabilir - farklı bağlamlarda kullanılabilir</li>
+                                            <li>Bağımsız - minimum dış bağımlılık</li>
+                                            <li>Sorumluluğu net - tek bir iş yapar</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Yaygın Bileşenler</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul>
+                                            <li><strong>datePicker.js</strong> - Tarih seçici</li>
+                                            <li><strong>addressSelector.js</strong> - Adres seçici/arama</li>
+                                            <li><strong>orderTable.js</strong> - Sipariş tablosu</li>
+                                            <li><strong>modal.js</strong> - Özelleştirilmiş modallar</li>
+                                            <li><strong>toast.js</strong> - Bildirimler</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="code-example">
+                            <h5>Örnek: Modal Bileşeni</h5>
+                            <pre><code>// components/modal.js
+// Özelleştirilebilir modal bileşeni
+
+export default class Modal {
+    constructor(options = {}) {
+        this.id = options.id || `modal-${Date.now()}`;
+        this.title = options.title || '';
+        this.content = options.content || '';
+        this.size = options.size || 'medium'; // small, medium, large
+        this.onClose = options.onClose || (() => {});
+        this.element = null;
+        this.bootstrapModal = null;
+    }
+
+    create() {
+        // Modal zaten varsa yeniden oluşturma
+        if (this.element) return this;
+
+        // Size sınıfını belirle
+        const sizeClass = {
+            small: '',
+            medium: 'modal-lg',
+            large: 'modal-xl'
+        }[this.size];
+
+        // Modal HTML oluştur
+        const modalHTML = `
+            <div class="modal fade" id="${this.id}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog ${sizeClass}">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">${this.title}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">${this.content}</div>
+                        <div class="modal-footer modal-footer-slots">
+                            <!-- Footer slotları dinamik olarak eklenecek -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Modalı DOM'a ekle
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        this.element = document.getElementById(this.id);
+        
+        // Bootstrap modal nesnesini oluştur
+        this.bootstrapModal = new bootstrap.Modal(this.element);
+        
+        // Kapatma olayını dinle
+        this.element.addEventListener('hidden.bs.modal', () => {
+            this.onClose();
+        });
+        
+        return this;
+    }
+    
+    // Modal içeriğini güncelle
+    setContent(content) {
+        if (!this.element) this.create();
+        this.element.querySelector('.modal-body').innerHTML = content;
+        return this;
+    }
+    
+    // Modal başlığını güncelle
+    setTitle(title) {
+        if (!this.element) this.create();
+        this.element.querySelector('.modal-title').textContent = title;
+        return this;
+    }
+    
+    // Footer butonları ekle
+    addButton(text, type = 'secondary', clickHandler = null, options = {}) {
+        if (!this.element) this.create();
+        
+        const btnClass = `btn btn-${type}`;
+        const btn = document.createElement('button');
+        btn.className = btnClass;
+        btn.textContent = text;
+        
+        if (options.dismiss) {
+            btn.dataset.bsDismiss = 'modal';
+        }
+        
+        if (clickHandler) {
+            btn.addEventListener('click', clickHandler);
+        }
+        
+        this.element.querySelector('.modal-footer-slots').appendChild(btn);
+        return this;
+    }
+    
+    // Modal göster
+    show() {
+        if (!this.element) this.create();
+        this.bootstrapModal.show();
+        return this;
+    }
+    
+    // Modal gizle
+    hide() {
+        if (this.bootstrapModal) {
+            this.bootstrapModal.hide();
+        }
+        return this;
+    }
+    
+    // Modalı kaldır
+    destroy() {
+        if (this.element) {
+            this.bootstrapModal.dispose();
+            this.element.remove();
+            this.element = null;
+            this.bootstrapModal = null;
+        }
+        return this;
+    }
+}</code></pre>
+                        </div>
+                        
+                        <div class="code-example">
+                            <h5>Kullanım Örneği:</h5>
+                            <pre><code>// Modal bileşenini kullanma örneği
+import Modal from '../components/modal.js';
+
+// Ödeme modalı oluştur
+const paymentModal = new Modal({
+    id: 'paymentModal',
+    title: 'Sipariş Ödemesi',
+    size: 'medium',
+    content: `
+        <form id="paymentForm">
+            <div class="mb-3">
+                <label for="amount">Ödeme Tutarı</label>
+                <input type="text" class="form-control" id="amount" value="100">
+            </div>
+            <div class="mb-3">
+                <label for="method">Ödeme Yöntemi</label>
+                <select class="form-select" id="method">
+                    <option value="cash">Nakit</option>
+                    <option value="credit_card">Kredi Kartı</option>
+                </select>
+            </div>
+        </form>
+    `,
+    onClose: () => console.log('Ödeme modalı kapatıldı')
+}).create();
+
+// Butonlar ekle
+paymentModal
+    .addButton('İptal', 'secondary', null, { dismiss: true })
+    .addButton('Ödeme Al', 'primary', async () => {
+        const amount = document.getElementById('amount').value;
+        const method = document.getElementById('method').value;
+        
+        try {
+            await processPayment({ amount, method });
+            paymentModal.hide();
+            showToast('success', 'Ödeme başarıyla alındı');
+        } catch (error) {
+            showToast('error', 'Ödeme işlemi başarısız');
+        }
+    });
+
+// Göster
+paymentModal.show();</code></pre>
+                        </div>
+                    </section>
+                    
+                    <section id="services" class="section">
+                        <h2>Servisler</h2>
+                        <p>
+                            Servisler, uygulamanın veri ve işlem katmanını temsil eden modüllerdir. API çağrıları, veri işleme ve iş mantığı
+                            servisler tarafından yönetilir. Servisler, kullanıcı arayüzü bileşenlerinden veri erişimini soyutlar.
+                        </p>
+                        
+                        <div class="table-responsive mb-4">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Servis</th>
+                                        <th>Sorumluluk</th>
+                                        <th>Örnek Metodlar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>orderService.js</code></td>
+                                        <td>Sipariş işlemleri</td>
+                                        <td><code>getOrders(), createOrder(), updateOrderStatus(), cancelOrder()</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>customerService.js</code></td>
+                                        <td>Müşteri işlemleri</td>
+                                        <td><code>findCustomer(), createCustomer(), updateCustomer(), getCustomerOrders()</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>productService.js</code></td>
+                                        <td>Ürün işlemleri</td>
+                                        <td><code>getProducts(), searchProducts(), getProductsByCategory()</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>addressService.js</code></td>
+                                        <td>Adres işlemleri</td>
+                                        <td><code>searchAddress(), saveAddress(), getCustomerAddresses()</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>paymentService.js</code></td>
+                                        <td>Ödeme işlemleri</td>
+                                        <td><code>processPayment(), getPaymentHistory(), generateInvoice()</code></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="code-example">
+                            <h5>Örnek: Order Service</h5>
+                            <pre><code>// services/orderService.js
+import { fetchAPI } from '../core/api.js';
+
+export const OrderService = {
+    /**
+     * Tüm siparişleri getir
+     * @

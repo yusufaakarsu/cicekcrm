@@ -410,33 +410,46 @@ router.post("/delivery", async (c) => {
   }
 })
 
-// Sipariş ödeme al endpoint'i
+// Sipariş ödeme al endpoint'i kontrolü
 router.post('/:id/payment', async (c) => {
   const db = c.get('db');
   const { id } = c.req.param();
-  const body = await c.req.json();
   
   try {
-    // Sipariş var mı kontrol et
+    // Transaction başlat
+    await db.exec('BEGIN TRANSACTION');
+    
+    // 1. Siparişi kontrol et
     const order = await db.prepare(`
       SELECT * FROM orders 
       WHERE id = ? AND deleted_at IS NULL
     `).bind(id).first();
     
     if (!order) {
+      await db.exec('ROLLBACK');
       return c.json({ 
         success: false, 
         error: 'Sipariş bulunamadı' 
       }, 404);
     }
+
+    // İptal edilmiş siparişe ödeme yapılamaz
+    if (order.payment_status === 'cancelled' || order.status === 'cancelled') {
+      await db.exec('ROLLBACK');
+      return c.json({
+        success: false,
+        error: 'İptal edilmiş siparişe ödeme yapılamaz'
+      }, 400);
+    }
     
-    // Transaction başlat
-    await db.exec('BEGIN TRANSACTION');
-    
-    // Ödeme tutarı ve yöntemi doğrula
+    // 2. Ödeme verilerini doğrula
+    const body = await c.req.json();
     const amount = parseFloat(body.amount);
     const paymentMethod = body.payment_method || 'cash';
+    const accountId = body.account_id || 1;
+    const notes = body.notes || null;
     
+    // Tutar validasyonu
     if (isNaN(amount) || amount <= 0) {
       await db.exec('ROLLBACK');
       return c.json({ 
@@ -445,11 +458,22 @@ router.post('/:id/payment', async (c) => {
       }, 400);
     }
     
-    // Siparişi güncelle - ödenen miktarı artır, durumu güncelle
-    const newPaidAmount = (parseFloat(order.paid_amount) || 0) + amount;
-    const newPaymentStatus = newPaidAmount >= parseFloat(order.total_amount) ? 'paid' : 'partial';
+    // Toplam tutarı aşan ödeme kontrolü
+    const currentPaid = parseFloat(order.paid_amount || '0');
+    const totalAmount = parseFloat(order.total_amount);
     
-    // Siparişi güncelle
+    if (currentPaid + amount > totalAmount) {
+      await db.exec('ROLLBACK');
+      return c.json({
+        success: false,
+        error: 'Ödeme tutarı, kalan tutardan fazla olamaz'
+      }, 400);
+    }
+    
+    // 3. Siparişi güncelle - ödenen miktarı artır, durumu güncelle
+    const newPaidAmount = currentPaid + amount;
+    const newPaymentStatus = newPaidAmount >= totalAmount ? 'paid' : currentPaid > 0 ? 'partial' : 'pending';
+    
     await db.prepare(`
       UPDATE orders
       SET 
@@ -464,7 +488,7 @@ router.post('/:id/payment', async (c) => {
       id
     ).run();
     
-    // Ödeme işlemini finansal tabloya kaydet
+    // 4. Ödeme işlemini finans tablosuna kaydet
     await db.prepare(`
       INSERT INTO transactions (
         account_id, 
@@ -481,13 +505,20 @@ router.post('/:id/payment', async (c) => {
         created_by
       ) VALUES (?, 1, 'in', ?, datetime('now'), 'order', ?, ?, ?, ?, 'paid', 1)
     `).bind(
-      paymentMethod === 'cash' ? 1 : (paymentMethod === 'credit_card' ? 2 : 3), // Hesap ID'sini ödeme yöntemine göre seç
+      accountId,
       amount,
       id,
       paymentMethod,
       `Sipariş #${id} ödemesi`,
-      body.notes || null
+      notes
     ).run();
+    
+    // 5. Hesap bakiyesini güncelle (isteğe bağlı)
+    await db.prepare(`
+      UPDATE accounts
+      SET balance_calculated = balance_calculated + ?
+      WHERE id = ?
+    `).bind(amount, accountId).run();
     
     // Transaction'ı commitle
     await db.exec('COMMIT');
