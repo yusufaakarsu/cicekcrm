@@ -8,8 +8,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Sidebar'ı yükle
     await loadSideBar();
     
-    // Dashboard verilerini yükle
-    await loadDashboardData();
+    // Dashboard verilerini yükle - hatalar sessizce yakalanacak
+    try {
+        await loadDashboardData();
+    } catch (error) {
+        console.error('Dashboard data error:', error);
+        showError('Bazı dashboard verileri yüklenemedi - Sayfayı yenileyin veya desteğe başvurun');
+    }
     
     // Event listeners
     setupEventListeners();
@@ -31,36 +36,68 @@ function setupEventListeners() {
     document.getElementById('salesChartMonthly').addEventListener('click', () => changeSalesChartGrouping('monthly'));
 }
 
-// Dashboard verilerini yükle
+// Dashboard verilerini yükle - her bir API isteği için ayrı try-catch ile
 async function loadDashboardData() {
+    showLoading();
+    
     try {
-        showLoading();
+        // Özet verileri
+        try {
+            const summaryData = await fetchAPI(`/dashboard/summary?timeRange=${currentTimeRange}`);
+            if (summaryData.success) {
+                updateSummaryCards(summaryData);
+            }
+        } catch (error) {
+            console.error('Summary data error:', error);
+            // Özet verisi hatası - sessiz geç
+        }
         
-        // Paralel olarak tüm verileri yükle
-        const [summaryData, trendData, categoryData, recentOrders, targetData] = await Promise.all([
-            fetchAPI(`/dashboard/summary?timeRange=${currentTimeRange}`),
-            fetchAPI(`/dashboard/trends?timeRange=${currentTimeRange}`),
-            fetchAPI(`/dashboard/categories?timeRange=${currentTimeRange}`),
-            fetchAPI(`/dashboard/recent-orders`),
-            fetchAPI(`/dashboard/targets`)
-        ]);
+        // Trend verileri
+        try {
+            const trendData = await fetchAPI(`/dashboard/trends?timeRange=${currentTimeRange}`);
+            if (trendData.success) {
+                updateSalesChart(trendData);
+            }
+        } catch (error) {
+            console.error('Trend data error:', error);
+            // Trend verisi hatası - sessiz geç
+        }
         
-        // Özet verileri güncelle
-        updateSummaryCards(summaryData);
+        // Kategori verileri
+        try {
+            const categoryData = await fetchAPI(`/dashboard/categories?timeRange=${currentTimeRange}`);
+            if (categoryData.success) {
+                updateCategoryChart(categoryData);
+            }
+        } catch (error) {
+            console.error('Category data error:', error);
+            // Kategori verisi hatası - sessiz geç
+        }
         
-        // Grafikleri güncelle
-        updateSalesChart(trendData);
-        updateCategoryChart(categoryData);
+        // Son siparişler
+        try {
+            const recentOrders = await fetchAPI(`/dashboard/recent-orders`);
+            if (recentOrders.success) {
+                updateRecentOrders(recentOrders);
+            }
+        } catch (error) {
+            console.error('Recent orders error:', error);
+            // Son siparişler hatası - sessiz geç
+        }
         
-        // Son siparişleri güncelle
-        updateRecentOrders(recentOrders);
-        
-        // Hedefleri güncelle
-        updateTargets(targetData);
-        
+        // Hedefler
+        try {
+            const targetData = await fetchAPI(`/dashboard/targets`);
+            if (targetData.success) {
+                updateTargets(targetData);
+            }
+        } catch (error) {
+            console.error('Targets data error:', error);
+            // Hedefler hatası - sessiz geç
+        }
     } catch (error) {
         console.error('Dashboard data loading error:', error);
-        showError('Dashboard verileri yüklenemedi');
+        throw error; // Ana hata - yukarıya ilet
     } finally {
         hideLoading();
     }
