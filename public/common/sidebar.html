@@ -1,234 +1,353 @@
-<!-- Sol Menü - Desktop -->
-<div class="d-none d-md-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 200px; height: 100vh;">
-    <h5 class="mb-4">Çiçek CRM</h5>
-    <ul class="nav nav-pills flex-column mb-auto">
-        <!-- Dashboard -->
-        <li class="nav-item">
-            <a href="/dashboard/dashboard.html" class="nav-link text-white">
-                <i class="bi bi-speedometer2 me-2"></i> Dashboard
-            </a>
-        </li>
+<!-- Sidebar CSS -->
+<style>
+    :root {
+        --sidebar-width: 260px;
+        --sidebar-width-collapsed: 65px;
+        --sidebar-bg: #212529;
+        --sidebar-hover: rgba(255, 255, 255, 0.1);
+        --sidebar-active: rgba(255, 255, 255, 0.15);
+        --sidebar-text: #a0a3bd;
+        --sidebar-text-active: #ffffff;
+        --brand-gradient: linear-gradient(45deg, #6dabe4, #8bbae8);
+    }
 
-        <!-- Siparişler -->
-        <li class="nav-item">
-            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#orders-menu">
-                <i class="bi bi-box me-2"></i> Siparişler
-            </a>
-            <div class="collapse" id="orders-menu">
-                <ul class="nav nav-pills flex-column ms-3 mt-1">
-                    <li><a href="/orders/orders.html" class="nav-link text-white">Sipariş Listesi</a></li>
-                    <li><a href="/orders/new-order.html" class="nav-link text-white">Yeni Sipariş</a></li>
-                </ul>
-            </div>
-        </li>
+    body {
+        overflow-x: hidden;
+    }
 
-        <!-- Ürünler -->
-        <li class="nav-item">
-            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#products-menu">
-                <i class="bi bi-box-seam me-2"></i> Ürünler
-            </a>
-            <div class="collapse" id="products-menu">
-                <ul class="nav nav-pills flex-column ms-3 mt-1">
-                    <li><a href="/products/products.html" class="nav-link text-white">Ürün Listesi</a></li>
-                    <li><a href="/products/new-products/new-products.html" class="nav-link text-white">Yeni Ürün Ekle</a></li>
-                </ul>
-            </div>
-        </li>
+    .sidebar {
+        width: var(--sidebar-width);
+        height: 100vh;
+        background: var(--sidebar-bg);
+        transition: all 0.3s ease;
+        z-index: 1040;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
 
-        <!-- Satın Alma -->
-        <li class="nav-item">
-            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#purchase-menu">
-                <i class="bi bi-cart me-2"></i> Satın Alma
-            </a>
-            <div class="collapse" id="purchase-menu">
-                <ul class="nav nav-pills flex-column ms-3 mt-1">
-                    <li><a href="/purchases/purchases.html" class="nav-link text-white">Satın Alma</a></li>
-                    <li><a href="/stock/stock.html" class="nav-link text-white">Stok Yönetimi</a></li>
-                    <li><a href="/purchases/suppliers/suppliers.html" class="nav-link text-white">Tedarikçiler</a></li>
-                    <li><a href="/purchases/rawmaterial/rawmaterial.html" class="nav-link text-white">Ham Madde</a></li>
-                </ul>
-            </div>
-        </li>
+    .sidebar.collapsed {
+        width: var(--sidebar-width-collapsed);
+    }
 
-        <!-- Müşteriler -->
-        <li class="nav-item">
-            <a href="/customers/customers.html" class="nav-link text-white">
-                <i class="bi bi-people me-2"></i> Müşteriler
-            </a>
-        </li>
+    .sidebar-link {
+        color: var(--sidebar-text);
+        transition: all 0.2s ease;
+        border-radius: 8px;
+        margin: 2px 10px;
+        white-space: nowrap;
+        overflow: hidden;
+    }
 
-        <!-- Atölye - YENİ -->
-        <li class="nav-item">
-            <a href="/workshop/workshop.html" class="nav-link text-white">
-                <i class="bi bi-flower1 me-2"></i> Atölye
-            </a>
-        </li>
+    .sidebar-link:hover {
+        color: var(--sidebar-text-active);
+        background: var(--sidebar-hover);
+        transform: translateX(5px);
+    }
 
-        <!-- Teslimat -->
-        <li class="nav-item">
-            <a href="/delivery/map.html" class="nav-link text-white">
-                <i class="bi bi-truck me-2"></i> Teslimat
-            </a>
-        </li>
+    .sidebar-link.active {
+        color: var(--sidebar-text-active);
+        background: var(--sidebar-active);
+        font-weight: 500;
+    }
 
-        <!-- Finans -->
-        <li class="nav-item">
-            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#finance-menu">
-                <i class="bi bi-wallet2 me-2"></i> Finans
-            </a>
-            <div class="collapse" id="finance-menu">
-                <ul class="nav nav-pills flex-column ms-3 mt-1">
-                    <li><a href="/finance/finance.html" class="nav-link text-white">Genel Bakış</a></li>
-                    <li><a href="/finance/accounts.html" class="nav-link text-white">Hesaplar</a></li>
-                    <li><a href="/finance/transactions.html" class="nav-link text-white">Tüm İşlemler</a></li>
-                </ul>
-            </div>
-        </li>
+    .sidebar-link .bi {
+        width: 20px;
+        text-align: center;
+    }
 
-        <!-- Takvim -->
-        <li class="nav-item">
-            <a href="/calendar/calendar.html" class="nav-link text-white">
-                <i class="bi bi-calendar3 me-2"></i> Takvim
-            </a>
-        </li>
+    .logo-text {
+        background: var(--brand-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        transition: opacity 0.3s ease;
+    }
 
-        <!-- Ayarlar -->
-        <li class="nav-item">
-            <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#settings-menu">
-                <i class="bi bi-gear me-2"></i> Ayarlar
-            </a>
-            <div class="collapse" id="settings-menu">
-                <ul class="nav nav-pills flex-column ms-3 mt-1">
-                    <li><a href="/settings/settings.html" class="nav-link text-white">Genel Ayarlar</a></li>
-                    <li><a href="/settings/users.html" class="nav-link text-white">Kullanıcı Yönetimi</a></li>
-                    <li><a href="/settings/messages.html" class="nav-link text-white">Hazır Mesajlar</a></li>
-                    <li><a href="/settings/regions.html" class="nav-link text-white">Teslimat Bölgeleri</a></li>
-                    <li><a href="/settings/units.html" class="nav-link text-white">Birimler</a></li>
-                    <li><a href="/settings/database.html" class="nav-link text-white">Veritabanı Yönetimi</a></li>
-                </ul>
-            </div>
-        </li>
-    </ul>
-</div>
+    .toggle-btn {
+        position: absolute;
+        right: -12px;
+        top: 20px;
+        background: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        border: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        z-index: 1050;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+        font-size: 10px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .collapsed .toggle-btn {
+        transform: rotate(180deg);
+    }
+
+    .collapsed .hide-on-collapse {
+        opacity: 0;
+        visibility: hidden;
+        display: none;
+    }
+
+    .main-content {
+        margin-left: var(--sidebar-width);
+        transition: all 0.3s ease;
+    }
+
+    .collapsed ~ .main-content {
+        margin-left: var(--sidebar-width-collapsed);
+    }
+
+    .sidebar-submenu {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+
+    .show {
+        max-height: 1000px;
+    }
+
+    /* Mobile styles */
+    @media (max-width: 767.98px) {
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            transform: translateX(-100%);
+            z-index: 1040;
+        }
+        
+        .sidebar.mobile-show {
+            transform: translateX(0);
+        }
+        
+        .main-content {
+            margin-left: 0 !important;
+        }
+        
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1030;
+        }
+        
+        .mobile-overlay.show {
+            display: block;
+        }
+    }
+</style>
 
 <!-- Mobile Menu Button -->
 <button class="btn btn-dark d-md-none position-fixed top-0 start-0 m-2 z-3" type="button" 
-        data-bs-toggle="offcanvas" data-bs-target="#sidebar">
-    ☰
+        onclick="toggleMobileSidebar()">
+    <i class="bi bi-list"></i>
 </button>
 
-<!-- Mobile Menu -->
-<div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="sidebar">
-    <div class="offcanvas-header">
-        <h5 class="offcanvas-title">Çiçek CRM</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+<!-- Overlay for mobile -->
+<div class="mobile-overlay" onclick="toggleMobileSidebar()"></div>
+
+<!-- Sidebar -->
+<nav class="sidebar d-flex flex-column flex-shrink-0 position-md-fixed">
+    <button class="toggle-btn d-none d-md-flex" onclick="toggleSidebar()">
+        <i class="bi bi-chevron-left"></i>
+    </button>
+
+    <div class="p-3">
+        <h4 class="logo-text fw-bold mb-0">Çiçek CRM</h4>
     </div>
-    <div class="offcanvas-body">
-        <!-- Desktop menüsüyle aynı yapı kullanılacak -->
-        <ul class="nav nav-pills flex-column">
-            <!-- Dashboard -->
-            <li class="nav-item">
-                <a href="/dashboard/dashboard.html" class="nav-link text-white">
-                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                </a>
-            </li>
 
-            <!-- Siparişler -->
-            <li class="nav-item">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#orders-menu">
-                    <i class="bi bi-box me-2"></i> Siparişler
-                </a>
-                <div class="collapse" id="orders-menu">
-                    <ul class="nav nav-pills flex-column ms-3 mt-1">
-                        <li><a href="/orders/orders.html" class="nav-link text-white">Sipariş Listesi</a></li>
-                        <li><a href="/orders/new-order.html" class="nav-link text-white">Yeni Sipariş</a></li>
-                    </ul>
-                </div>
-            </li>
-
-            <!-- Ürünler -->
-            <li class="nav-item">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#products-menu-mobile">
-                    <i class="bi bi-box-seam me-2"></i> Ürünler
-                </a>
-                <div class="collapse" id="products-menu-mobile">
-                    <ul class="nav nav-pills flex-column ms-3 mt-1">
-                        <li><a href="/products/products.html" class="nav-link text-white">Ürün Listesi</a></li>
-                        <li><a href="/products/new-products/new-products.html" class="nav-link text-white">Yeni Ürün Ekle</a></li>
-                    </ul>
-                </div>
-            </li>
-
-            <!-- Satın Alma -->
-            <li class="nav-item">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#purchase-menu-mobile">
-                    <i class="bi bi-cart me-2"></i> Satın Alma
-                </a>
-                <div class="collapse" id="purchase-menu-mobile">
-                    <ul class="nav nav-pills flex-column ms-3 mt-1">
-                        <li><a href="/purchases/purchases.html" class="nav-link text-white">Satın Alma</a></li>
-                        <li><a href="/stock/stock.html" class="nav-link text-white">Stok Yönetimi</a></li>
-                        <li><a href="/purchases/suppliers/suppliers.html" class="nav-link text-white">Tedarikçiler</a></li>
-                        <li><a href="/purchases/rawmaterial/rawmaterial.html" class="nav-link text-white">Ham Madde</a></li>
-                    </ul>
-                </div>
-            </li>
-
-            <!-- Müşteriler -->
-            <li class="nav-item">
-                <a href="/customers/customers.html" class="nav-link text-white">
-                    <i class="bi bi-people me-2"></i> Müşteriler
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="/delivery/map.html" class="nav-link text-white">
-                    <i class="bi bi-truck me-2"></i> Teslimat
-                </a>
-            </li>
-
-            <!-- Atölye - YENİ -->
-            <li class="nav-item">
-                <a href="/workshop/workshop.html" class="nav-link text-white">
-                    <i class="bi bi-flower1 me-2"></i> Atölye
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="/calendar/calendar.html" class="nav-link text-white">
-                    <i class="bi bi-calendar3 me-2"></i> Takvim
-                </a>
-            </li>
-
-            <!-- Finans -->
-            <li class="nav-item">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#finance-menu-mobile">
-                    <i class="bi bi-wallet2 me-2"></i> Finans
-                </a>
-                <div class="collapse" id="finance-menu-mobile">
-                    <ul class="nav nav-pills flex-column ms-3 mt-1">
-                        <li><a href="/finance/finance.html" class="nav-link text-white">Genel Bakış</a></li>
-                        <li><a href="/finance/accounts.html" class="nav-link text-white">Hesaplar</a></li>
-                        <li><a href="/finance/transactions.html" class="nav-link text-white">Tüm İşlemler</a></li>
-                    </ul>
-                </div>
-            </li>
-
-            <!-- Ayarlar -->
-            <li class="nav-item">
-                <a href="#" class="nav-link text-white dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#settings-menu-mobile">
-                    <i class="bi bi-gear me-2"></i> Ayarlar
-                </a>
-                <div class="collapse" id="settings-menu-mobile">
-                    <ul class="nav nav-pills flex-column ms-3 mt-1">
-                        <li><a href="/settings/settings.html" class="nav-link text-white">Genel Ayarlar</a></li>
-                        <li><a href="/settings/users.html" class="nav-link text-white">Kullanıcı Yönetimi</a></li>
-                        <li><a href="/settings/messages.html" class="nav-link text-white">Hazır Mesajlar</a></li>
-                        <li><a href="/settings/regions.html" class="nav-link text-white">Teslimat Bölgeleri</a></li>
-                        <li><a href="/settings/units.html" class="nav-link text-white">Birimler</a></li>
-                        <li><a href="/settings/database.html" class="nav-link text-white">Veritabanı Yönetimi</a></li>
-                    </ul>
-                </div>
-            </li>
-        </ul>
+    <div class="nav flex-column">
+        <!-- Dashboard -->
+        <a href="/dashboard/dashboard.html" class="sidebar-link text-decoration-none p-2 mb-1" data-page="dashboard">
+            <i class="bi bi-speedometer2 me-3"></i>
+            <span class="hide-on-collapse">Dashboard</span>
+        </a>
+        
+        <!-- Siparişler -->
+        <a href="#orders-menu" class="sidebar-link text-decoration-none p-2 mb-1" 
+           data-bs-toggle="collapse" data-page="orders">
+            <i class="bi bi-box me-3"></i>
+            <span class="hide-on-collapse">
+                Siparişler
+                <i class="bi bi-chevron-down float-end"></i>
+            </span>
+        </a>
+        <div class="collapse sidebar-submenu hide-on-collapse" id="orders-menu">
+            <a href="/orders/orders.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Sipariş Listesi
+            </a>
+            <a href="/orders/new-order.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Yeni Sipariş
+            </a>
+        </div>
+        
+        <!-- Ürünler -->
+        <a href="#products-menu" class="sidebar-link text-decoration-none p-2 mb-1" 
+           data-bs-toggle="collapse" data-page="products">
+            <i class="bi bi-box-seam me-3"></i>
+            <span class="hide-on-collapse">
+                Ürünler
+                <i class="bi bi-chevron-down float-end"></i>
+            </span>
+        </a>
+        <div class="collapse sidebar-submenu hide-on-collapse" id="products-menu">
+            <a href="/products/products.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Ürün Listesi
+            </a>
+            <a href="/products/new-products/new-products.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Yeni Ürün
+            </a>
+        </div>
+        
+        <!-- Satın Alma -->
+        <a href="#purchase-menu" class="sidebar-link text-decoration-none p-2 mb-1" 
+           data-bs-toggle="collapse" data-page="purchase">
+            <i class="bi bi-cart me-3"></i>
+            <span class="hide-on-collapse">
+                Satın Alma
+                <i class="bi bi-chevron-down float-end"></i>
+            </span>
+        </a>
+        <div class="collapse sidebar-submenu hide-on-collapse" id="purchase-menu">
+            <a href="/purchases/purchases.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Satın Alma
+            </a>
+            <a href="/stock/stock.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Stok Yönetimi
+            </a>
+            <a href="/purchases/suppliers/suppliers.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Tedarikçiler
+            </a>
+            <a href="/purchases/rawmaterial/rawmaterial.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Ham Madde
+            </a>
+        </div>
+        
+        <!-- Müşteriler -->
+        <a href="/customers/customers.html" class="sidebar-link text-decoration-none p-2 mb-1" data-page="customers">
+            <i class="bi bi-people me-3"></i>
+            <span class="hide-on-collapse">Müşteriler</span>
+        </a>
+        
+        <!-- Atölye -->
+        <a href="/workshop/workshop.html" class="sidebar-link text-decoration-none p-2 mb-1" data-page="workshop">
+            <i class="bi bi-flower1 me-3"></i>
+            <span class="hide-on-collapse">Atölye</span>
+        </a>
+        
+        <!-- Teslimat -->
+        <a href="/delivery/map.html" class="sidebar-link text-decoration-none p-2 mb-1" data-page="delivery">
+            <i class="bi bi-truck me-3"></i>
+            <span class="hide-on-collapse">Teslimat</span>
+        </a>
+        
+        <!-- Finans -->
+        <a href="#finance-menu" class="sidebar-link text-decoration-none p-2 mb-1" 
+           data-bs-toggle="collapse" data-page="finance">
+            <i class="bi bi-wallet2 me-3"></i>
+            <span class="hide-on-collapse">
+                Finans
+                <i class="bi bi-chevron-down float-end"></i>
+            </span>
+        </a>
+        <div class="collapse sidebar-submenu hide-on-collapse" id="finance-menu">
+            <a href="/finance/finance.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Genel Bakış
+            </a>
+            <a href="/finance/accounts.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Hesaplar
+            </a>
+            <a href="/finance/transactions.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Tüm İşlemler
+            </a>
+        </div>
+        
+        <!-- Takvim -->
+        <a href="/calendar/calendar.html" class="sidebar-link text-decoration-none p-2 mb-1" data-page="calendar">
+            <i class="bi bi-calendar3 me-3"></i>
+            <span class="hide-on-collapse">Takvim</span>
+        </a>
+        
+        <!-- Ayarlar -->
+        <a href="#settings-menu" class="sidebar-link text-decoration-none p-2 mb-1" 
+           data-bs-toggle="collapse" data-page="settings">
+            <i class="bi bi-gear me-3"></i>
+            <span class="hide-on-collapse">
+                Ayarlar
+                <i class="bi bi-chevron-down float-end"></i>
+            </span>
+        </a>
+        <div class="collapse sidebar-submenu hide-on-collapse" id="settings-menu">
+            <a href="/settings/settings.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Genel Ayarlar
+            </a>
+            <a href="/settings/users.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Kullanıcı Yönetimi
+            </a>
+            <a href="/settings/messages.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Hazır Mesajlar
+            </a>
+            <a href="/settings/regions.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Teslimat Bölgeleri
+            </a>
+            <a href="/settings/units.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Birimler
+            </a>
+            <a href="/settings/database.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
+                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Veritabanı Yönetimi
+            </a>
+        </div>
     </div>
-</div>
+</nav>
+
+<!-- JavaScript for sidebar functionality -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Highlight active menu based on current page
+        const page = document.body.getAttribute('data-page');
+        if (page) {
+            const links = document.querySelectorAll(`.sidebar-link[data-page="${page}"]`);
+            links.forEach(link => link.classList.add('active'));
+            
+            // Open parent collapsible if it's a submenu item
+            const activeSubmenu = document.querySelector('.sidebar-link.active');
+            if (activeSubmenu) {
+                const parentCollapse = activeSubmenu.closest('.collapse');
+                if (parentCollapse) {
+                    parentCollapse.classList.add('show');
+                    const parentLink = document.querySelector(`[data-bs-toggle="collapse"][href="#${parentCollapse.id}"]`);
+                    if (parentLink) parentLink.classList.add('active');
+                }
+            }
+        }
+        
+        // Set initial state based on saved preference
+        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        if (isCollapsed) {
+            document.querySelector('.sidebar').classList.add('collapsed');
+        }
+    });
+    
+    function toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+    }
+    
+    function toggleMobileSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.mobile-overlay');
+        
+        sidebar.classList.toggle('mobile-show');
+        overlay.classList.toggle('show');
+    }
+</script>
