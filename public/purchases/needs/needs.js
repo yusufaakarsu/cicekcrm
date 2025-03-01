@@ -99,8 +99,8 @@ async function loadNeeds() {
             dateParams = `&time_range=${timeRange}`;
         }
         
-        // API isteği yap
-        const response = await fetchAPI(`/purchase/needs?category_id=${categoryId}&stock_status=${stockStatus}${dateParams}`);
+        // API isteği yap - purchases olarak düzeltildi (purchase değil)
+        const response = await fetchAPI(`/purchases/needs?category_id=${categoryId}&stock_status=${stockStatus}${dateParams}`);
         
         if (!response.success) throw new Error(response.error || 'İhtiyaçlar yüklenemedi');
         
