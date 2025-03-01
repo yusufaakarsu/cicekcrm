@@ -82,8 +82,9 @@
                 <!-- Veritabanı İstatistikleri -->
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header">
+                        <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">Veritabanı İstatistikleri</h5>
+                            <span class="text-muted">Toplam boyut: <span class="fw-bold" id="dbTotalSize">-</span></span>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -112,7 +113,22 @@
                                     </div>
                                 </div>
                             </div>
-                            <table class="table table-sm mt-3">
+                            
+                            <div class="row mb-3 align-items-center">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                        <input type="text" class="form-control" id="tableSearchInput" placeholder="Tablo ara...">
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <small class="text-muted">
+                                        Son veritabanı bakımı: <span id="lastMaintenance">-</span>
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <table class="table table-sm table-hover mt-3">
                                 <thead>
                                     <tr>
                                         <th>Tablo Adı</th>
