@@ -13,19 +13,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btnRestore').addEventListener('click', confirmRestore);
 });
 
-// Veritabanı istatistiklerini yükle
+// Veritabanı istatistiklerini yükle - Hata yönetimi iyileştirildi
 async function loadDatabaseStats() {
     try {
         const response = await fetchAPI('/settings/database/stats');
-        if (!response.success) throw new Error(response.error);
+        if (!response.success) throw new Error(response.error || 'Bilinmeyen hata');
         
-        // Önemli tabloların istatistiklerini göster
-        document.getElementById('customerCount').textContent = formatNumber(response.stats.customers || 0);
-        document.getElementById('orderCount').textContent = formatNumber(response.stats.orders || 0);
-        document.getElementById('productCount').textContent = formatNumber(response.stats.products || 0);
-        document.getElementById('transactionCount').textContent = formatNumber(response.stats.transactions || 0);
-        document.getElementById('supplierCount').textContent = formatNumber(response.stats.suppliers || 0);
-        document.getElementById('materialCount').textContent = formatNumber(response.stats.raw_materials || 0);
+        // Özet istatistikleri güncelle - null kontrolü ile güvenli erişim
+        document.getElementById('customerCount').textContent = formatNumber(response.stats?.customers || 0);
+        document.getElementById('orderCount').textContent = formatNumber(response.stats?.orders || 0);
+        document.getElementById('productCount').textContent = formatNumber(response.stats?.products || 0);
+        document.getElementById('transactionCount').textContent = formatNumber(response.stats?.transactions || 0);
+        document.getElementById('supplierCount').textContent = formatNumber(response.stats?.suppliers || 0);
+        document.getElementById('materialCount').textContent = formatNumber(response.stats?.raw_materials || 0);
         
         // Son yedekleme tarihini güncelle
         if (response.lastBackup) {
@@ -57,7 +57,7 @@ async function loadDatabaseStats() {
         }
     } catch (error) {
         console.error('Database stats loading error:', error);
-        showError('Veritabanı istatistikleri yüklenemedi');
+        showError('Veritabanı istatistikleri yüklenemedi: ' + (error.message || 'Bilinmeyen hata'));
         document.getElementById('tableStats').innerHTML = 
             '<tr><td colspan="3" class="text-danger text-center">İstatistikler yüklenemedi!</td></tr>';
     }

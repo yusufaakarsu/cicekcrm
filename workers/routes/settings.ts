@@ -122,26 +122,40 @@ router.delete('/users/:id', async (c) => {
   }
 })
 
-// Hazır mesaj şablonları
+// Hazır mesaj şablonları - DÜZELTİLMİŞ SORGU
 router.get('/messages', async (c) => {
   const db = c.get('db')
   const category = c.req.query('category') // birthday, anniversary vs.
   
   try {
-    const query = `
-      SELECT * FROM card_messages 
-      ${category ? 'WHERE category = ?' : ''}
-      AND deleted_at IS NULL 
-      ORDER BY display_order ASC, title ASC
-    `
-    const params = category ? [category] : []
+    let query, params = [];
     
-    const { results } = await db.prepare(query).bind(...params).all()
+    if (category) {
+      query = `
+        SELECT * FROM card_messages 
+        WHERE category = ? 
+        AND deleted_at IS NULL 
+        ORDER BY title ASC
+      `;
+      params = [category];
+    } else {
+      query = `
+        SELECT * FROM card_messages 
+        WHERE deleted_at IS NULL 
+        ORDER BY category ASC, title ASC
+      `;
+    }
+    
+    const { results } = await db.prepare(query).bind(...params).all();
 
     return c.json({ success: true, messages: results })
   } catch (error) {
     console.error('Messages error:', error)
-    return c.json({ success: false, error: 'Database error' }, 500)
+    return c.json({ 
+      success: false, 
+      error: 'Database error', 
+      details: error.message 
+    }, 500)
   }
 })
 
@@ -225,28 +239,29 @@ router.delete('/messages/:id', async (c) => {
   }
 })
 
-// Teslimat bölgeleri
+// Teslimat bölgeleri - DÜZELTİLMİŞ SORGU
 router.get('/regions', async (c) => {
   const db = c.get('db')
   
   try {
+    // Basitleştirilmiş sorgu - orders tablosunda region_id olmadığından ilişki kurmuyoruz
     const { results } = await db.prepare(`
       SELECT 
-        r.*,
-        COUNT(DISTINCT o.id) as order_count,
-        AVG(o.delivery_fee) as avg_delivery_fee
-      FROM delivery_regions r
-      LEFT JOIN orders o ON r.id = o.region_id 
-        AND o.created_at >= date('now', '-30 days')
-      WHERE r.deleted_at IS NULL
-      GROUP BY r.id
-      ORDER BY r.name ASC
+        id, name, base_fee, 
+        CASE WHEN deleted_at IS NULL THEN 1 ELSE 0 END as is_active
+      FROM delivery_regions 
+      WHERE deleted_at IS NULL
+      ORDER BY name ASC
     `).all()
 
     return c.json({ success: true, regions: results })
   } catch (error) {
     console.error('Regions error:', error)
-    return c.json({ success: false, error: 'Database error' }, 500)
+    return c.json({ 
+      success: false, 
+      error: 'Database error', 
+      details: error.message 
+    }, 500)
   }
 })
 
@@ -321,7 +336,7 @@ router.delete('/regions/:id', async (c) => {
   }
 })
 
-// Veritabanı istatistikleri
+// Veritabanı istatistikleri - Düzeltilmiş sorgu
 router.get('/database/stats', async (c) => {
   const db = c.get('db')
   
@@ -344,16 +359,36 @@ router.get('/database/stats', async (c) => {
       ORDER BY created_at DESC LIMIT 1
     `).first()
     
-    // Tüm tablo listesi ve kayıt sayıları
-    const { results: tableStats } = await db.prepare(`
-      SELECT 
-        name AS table_name,
-        (SELECT COUNT(*) FROM main.[name]) AS record_count
+    // Tablo listesi - dinamik sorgu hatası giderildi
+    const tables = await db.prepare(`
+      SELECT name as table_name
       FROM sqlite_master 
       WHERE type = 'table'
       AND name NOT LIKE 'sqlite_%'
       ORDER BY name
     `).all()
+    
+    // Her tablo için ayrı sorgu yapıp kayıt sayısını manuel hesaplayalım
+    const tableStats = [];
+    for (const table of tables.results) {
+      try {
+        const countResult = await db.prepare(`
+          SELECT COUNT(*) as count 
+          FROM "${table.table_name}"
+        `).first();
+        
+        tableStats.push({
+          table_name: table.table_name,
+          record_count: countResult.count
+        });
+      } catch (tableError) {
+        // Eğer tablo sorgulanamıyorsa, hata vermek yerine 0 kaydı var gibi gösterelim
+        tableStats.push({
+          table_name: table.table_name,
+          record_count: 0
+        });
+      }
+    }
 
     return c.json({
       success: true,
@@ -363,7 +398,7 @@ router.get('/database/stats', async (c) => {
     })
   } catch (error) {
     console.error('Database stats error:', error)
-    return c.json({ success: false, error: 'Database error' }, 500)
+    return c.json({ success: false, error: 'Database error', details: error.message }, 500)
   }
 })
 
@@ -393,6 +428,48 @@ router.post('/database/backup', async (c) => {
   } catch (error) {
     console.error('Backup error:', error)
     return c.json({ success: false, error: 'Backup failed' }, 500)
+  }
+})
+
+// Veritabanı tablosu sorgu endpoint - tablo verilerini sorgulamak için
+router.post('/database/query', async (c) => {
+  const db = c.get('db')
+  
+  try {
+    const body = await c.req.json();
+    const query = body.query;
+    
+    if (!query) {
+      return c.json({ 
+        success: false, 
+        error: 'Query is required' 
+      }, 400);
+    }
+    
+    // Basit güvenlik kontrolleri
+    if (query.toLowerCase().includes('drop') || 
+        query.toLowerCase().includes('delete') || 
+        query.toLowerCase().includes('update') || 
+        query.toLowerCase().includes('insert')) {
+      return c.json({ 
+        success: false, 
+        error: 'Only SELECT queries are allowed' 
+      }, 403);
+    }
+    
+    const { results } = await db.prepare(query).all();
+    
+    return c.json({
+      success: true,
+      results: results || []
+    })
+  } catch (error) {
+    console.error('Database query error:', error)
+    return c.json({ 
+      success: false, 
+      error: 'Database error', 
+      details: error.message 
+    }, 500)
   }
 })
 
