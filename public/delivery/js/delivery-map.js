@@ -250,7 +250,7 @@ function createDeliveryPopup(delivery) {
     `;
 }
 
-// Teslimat listesini güncelle
+// Teslimat listesini güncelle - GELİŞTİRİLMİŞ VERSİYON
 function updateDeliveryList() {
     const listElement = document.getElementById('deliveryList');
     
@@ -264,25 +264,126 @@ function updateDeliveryList() {
         return;
     }
     
-    listElement.innerHTML = deliveries.map(delivery => {
-        const statusClass = delivery.status === 'delivered' ? 'completed' : '';
+    // Teslimatları zaman dilimine göre grupla
+    const groupedDeliveries = {
+        morning: deliveries.filter(d => d.delivery_time === 'morning'),
+        afternoon: deliveries.filter(d => d.delivery_time === 'afternoon'),
+        evening: deliveries.filter(d => d.delivery_time === 'evening')
+    };
+    
+    // Gruplandırılmış teslimatları HTML olarak render et
+    let html = '';
+    
+    // Sabah teslimatları
+    if (groupedDeliveries.morning.length > 0) {
+        html += `
+            <div class="delivery-time-group">
+                <div class="delivery-time-header bg-light p-2 sticky-top">
+                    <strong><i class="bi bi-sunrise"></i> Sabah (09:00-12:00)</strong>
+                    <span class="badge bg-primary rounded-pill ms-2">${groupedDeliveries.morning.length}</span>
+                </div>
+                ${renderDeliveryItems(groupedDeliveries.morning)}
+            </div>
+        `;
+    }
+    
+    // Öğleden sonra teslimatları
+    if (groupedDeliveries.afternoon.length > 0) {
+        html += `
+            <div class="delivery-time-group">
+                <div class="delivery-time-header bg-light p-2 sticky-top">
+                    <strong><i class="bi bi-sun"></i> Öğleden Sonra (12:00-17:00)</strong>
+                    <span class="badge bg-primary rounded-pill ms-2">${groupedDeliveries.afternoon.length}</span>
+                </div>
+                ${renderDeliveryItems(groupedDeliveries.afternoon)}
+            </div>
+        `;
+    }
+    
+    // Akşam teslimatları
+    if (groupedDeliveries.evening.length > 0) {
+        html += `
+            <div class="delivery-time-group">
+                <div class="delivery-time-header bg-light p-2 sticky-top">
+                    <strong><i class="bi bi-moon"></i> Akşam (17:00-21:00)</strong>
+                    <span class="badge bg-primary rounded-pill ms-2">${groupedDeliveries.evening.length}</span>
+                </div>
+                ${renderDeliveryItems(groupedDeliveries.evening)}
+            </div>
+        `;
+    }
+    
+    listElement.innerHTML = html;
+    
+    // Teslimat listelerinde bulunan "İncele" butonlarına event listener ekle
+    document.querySelectorAll('.btn-view-delivery').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Butonun tıklanmasının parent click olayını tetiklemesini engelle
+            const deliveryId = parseInt(btn.getAttribute('data-id'));
+            showDeliveryDetails(deliveryId);
+        });
+    });
+}
+
+// Teslimat öğelerini render et
+function renderDeliveryItems(deliveryList) {
+    return deliveryList.map(delivery => {
+        const statusClass = getStatusClass(delivery.status);
         const activeClass = selectedDeliveryId === delivery.id ? 'active' : '';
+        const statusBadge = `<span class="badge ${statusClass.badge} me-1">${getStatusShortText(delivery.status)}</span>`;
         
         return `
-            <div class="list-group-item delivery-list-item ${statusClass} ${activeClass}" 
+            <div class="delivery-list-item list-group-item ${activeClass} ${statusClass.item}" 
                  onclick="selectDelivery(${delivery.id})">
                 <div class="d-flex w-100 justify-content-between align-items-center">
-                    <h6 class="mb-0">
-                        ${delivery.recipient_name}
-                        ${delivery.status === 'delivered' ? 
-                            '<i class="bi bi-check-circle-fill text-success ms-1"></i>' : ''}
-                    </h6>
-                    <small>${formatDeliveryTime(delivery.delivery_time)}</small>
+                    <div class="delivery-header">
+                        <div class="d-flex align-items-center">
+                            ${statusBadge}
+                            <strong>${delivery.recipient_name}</strong>
+                        </div>
+                        <small class="text-muted">${delivery.order_number || `#${delivery.id}`}</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary btn-view-delivery" data-id="${delivery.id}">
+                        <i class="bi bi-eye"></i>
+                    </button>
                 </div>
-                <div class="small">${delivery.district}, ${delivery.neighborhood}</div>
+                <div class="delivery-content mt-1 small">
+                    <div><i class="bi bi-geo-alt text-muted me-1"></i>${delivery.district}, ${delivery.neighborhood}</div>
+                    <div class="text-truncate"><i class="bi bi-box text-muted me-1"></i>${delivery.product_summary || 'Ürün detayı yok'}</div>
+                </div>
             </div>
         `;
     }).join('');
+}
+
+// Durum sınıflarını getir (badge ve item için)
+function getStatusClass(status) {
+    const classes = {
+        'new': { badge: 'bg-primary', item: 'border-start-primary' },
+        'confirmed': { badge: 'bg-info', item: 'border-start-info' },
+        'preparing': { badge: 'bg-info', item: 'border-start-info' },
+        'ready': { badge: 'bg-primary', item: 'border-start-primary' },
+        'delivering': { badge: 'bg-warning', item: 'border-start-warning' },
+        'delivered': { badge: 'bg-success', item: 'border-start-success' },
+        'cancelled': { badge: 'bg-danger', item: 'border-start-danger' }
+    };
+    
+    return classes[status] || { badge: 'bg-secondary', item: '' };
+}
+
+// Kısa durum metni getir
+function getStatusShortText(status) {
+    const texts = {
+        'new': 'Yeni',
+        'confirmed': 'Onay',
+        'preparing': 'Hazır',
+        'ready': 'Hazır',
+        'delivering': 'Yolda',
+        'delivered': 'Tamam',
+        'cancelled': 'İptal'
+    };
+    
+    return texts[status] || status;
 }
 
 // Teslimat seç

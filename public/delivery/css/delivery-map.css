@@ -117,6 +117,8 @@
 .delivery-list-item {
     border-left: 3px solid transparent;
     transition: background-color 0.2s ease;
+    border-left-width: 3px;
+    padding: 0.7rem;
 }
 
 .delivery-list-item:hover {
@@ -131,6 +133,54 @@
 
 .delivery-list-item.completed {
     border-left-color: #198754;
+}
+
+.delivery-list-item .delivery-header {
+    flex: 1;
+    min-width: 0; /* flex içindeki text-truncate için gerekli */
+}
+
+.delivery-list-item .btn-view-delivery {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
+}
+
+.delivery-content {
+    padding-left: 0.25rem;
+    color: #666;
+}
+
+/* Teslimat grupları için stil */
+.delivery-time-group {
+    margin-bottom: 0.5rem;
+}
+
+.delivery-time-header {
+    border-bottom: 1px solid #dee2e6;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+/* Durum renk kodları */
+.border-start-primary {
+    border-left-color: var(--bs-primary) !important;
+}
+
+.border-start-info {
+    border-left-color: var(--bs-info) !important;
+}
+
+.border-start-warning {
+    border-left-color: var(--bs-warning) !important;
+}
+
+.border-start-success {
+    border-left-color: var(--bs-success) !important;
+}
+
+.border-start-danger {
+    border-left-color: var(--bs-danger) !important;
 }
 
 /* Mobil uyumluluk ayarları */
@@ -154,6 +204,26 @@
         width: 28px;
         height: 28px;
         font-size: 12px;
+    }
+}
+
+/* Mobil uyumluluk için ek stiller */
+@media (max-width: 576px) {
+    .delivery-panel-body {
+        max-height: 250px;
+    }
+    
+    .delivery-list-item {
+        padding: 0.5rem;
+    }
+    
+    .delivery-time-header {
+        padding: 0.3rem 0.5rem !important;
+    }
+    
+    .delivery-list-item .delivery-header {
+        flex-direction: column;
+        align-items: start !important;
     }
 }
 
