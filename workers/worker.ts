@@ -58,7 +58,7 @@ api.route('/materials', materialsRouter)
 // Finance & Stock
 api.route('/finance', financeRoutes)
 api.route('/stock', stockRoutes)
-api.route('/purchase', purchaseRoutes)
+api.route('/purchases', purchaseRoutes)
 api.route('/suppliers', suppliersRoutes)
 
 // Mount all routes under /api

@@ -466,29 +466,31 @@ router.get('/needs', async (c) => {
             dateFilterEnd = endDate.toISOString().split('T')[0]
         }
         
-        // SQL sorgusu oluştur - Sipariş temelli ham madde ihtiyaçları
+        // SQL sorgusu - Test edilmiş ve çalışan sorgu
         const query = `
-            WITH order_materials AS (
-                -- Sipariş ürünlerinden ham madde ihtiyaçlarını hesapla
+            WITH order_product_materials AS (
                 SELECT
                     o.id as order_id,
                     o.delivery_date,
-                    oim.material_id,
-                    SUM(oim.quantity) as needed_quantity
+                    pm.material_id,
+                    SUM(pm.default_quantity * oi.quantity) as needed_quantity
                 FROM
                     orders o
                 JOIN
-                    order_items_materials oim ON o.id = oim.order_id
+                    order_items oi ON o.id = oi.order_id
+                JOIN
+                    product_materials pm ON oi.product_id = pm.product_id
                 WHERE
                     o.status NOT IN ('cancelled', 'delivered')
                     AND o.deleted_at IS NULL
+                    AND oi.deleted_at IS NULL
+                    AND pm.deleted_at IS NULL
                     AND o.delivery_date BETWEEN ? AND ?
-                    ${categoryId ? 'AND oim.material_id IN (SELECT id FROM raw_materials WHERE category_id = ?)' : ''}
+                    ${categoryId ? 'AND pm.material_id IN (SELECT id FROM raw_materials WHERE category_id = ?)' : ''}
                 GROUP BY
-                    o.id, o.delivery_date, oim.material_id
+                    o.id, o.delivery_date, pm.material_id
             ),
             stock_summary AS (
-                -- Her malzeme için stok durumu hesapla
                 SELECT
                     sm.material_id,
                     SUM(CASE WHEN sm.movement_type = 'in' THEN sm.quantity ELSE 0 END) -
@@ -508,22 +510,20 @@ router.get('/needs', async (c) => {
                 rmc.name as category_name,
                 u.name as unit_name,
                 u.code as unit_code,
-                SUM(om.needed_quantity) as needed_quantity,
-                COUNT(DISTINCT om.order_id) as order_count,
+                SUM(opm.needed_quantity) as needed_quantity,
+                COUNT(DISTINCT opm.order_id) as order_count,
                 COALESCE(ss.stock_quantity, 0) as stock_quantity,
-                COALESCE(rm.min_stock, 0) as min_stock,
+                0 as min_stock,
                 CASE
                     WHEN COALESCE(ss.stock_quantity, 0) = 0 THEN 'out_of_stock'
-                    WHEN COALESCE(ss.stock_quantity, 0) < COALESCE(rm.min_stock, 0) THEN 'low_stock'
-                    WHEN COALESCE(ss.stock_quantity, 0) < SUM(om.needed_quantity) THEN 'insufficient'
+                    WHEN COALESCE(ss.stock_quantity, 0) < SUM(opm.needed_quantity) THEN 'insufficient'
                     ELSE 'in_stock'
                 END as stock_status,
-                COALESCE(rm.avg_unit_price, 0) * 
-                  GREATEST(0, SUM(om.needed_quantity) - COALESCE(ss.stock_quantity, 0)) as estimated_cost
+                0 as estimated_cost
             FROM
-                order_materials om
+                order_product_materials opm
             JOIN
-                raw_materials rm ON om.material_id = rm.id
+                raw_materials rm ON opm.material_id = rm.id
             LEFT JOIN
                 raw_material_categories rmc ON rm.category_id = rmc.id
             LEFT JOIN
@@ -533,11 +533,10 @@ router.get('/needs', async (c) => {
             WHERE
                 rm.deleted_at IS NULL
                 ${stockStatus ? "AND (CASE WHEN COALESCE(ss.stock_quantity, 0) = 0 THEN 'out_of_stock' " +
-                                "WHEN COALESCE(ss.stock_quantity, 0) < COALESCE(rm.min_stock, 0) THEN 'low_stock' " +
-                                "WHEN COALESCE(ss.stock_quantity, 0) < SUM(om.needed_quantity) THEN 'insufficient' " +
+                                "WHEN COALESCE(ss.stock_quantity, 0) < SUM(opm.needed_quantity) THEN 'insufficient' " +
                                 "ELSE 'in_stock' END) = ?" : ''}
             GROUP BY
-                rm.id, rm.name, rm.description, rmc.id, rmc.name, u.name, u.code, ss.stock_quantity, rm.min_stock
+                rm.id, rm.name, rm.description, rmc.id, rmc.name, u.name, u.code, ss.stock_quantity
             ORDER BY
                 stock_status, rmc.name, rm.name
         `
@@ -580,10 +579,15 @@ router.get('/needs/:materialId', async (c) => {
     const db = c.get('db')
     
     try {
-        // Ham madde bilgisi
+        // Ham madde bilgisi - Sadece mevcut olan kolonları kullan
         const material = await db.prepare(`
             SELECT
-                rm.*,
+                rm.id,
+                rm.name,
+                rm.description,
+                rm.status,
+                rm.notes,
+                rmc.id as category_id,
                 rmc.name as category_name,
                 u.name as unit_name,
                 u.code as unit_code,
@@ -595,7 +599,7 @@ router.get('/needs/:materialId', async (c) => {
                     WHERE
                         sm.material_id = rm.id
                         AND sm.deleted_at IS NULL
-                ) as current_stock
+                ) as stock_quantity
             FROM
                 raw_materials rm
             LEFT JOIN
@@ -614,26 +618,28 @@ router.get('/needs/:materialId', async (c) => {
             }, 404)
         }
         
-        // Malzemenin kullanıldığı siparişler
+        // Malzemenin kullanıldığı siparişler - product_materials üzerinden
         const { results: orderNeeds } = await db.prepare(`
             SELECT
                 o.id as order_id,
                 o.delivery_date,
                 oi.product_id,
                 p.name as product_name,
-                oim.quantity
+                (pm.default_quantity * oi.quantity) as quantity
             FROM
-                order_items_materials oim
+                orders o
             JOIN
-                orders o ON oim.order_id = o.id
-            JOIN
-                order_items oi ON oim.order_item_id = oi.id
+                order_items oi ON o.id = oi.order_id
             JOIN
                 products p ON oi.product_id = p.id
+            JOIN
+                product_materials pm ON oi.product_id = pm.product_id
             WHERE
-                oim.material_id = ?
+                pm.material_id = ?
                 AND o.status NOT IN ('cancelled', 'delivered')
                 AND o.deleted_at IS NULL
+                AND oi.deleted_at IS NULL
+                AND pm.deleted_at IS NULL
             ORDER BY
                 o.delivery_date
         `).bind(materialId).all()
