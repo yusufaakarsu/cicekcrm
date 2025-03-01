@@ -105,66 +105,66 @@ async function loadDeliveries() {
     try {
         showLoading();
         
-        // Örnek veriler - API henüz çalışmadığı için
-        const exampleDeliveries = [
-            {
-                id: 1,
-                order_number: "#0001",
-                recipient_name: "Ahmet Yılmaz",
-                recipient_phone: "05551234567",
-                district: "Kadıköy",
-                neighborhood: "Caferağa",
-                address: "Caferağa Mh, Moda Cd. No:5, Kadıköy/İstanbul",
-                delivery_time: "morning",
-                delivery_date: "2023-04-03",
-                status: "ready",
-                lat: 40.9867,
-                lng: 29.0287,
-                product_summary: "Kırmızı Gül Buketi (x1)"
-            },
-            {
-                id: 2,
-                order_number: "#0002",
-                recipient_name: "Zeynep Demir",
-                recipient_phone: "05559876543",
-                district: "Beşiktaş",
-                neighborhood: "Levent",
-                address: "Levent Mh, Çarşı Cd. No:12, Beşiktaş/İstanbul",
-                delivery_time: "afternoon",
-                delivery_date: "2023-04-03",
-                status: "delivering",
-                lat: 41.0876,
-                lng: 29.0112,
-                product_summary: "Orkide Saksı Çiçeği (x1), Çikolata (x2)"
-            },
-            {
-                id: 3,
-                order_number: "#0003",
-                recipient_name: "Mehmet Kaya",
-                recipient_phone: "05553456789",
-                district: "Şişli",
-                neighborhood: "Mecidiyeköy",
-                address: "Mecidiyeköy Mh, Büyükdere Cd. No:58, Şişli/İstanbul",
-                delivery_time: "evening",
-                delivery_date: "2023-04-03",
-                status: "new",
-                lat: 41.0677,
-                lng: 28.9879,
-                product_summary: "Karışık Buket (x1)"
-            }
-        ];
-
-        // API çalışınca bu kod aktif edilecek
-        /*
+        // API'den gerçek verileri yükle
         const response = await fetchAPI('/delivery/today');
         if (!response.success) {
             throw new Error(response.error || 'Veriler yüklenemedi');
         }
-        deliveries = response.deliveries || [];
-        */
         
-        // Şimdilik örnek verileri kullan
-        deliveries = exampleDeliveries;
+        deliveries = response.deliveries || [];
+        
+        // Hiçbir veri yoksa örnek verileri kullan (test/geliştirme için)
+        if (deliveries.length === 0) {
+            console.log('API\'den veri gelmedi, örnek veriler kullanılıyor');
+            deliveries = [
+                {
+                    id: 1,
+                    order_number: "#0001",
+                    recipient_name: "Ahmet Yılmaz",
+                    recipient_phone: "05551234567",
+                    district: "Kadıköy",
+                    neighborhood: "Caferağa",
+                    address: "Caferağa Mh, Moda Cd. No:5, Kadıköy/İstanbul",
+                    delivery_time: "morning",
+                    delivery_date: "2023-04-03",
+                    status: "ready",
+                    lat: 40.9867,
+                    lng: 29.0287,
+                    product_summary: "Kırmızı Gül Buketi (x1)"
+                },
+                {
+                    id: 2,
+                    order_number: "#0002",
+                    recipient_name: "Zeynep Demir",
+                    recipient_phone: "05559876543",
+                    district: "Beşiktaş",
+                    neighborhood: "Levent",
+                    address: "Levent Mh, Çarşı Cd. No:12, Beşiktaş/İstanbul",
+                    delivery_time: "afternoon",
+                    delivery_date: "2023-04-03",
+                    status: "delivering",
+                    lat: 41.0876,
+                    lng: 29.0112,
+                    product_summary: "Orkide Saksı Çiçeği (x1), Çikolata (x2)"
+                },
+                {
+                    id: 3,
+                    order_number: "#0003",
+                    recipient_name: "Mehmet Kaya",
+                    recipient_phone: "05553456789",
+                    district: "Şişli",
+                    neighborhood: "Mecidiyeköy",
+                    address: "Mecidiyeköy Mh, Büyükdere Cd. No:58, Şişli/İstanbul",
+                    delivery_time: "evening",
+                    delivery_date: "2023-04-03",
+                    status: "new",
+                    lat: 41.0677,
+                    lng: 28.9879,
+                    product_summary: "Karışık Buket (x1)"
+                }
+            ];
+        }
+        
         document.getElementById('deliveryCount').textContent = `${deliveries.length} teslimat`;
         
         // Marker'ları haritaya yerleştir
@@ -411,4 +411,35 @@ function getStatusText(status) {
     };
     
     return texts[status] || status;
+}
+
+// Teslimat zamanı formatı
+function formatDeliveryTime(time) {
+    switch(time) {
+        case 'morning':
+            return '📅 Sabah (09:00-12:00)';
+        case 'afternoon':
+            return '🌞 Öğleden Sonra (12:00-17:00)';
+        case 'evening':
+            return '🌙 Akşam (17:00-21:00)';
+        default:
+            return time;
+    }
+}
+
+// Telefon numarası formatla
+function formatPhoneNumber(phone) {
+    if (!phone) return '';
+    
+    // 10 haneli (5XX XXX XXXX) formata dönüştür
+    if (phone.length === 10) {
+        return `${phone.substring(0, 3)} ${phone.substring(3, 6)} ${phone.substring(6)}`;
+    }
+    
+    // 11 haneli (0 5XX XXX XXXX) formata dönüştür
+    if (phone.length === 11 && phone.startsWith('0')) {
+        return `${phone.substring(0, 1)} ${phone.substring(1, 4)} ${phone.substring(4, 7)} ${phone.substring(7)}`;
+    }
+    
+    return phone;
 }
