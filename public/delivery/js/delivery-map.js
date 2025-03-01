@@ -7,6 +7,9 @@ let selectedDeliveryId = null;
 let deliveryModal;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Sidebar yüklemeyi atlayalım (teslimat sayfasında gerekli değil)
+    // await loadSideBar(); - BU SATIRI KALDIRIN VEYA YORUMA ALIN
+    
     // Bootstrap modal'ını başlat
     deliveryModal = new bootstrap.Modal(document.getElementById('deliveryModal'));
     
@@ -550,26 +553,41 @@ function getStatusText(status) {
         'cancelled': 'İptal'
     };
     
-    return texts[status] || status;
-}
-
+    return texts[status] || status;- EKSİK FONKSİYON TANIMLANIYOR
+} {
+{
 // Teslimat zamanı formatı
 function formatDeliveryTime(time) {
-    switch(time) {
+    switch(time) {ır',
         case 'morning':
-            return '📅 Sabah (09:00-12:00)';
+            return '📅 Sabah (09:00-12:00)';Yolda',
         case 'afternoon':
-            return '🌞 Öğleden Sonra (12:00-17:00)';
+            return '🌞 Öğleden Sonra (12:00-17:00)';ed': 'İptal'
         case 'evening':
             return '🌙 Akşam (17:00-21:00)';
-        default:
-            return time;
+        default:   return texts[status] || status;
+            return time;}
     }
 }
-
-// Telefon numarası formatla
+e(time) {
+// Telefon numarası formatlaswitch(time) {
 function formatPhoneNumber(phone) {
-    if (!phone) return '';
+    if (!phone) return '';09:00-12:00)';
+    
+    // 10 haneli (5XX XXX XXXX) formata dönüştür       return '🌞 Öğleden Sonra (12:00-17:00)';
+    if (phone.length === 10) {    case 'evening':
+        return `${phone.substring(0, 3)} ${phone.substring(3, 6)} ${phone.substring(6)}`;
+    }
+    
+    // 11 haneli (0 5XX XXX XXXX) formata dönüştür
+    if (phone.length === 11 && phone.startsWith('0')) {
+        return `${phone.substring(0, 1)} ${phone.substring(1, 4)} ${phone.substring(4, 7)} ${phone.substring(7)}`;
+    }/ Telefon numarası formatla
+    function formatPhoneNumber(phone) {
+
+
+
+}    return phone;    if (!phone) return '';
     
     // 10 haneli (5XX XXX XXXX) formata dönüştür
     if (phone.length === 10) {
