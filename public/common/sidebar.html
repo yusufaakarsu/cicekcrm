@@ -23,6 +23,7 @@
         z-index: 1040;
         overflow-y: auto;
         overflow-x: hidden;
+        position: relative; /* Relative pozisyon ekle */
     }
 
     .sidebar.collapsed {
@@ -64,7 +65,7 @@
 
     .toggle-btn {
         position: absolute;
-        right: -12px;
+        right: -12px;  /* Sağ kenardan 12px dışarı */
         top: 20px;
         background: white;
         border-radius: 50%;
@@ -156,7 +157,7 @@
 <div class="mobile-overlay" onclick="toggleMobileSidebar()"></div>
 
 <!-- Sidebar -->
-<nav class="sidebar d-flex flex-column flex-shrink-0 position-md-fixed">
+<nav class="sidebar d-flex flex-column flex-shrink-0 position-md-fixed position-relative">
     <button class="toggle-btn d-none d-md-flex" onclick="toggleSidebar()">
         <i class="bi bi-chevron-left"></i>
     </button>
