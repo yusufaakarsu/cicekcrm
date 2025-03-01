@@ -53,22 +53,10 @@ function openYandexMapsNavigation(lat, lng) {
     }
     
     // URL'i oluştur
-    // Not: Yandex Maps'te enlem ve boylamın sırası Google'dan farklıdır
     const url = `https://yandex.com/maps/?ll=${lng},${lat}&z=16&pt=${lng},${lat}`;
     
-    // Mobil cihazlarda önce uygulamayı deneyip, olmazsa web tarayıcısını açma
-    const mobileUrl = `yandexmaps://maps.yandex.com/?ll=${lng},${lat}&z=16&pt=${lng},${lat}`;
-    
-    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        // Önce uygulamayı açmaya çalış
-        setTimeout(() => {
-            window.location.href = url; // Uygulama yüklü değilse web sitesini aç
-        }, 500);
-        window.location.href = mobileUrl;
-    } else {
-        // Masaüstünde web sitesini aç
-        window.open(url, '_blank');
-    }
+    // Yeni sekmede aç
+    window.open(url, '_blank');
 }
 
 // Cihaz türüne göre navigasyon başlat

@@ -105,12 +105,66 @@ async function loadDeliveries() {
     try {
         showLoading();
         
+        // Örnek veriler - API henüz çalışmadığı için
+        const exampleDeliveries = [
+            {
+                id: 1,
+                order_number: "#0001",
+                recipient_name: "Ahmet Yılmaz",
+                recipient_phone: "05551234567",
+                district: "Kadıköy",
+                neighborhood: "Caferağa",
+                address: "Caferağa Mh, Moda Cd. No:5, Kadıköy/İstanbul",
+                delivery_time: "morning",
+                delivery_date: "2023-04-03",
+                status: "ready",
+                lat: 40.9867,
+                lng: 29.0287,
+                product_summary: "Kırmızı Gül Buketi (x1)"
+            },
+            {
+                id: 2,
+                order_number: "#0002",
+                recipient_name: "Zeynep Demir",
+                recipient_phone: "05559876543",
+                district: "Beşiktaş",
+                neighborhood: "Levent",
+                address: "Levent Mh, Çarşı Cd. No:12, Beşiktaş/İstanbul",
+                delivery_time: "afternoon",
+                delivery_date: "2023-04-03",
+                status: "delivering",
+                lat: 41.0876,
+                lng: 29.0112,
+                product_summary: "Orkide Saksı Çiçeği (x1), Çikolata (x2)"
+            },
+            {
+                id: 3,
+                order_number: "#0003",
+                recipient_name: "Mehmet Kaya",
+                recipient_phone: "05553456789",
+                district: "Şişli",
+                neighborhood: "Mecidiyeköy",
+                address: "Mecidiyeköy Mh, Büyükdere Cd. No:58, Şişli/İstanbul",
+                delivery_time: "evening",
+                delivery_date: "2023-04-03",
+                status: "new",
+                lat: 41.0677,
+                lng: 28.9879,
+                product_summary: "Karışık Buket (x1)"
+            }
+        ];
+
+        // API çalışınca bu kod aktif edilecek
+        /*
         const response = await fetchAPI('/delivery/today');
         if (!response.success) {
             throw new Error(response.error || 'Veriler yüklenemedi');
         }
-        
         deliveries = response.deliveries || [];
+        */
+        
+        // Şimdilik örnek verileri kullan
+        deliveries = exampleDeliveries;
         document.getElementById('deliveryCount').textContent = `${deliveries.length} teslimat`;
         
         // Marker'ları haritaya yerleştir
