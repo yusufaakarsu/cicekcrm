@@ -14,6 +14,7 @@ import materialsRouter from './routes/materials'
 import purchaseRoutes from './routes/purchase'
 import settingsRoutes from './routes/settings'
 import workshopRoutes from './routes/workshop'
+import deliveryRoutes from './routes/delivery' // Yeni teslimat rotası import ediliyor
 
 const app = new Hono()
 
@@ -48,6 +49,7 @@ api.route('/addresses', addressRoutes)
 // Order related 
 api.route('/orders', orderRoutes)
 api.route('/workshop', workshopRoutes)
+api.route('/delivery', deliveryRoutes) // Teslimat rotası eklendi
 
 // Product related
 api.route('/products', productRoutes)
