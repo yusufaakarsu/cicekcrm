@@ -1,8 +1,9 @@
-<!-- Sidebar CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+
 <style>
     :root {
-        --sidebar-width: 260px;
-        --sidebar-width-collapsed: 65px;
+        --sidebar-width: 280px;
+        --sidebar-width-collapsed: 80px;
         --sidebar-bg: #212529;
         --sidebar-hover: rgba(255, 255, 255, 0.1);
         --sidebar-active: rgba(255, 255, 255, 0.15);
@@ -18,7 +19,7 @@
     .sidebar {
         width: var(--sidebar-width);
         height: 100vh;
-        background: var(--sidebar-bg);
+        background: linear-gradient(135deg, #1a1c2e 0%, #16181f 100%);
         transition: all 0.3s ease;
         z-index: 1040;
         overflow-y: auto;
@@ -34,7 +35,7 @@
         color: var(--sidebar-text);
         transition: all 0.2s ease;
         border-radius: 8px;
-        margin: 2px 10px;
+        margin: 4px 16px;
         white-space: nowrap;
         overflow: hidden;
     }
@@ -57,7 +58,7 @@
     }
 
     .logo-text {
-        background: var(--brand-gradient);
+        background: linear-gradient(45deg, #6b8cff, #8b9fff);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         transition: opacity 0.3s ease;
@@ -65,12 +66,12 @@
 
     .toggle-btn {
         position: absolute;
-        right: -12px;  /* Sağ kenardan 12px dışarı */
+        right: -15px;
         top: 20px;
         background: white;
         border-radius: 50%;
-        width: 24px;
-        height: 24px;
+        width: 30px;
+        height: 30px;
         border: none;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
         z-index: 1050;
@@ -95,6 +96,9 @@
 
     .main-content {
         margin-left: var(--sidebar-width);
+        background-color: #f8f9fa;
+        min-height: 100vh;
+        padding: 20px;
         transition: all 0.3s ease;
     }
 
@@ -110,6 +114,48 @@
 
     .show {
         max-height: 1000px;
+    }
+
+    .notification-badge {
+        background: #ff6b6b;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+    }
+
+    .profile-section {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .collapsed .logo-text {
+        opacity: 0;
+    }
+
+    .collapsed .profile-info {
+        opacity: 0;
+    }
+
+    .collapsed .sidebar-link {
+        text-align: center;
+        padding: 1rem !important;
+        margin: 4px 8px;
+    }
+
+    .collapsed .sidebar-link i {
+        margin: 0 !important;
+    }
+
+    .profile-info {
+        transition: opacity 0.2s ease;
+    }
+
+    .submenu {
+        margin-left: 15px;
+        display: none;
+    }
+
+    .show-submenu {
+        display: block;
     }
 
     /* Mobile styles */
@@ -157,158 +203,82 @@
 <div class="mobile-overlay" onclick="toggleMobileSidebar()"></div>
 
 <!-- Sidebar -->
-<nav class="sidebar d-flex flex-column flex-shrink-0 position-md-fixed position-relative">
-    <button class="toggle-btn d-none d-md-flex" onclick="toggleSidebar()">
-        <i class="bi bi-chevron-left"></i>
-    </button>
+<div class="d-flex">
+    <nav class="sidebar d-flex flex-column flex-shrink-0 position-fixed">
+        <button class="toggle-btn" onclick="toggleSidebar()">
+            <i class="fas fa-chevron-left"></i>
+        </button>
 
-    <div class="p-3">
-        <h4 class="logo-text fw-bold mb-0">Çiçek CRM</h4>
-    </div>
+        <div class="p-4">
+            <h4 class="logo-text fw-bold mb-0">Çiçek CRM</h4>
+            <p class="text-muted small hide-on-collapse">Dashboard</p>
+        </div>
 
-    <div class="nav flex-column">
-        <!-- Dashboard -->
-        <a href="/dashboard/dashboard.html" class="sidebar-link text-decoration-none p-2 mb-1" data-page="dashboard">
-            <i class="bi bi-speedometer2 me-3"></i>
-            <span class="hide-on-collapse">Dashboard</span>
-        </a>
-        
-        <!-- Siparişler -->
-        <a href="#orders-menu" class="sidebar-link text-decoration-none p-2 mb-1" 
-           data-bs-toggle="collapse" data-page="orders">
-            <i class="bi bi-box me-3"></i>
-            <span class="hide-on-collapse">
-                Siparişler
-                <i class="bi bi-chevron-down float-end"></i>
-            </span>
-        </a>
-        <div class="collapse sidebar-submenu hide-on-collapse" id="orders-menu">
-            <a href="/orders/orders.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Sipariş Listesi
+        <div class="nav flex-column">
+            <a href="/dashboard/dashboard.html" class="sidebar-link text-decoration-none p-3" data-page="dashboard">
+                <i class="fas fa-home me-3"></i>
+                <span class="hide-on-collapse">Dashboard</span>
             </a>
-            <a href="/orders/new-order.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Yeni Sipariş
+
+            <a href="/orders/orders.html" class="sidebar-link text-decoration-none p-3" data-page="orders">
+                <i class="fas fa-shopping-bag me-3"></i>
+                <span class="hide-on-collapse">Siparişler</span>
             </a>
-        </div>
-        
-        <!-- Ürünler -->
-        <a href="#products-menu" class="sidebar-link text-decoration-none p-2 mb-1" 
-           data-bs-toggle="collapse" data-page="products">
-            <i class="bi bi-box-seam me-3"></i>
-            <span class="hide-on-collapse">
-                Ürünler
-                <i class="bi bi-chevron-down float-end"></i>
-            </span>
-        </a>
-        <div class="collapse sidebar-submenu hide-on-collapse" id="products-menu">
-            <a href="/products/products.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Ürün Listesi
+
+            <a href="/products/products.html" class="sidebar-link text-decoration-none p-3" data-page="products">
+                <i class="fas fa-box me-3"></i>
+                <span class="hide-on-collapse">Ürünler</span>
             </a>
-            <a href="/products/new-products/new-products.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Yeni Ürün
+
+            <a href="/stock/stock.html" class="sidebar-link text-decoration-none p-3" data-page="stock">
+                <i class="fas fa-boxes me-3"></i>
+                <span class="hide-on-collapse">Stok Yönetimi</span>
             </a>
-        </div>
-        
-        <!-- Satın Alma -->
-        <a href="#purchase-menu" class="sidebar-link text-decoration-none p-2 mb-1" 
-           data-bs-toggle="collapse" data-page="purchase">
-            <i class="bi bi-cart me-3"></i>
-            <span class="hide-on-collapse">
-                Satın Alma
-                <i class="bi bi-chevron-down float-end"></i>
-            </span>
-        </a>
-        <div class="collapse sidebar-submenu hide-on-collapse" id="purchase-menu">
-            <a href="/purchases/purchases.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Satın Alma
+
+            <a href="/customers/customers.html" class="sidebar-link text-decoration-none p-3" data-page="customers">
+                <i class="fas fa-users me-3"></i>
+                <span class="hide-on-collapse">Müşteriler</span>
             </a>
-            <a href="/stock/stock.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Stok Yönetimi
+
+            <a href="/workshop/workshop.html" class="sidebar-link text-decoration-none p-3" data-page="workshop">
+                <i class="fas fa-flower me-3"></i>
+                <span class="hide-on-collapse">Atölye</span>
             </a>
-            <a href="/purchases/suppliers/suppliers.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Tedarikçiler
+
+            <a href="/delivery/map.html" class="sidebar-link text-decoration-none p-3" data-page="delivery">
+                <i class="fas fa-truck me-3"></i>
+                <span class="hide-on-collapse">Teslimat</span>
             </a>
-            <a href="/purchases/rawmaterial/rawmaterial.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Ham Madde
+
+            <a href="/finance/finance.html" class="sidebar-link text-decoration-none p-3" data-page="finance">
+                <i class="fas fa-wallet me-3"></i>
+                <span class="hide-on-collapse">Finans</span>
+            </a>
+
+            <a href="/calendar/calendar.html" class="sidebar-link text-decoration-none p-3" data-page="calendar">
+                <i class="fas fa-calendar me-3"></i>
+                <span class="hide-on-collapse">Takvim</span>
+            </a>
+
+            <a href="/settings/settings.html" class="sidebar-link text-decoration-none p-3" data-page="settings">
+                <i class="fas fa-gear me-3"></i>
+                <span class="hide-on-collapse">Ayarlar</span>
             </a>
         </div>
-        
-        <!-- Müşteriler -->
-        <a href="/customers/customers.html" class="sidebar-link text-decoration-none p-2 mb-1" data-page="customers">
-            <i class="bi bi-people me-3"></i>
-            <span class="hide-on-collapse">Müşteriler</span>
-        </a>
-        
-        <!-- Atölye -->
-        <a href="/workshop/workshop.html" class="sidebar-link text-decoration-none p-2 mb-1" data-page="workshop">
-            <i class="bi bi-flower1 me-3"></i>
-            <span class="hide-on-collapse">Atölye</span>
-        </a>
-        
-        <!-- Teslimat -->
-        <a href="/delivery/map.html" class="sidebar-link text-decoration-none p-2 mb-1" data-page="delivery">
-            <i class="bi bi-truck me-3"></i>
-            <span class="hide-on-collapse">Teslimat</span>
-        </a>
-        
-        <!-- Finans -->
-        <a href="#finance-menu" class="sidebar-link text-decoration-none p-2 mb-1" 
-           data-bs-toggle="collapse" data-page="finance">
-            <i class="bi bi-wallet2 me-3"></i>
-            <span class="hide-on-collapse">
-                Finans
-                <i class="bi bi-chevron-down float-end"></i>
-            </span>
-        </a>
-        <div class="collapse sidebar-submenu hide-on-collapse" id="finance-menu">
-            <a href="/finance/finance.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Genel Bakış
-            </a>
-            <a href="/finance/accounts.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Hesaplar
-            </a>
-            <a href="/finance/transactions.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Tüm İşlemler
-            </a>
+
+        <div class="profile-section mt-auto p-4">
+            <div class="d-flex align-items-center">
+                <div class="bg-white rounded-circle p-2" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-user text-primary"></i>
+                </div>
+                <div class="ms-3 profile-info">
+                    <h6 class="text-white mb-0">Admin</h6>
+                    <small class="text-muted">Yönetici</small>
+                </div>
+            </div>
         </div>
-        
-        <!-- Takvim -->
-        <a href="/calendar/calendar.html" class="sidebar-link text-decoration-none p-2 mb-1" data-page="calendar">
-            <i class="bi bi-calendar3 me-3"></i>
-            <span class="hide-on-collapse">Takvim</span>
-        </a>
-        
-        <!-- Ayarlar -->
-        <a href="#settings-menu" class="sidebar-link text-decoration-none p-2 mb-1" 
-           data-bs-toggle="collapse" data-page="settings">
-            <i class="bi bi-gear me-3"></i>
-            <span class="hide-on-collapse">
-                Ayarlar
-                <i class="bi bi-chevron-down float-end"></i>
-            </span>
-        </a>
-        <div class="collapse sidebar-submenu hide-on-collapse" id="settings-menu">
-            <a href="/settings/settings.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Genel Ayarlar
-            </a>
-            <a href="/settings/users.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Kullanıcı Yönetimi
-            </a>
-            <a href="/settings/messages.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Hazır Mesajlar
-            </a>
-            <a href="/settings/regions.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Teslimat Bölgeleri
-            </a>
-            <a href="/settings/units.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Birimler
-            </a>
-            <a href="/settings/database.html" class="sidebar-link text-decoration-none p-2 ps-4 mb-1">
-                <i class="bi bi-circle-fill me-2" style="font-size: 8px;"></i> Veritabanı Yönetimi
-            </a>
-        </div>
-    </div>
-</nav>
+    </nav>
+</div>
 
 <!-- JavaScript for sidebar functionality -->
 <script>
