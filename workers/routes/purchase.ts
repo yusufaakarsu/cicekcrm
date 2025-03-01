@@ -415,4 +415,242 @@ router.post('/orders/:id/payment', async (c) => {
   }
 });
 
+/**
+ * Ham madde ihtiyaçları listesi
+ * Filtreler: kategori, stok durumu, tarih aralığı
+ */
+router.get('/needs', async (c) => {
+    const db = c.get('db')
+    
+    try {
+        // Query parametrelerini al
+        const categoryId = c.req.query('category_id')
+        const stockStatus = c.req.query('stock_status')
+        const timeRange = c.req.query('time_range')
+        const startDate = c.req.query('start_date')
+        const endDate = c.req.query('end_date')
+        
+        // Tarih aralığını belirle
+        let dateFilterStart, dateFilterEnd
+        if (startDate && endDate) {
+            dateFilterStart = startDate
+            dateFilterEnd = endDate
+        } else {
+            // Varsayılan tarih aralığı hesapla
+            const today = new Date()
+            dateFilterStart = today.toISOString().split('T')[0]
+            
+            let days = 3 // Default: 3 gün
+            switch (timeRange) {
+                case 'today':
+                    days = 0
+                    break
+                case 'tomorrow':
+                    days = 1
+                    break
+                case 'week':
+                    days = 7
+                    break
+                case '2weeks':
+                    days = 14
+                    break
+                case 'month':
+                    days = 30
+                    break
+                default:
+                    days = parseInt(timeRange) || 3
+            }
+            
+            const endDate = new Date(today)
+            endDate.setDate(today.getDate() + days)
+            dateFilterEnd = endDate.toISOString().split('T')[0]
+        }
+        
+        // SQL sorgusu oluştur - Sipariş temelli ham madde ihtiyaçları
+        const query = `
+            WITH order_materials AS (
+                -- Sipariş ürünlerinden ham madde ihtiyaçlarını hesapla
+                SELECT
+                    o.id as order_id,
+                    o.delivery_date,
+                    oim.material_id,
+                    SUM(oim.quantity) as needed_quantity
+                FROM
+                    orders o
+                JOIN
+                    order_items_materials oim ON o.id = oim.order_id
+                WHERE
+                    o.status NOT IN ('cancelled', 'delivered')
+                    AND o.deleted_at IS NULL
+                    AND o.delivery_date BETWEEN ? AND ?
+                    ${categoryId ? 'AND oim.material_id IN (SELECT id FROM raw_materials WHERE category_id = ?)' : ''}
+                GROUP BY
+                    o.id, o.delivery_date, oim.material_id
+            ),
+            stock_summary AS (
+                -- Her malzeme için stok durumu hesapla
+                SELECT
+                    sm.material_id,
+                    SUM(CASE WHEN sm.movement_type = 'in' THEN sm.quantity ELSE 0 END) -
+                    SUM(CASE WHEN sm.movement_type = 'out' THEN sm.quantity ELSE 0 END) as stock_quantity
+                FROM
+                    stock_movements sm
+                WHERE
+                    sm.deleted_at IS NULL
+                GROUP BY
+                    sm.material_id
+            )
+            SELECT
+                rm.id as material_id,
+                rm.name as material_name,
+                rm.description,
+                rmc.id as category_id,
+                rmc.name as category_name,
+                u.name as unit_name,
+                u.code as unit_code,
+                SUM(om.needed_quantity) as needed_quantity,
+                COUNT(DISTINCT om.order_id) as order_count,
+                COALESCE(ss.stock_quantity, 0) as stock_quantity,
+                COALESCE(rm.min_stock, 0) as min_stock,
+                CASE
+                    WHEN COALESCE(ss.stock_quantity, 0) = 0 THEN 'out_of_stock'
+                    WHEN COALESCE(ss.stock_quantity, 0) < COALESCE(rm.min_stock, 0) THEN 'low_stock'
+                    WHEN COALESCE(ss.stock_quantity, 0) < SUM(om.needed_quantity) THEN 'insufficient'
+                    ELSE 'in_stock'
+                END as stock_status,
+                COALESCE(rm.avg_unit_price, 0) * 
+                  GREATEST(0, SUM(om.needed_quantity) - COALESCE(ss.stock_quantity, 0)) as estimated_cost
+            FROM
+                order_materials om
+            JOIN
+                raw_materials rm ON om.material_id = rm.id
+            LEFT JOIN
+                raw_material_categories rmc ON rm.category_id = rmc.id
+            LEFT JOIN
+                units u ON rm.unit_id = u.id
+            LEFT JOIN
+                stock_summary ss ON rm.id = ss.material_id
+            WHERE
+                rm.deleted_at IS NULL
+                ${stockStatus ? "AND (CASE WHEN COALESCE(ss.stock_quantity, 0) = 0 THEN 'out_of_stock' " +
+                                "WHEN COALESCE(ss.stock_quantity, 0) < COALESCE(rm.min_stock, 0) THEN 'low_stock' " +
+                                "WHEN COALESCE(ss.stock_quantity, 0) < SUM(om.needed_quantity) THEN 'insufficient' " +
+                                "ELSE 'in_stock' END) = ?" : ''}
+            GROUP BY
+                rm.id, rm.name, rm.description, rmc.id, rmc.name, u.name, u.code, ss.stock_quantity, rm.min_stock
+            ORDER BY
+                stock_status, rmc.name, rm.name
+        `
+        
+        // Parametreleri hazırla
+        const params = [dateFilterStart, dateFilterEnd]
+        if (categoryId) params.push(categoryId)
+        if (stockStatus) params.push(stockStatus)
+        
+        // Sorguyu çalıştır
+        const { results } = await db.prepare(query).bind(...params).all()
+        
+        return c.json({
+            success: true,
+            needs: results || [],
+            filters: {
+                date_range: {
+                    start: dateFilterStart,
+                    end: dateFilterEnd
+                },
+                category_id: categoryId,
+                stock_status: stockStatus
+            }
+        })
+    } catch (error) {
+        console.error('Purchases needs error:', error)
+        return c.json({
+            success: false,
+            error: 'Sipariş bazlı ihtiyaçlar yüklenirken hata oluştu',
+            details: error.message
+        }, 500)
+    }
+})
+
+/**
+ * Ham madde detayı ve kullanıldığı siparişler
+ */
+router.get('/needs/:materialId', async (c) => {
+    const materialId = c.req.param('materialId')
+    const db = c.get('db')
+    
+    try {
+        // Ham madde bilgisi
+        const material = await db.prepare(`
+            SELECT
+                rm.*,
+                rmc.name as category_name,
+                u.name as unit_name,
+                u.code as unit_code,
+                (
+                    SELECT
+                        SUM(CASE WHEN sm.movement_type = 'in' THEN sm.quantity ELSE -sm.quantity END)
+                    FROM
+                        stock_movements sm
+                    WHERE
+                        sm.material_id = rm.id
+                        AND sm.deleted_at IS NULL
+                ) as current_stock
+            FROM
+                raw_materials rm
+            LEFT JOIN
+                raw_material_categories rmc ON rm.category_id = rmc.id
+            LEFT JOIN
+                units u ON rm.unit_id = u.id
+            WHERE
+                rm.id = ?
+                AND rm.deleted_at IS NULL
+        `).bind(materialId).first()
+        
+        if (!material) {
+            return c.json({
+                success: false,
+                error: 'Ham madde bulunamadı'
+            }, 404)
+        }
+        
+        // Malzemenin kullanıldığı siparişler
+        const { results: orderNeeds } = await db.prepare(`
+            SELECT
+                o.id as order_id,
+                o.delivery_date,
+                oi.product_id,
+                p.name as product_name,
+                oim.quantity
+            FROM
+                order_items_materials oim
+            JOIN
+                orders o ON oim.order_id = o.id
+            JOIN
+                order_items oi ON oim.order_item_id = oi.id
+            JOIN
+                products p ON oi.product_id = p.id
+            WHERE
+                oim.material_id = ?
+                AND o.status NOT IN ('cancelled', 'delivered')
+                AND o.deleted_at IS NULL
+            ORDER BY
+                o.delivery_date
+        `).bind(materialId).all()
+        
+        return c.json({
+            success: true,
+            material,
+            needs: orderNeeds || []
+        })
+    } catch (error) {
+        console.error('Material needs detail error:', error)
+        return c.json({
+            success: false,
+            error: 'Ham madde detayları yüklenirken hata oluştu',
+            details: error.message
+        }, 500)
+    }
+})
+
 export default router;
