@@ -42,7 +42,7 @@ async function loadSuppliers() {
     }
 }
 
-// Ham maddeleri yükle
+// Ham maddeleri yükle - Kategori bazlı sıralama için düzenlendi
 async function loadMaterials() {
     try {
         const response = await fetch(`${API_URL}/stock/materials`);
@@ -50,23 +50,53 @@ async function loadMaterials() {
         
         const data = await response.json();
         materials = data.materials || [];
+        
+        // Kategorilere göre gruplandır
+        const categorizedMaterials = {};
+        
+        // Önce tüm kategorileri belirle
+        materials.forEach(material => {
+            const categoryId = material.category_id || 0;
+            const categoryName = material.category_name || 'Kategorisiz';
+            
+            if (!categorizedMaterials[categoryId]) {
+                categorizedMaterials[categoryId] = {
+                    name: categoryName,
+                    materials: []
+                };
+            }
+            
+            categorizedMaterials[categoryId].materials.push(material);
+        });
+        
+        // Her kategori içinde malzemeleri alfabetik sırala
+        Object.values(categorizedMaterials).forEach(category => {
+            category.materials.sort((a, b) => a.name.localeCompare(b.name));
+        });
+        
+        // Global kategorilenmiş malzeme listesini sakla
+        window.categorizedMaterials = categorizedMaterials;
     } catch (error) {
         console.error('Materials loading error:', error);
         showError('Ham maddeler yüklenemedi');
     }
 }
 
-// Siparişleri yükle
+// Siparişleri yükle - API yolunu düzelt
 async function loadPurchases() {
     try {
-        const response = await fetch(`${API_URL}/purchase/orders`);
+        showLoading();
+        // API yolu düzeltildi: purchase -> purchases (çoğul form)
+        const response = await fetch(`${API_URL}/purchases/orders`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
         renderPurchaseTable(data.orders);
+        hideLoading();
     } catch (error) {
         console.error('Purchases loading error:', error);
         showError('Satın alma listesi yüklenemedi');
+        hideLoading();
     }
 }
 
@@ -130,13 +160,14 @@ function showCreatePurchaseModal() {
     createModal.show();
 }
 
-// Sipariş detayı
+// Sipariş detayı - API yolunu düzelt
 async function showPurchaseDetail(id) {
     try {
         currentPurchaseId = id;
         currentOrder = null; // Reset current order
         
-        const response = await fetch(`${API_URL}/purchase/orders/${id}`);
+        // API yolu düzeltildi: purchase -> purchases (çoğul form)
+        const response = await fetch(`${API_URL}/purchases/orders/${id}`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
@@ -216,7 +247,7 @@ async function showPurchaseDetail(id) {
     }
 }
 
-// Ödeme yap
+// Ödeme yap - API yolunu düzelt
 async function makePayment() {
     const form = document.getElementById('paymentForm');
     if (!form.checkValidity()) {
@@ -232,7 +263,8 @@ async function makePayment() {
             account_id: parseInt(formData.get('account_id'))
         };
 
-        const response = await fetch(`${API_URL}/purchase/orders/${currentPurchaseId}/payment`, {
+        // API yolu düzeltildi: purchase -> purchases (çoğul form)
+        const response = await fetch(`${API_URL}/purchases/orders/${currentPurchaseId}/payment`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -254,7 +286,7 @@ async function makePayment() {
     }
 }
 
-// Ürün satırı ekle
+// Ürün satırı ekle - Kategori bazlı seçenekler için güncellendi
 function addItemRow() {
     const tbody = document.querySelector('#itemsTable tbody');
     
@@ -263,9 +295,7 @@ function addItemRow() {
         <td>
             <select class="form-select form-select-sm" name="items[][material_id]" required onchange="calculateRowTotal(this.closest('tr'))">
                 <option value="">Seçiniz...</option>
-                ${materials.map(m => `
-                    <option value="${m.id}">${m.name}</option>
-                `).join('')}
+                ${generateCategorizedMaterialOptions()}
             </select>
         </td>
         <td>
@@ -310,6 +340,20 @@ function addItemRow() {
     
     tbody.appendChild(row);
     calculateTotalAmount(); // Yeni satır eklendiğinde toplam hesabını güncelle
+}
+
+// Kategori bazlı ham madde seçenekleri oluşturan yeni helper fonksiyon
+function generateCategorizedMaterialOptions() {
+    if (!window.categorizedMaterials) return '';
+    
+    return Object.values(window.categorizedMaterials)
+        .map(category => `
+            <optgroup label="${category.name}">
+                ${category.materials.map(m => `
+                    <option value="${m.id}">${m.name}</option>
+                `).join('')}
+            </optgroup>
+        `).join('');
 }
 
 // Satır sil
@@ -363,7 +407,7 @@ function parsePrice(priceString) {
     return parseFloat(priceString.replace(/[^0-9,.-]/g, '').replace(',', '.')) || 0;
 }
 
-// Sipariş kaydetme fonksiyonu
+// Sipariş kaydetme fonksiyonu - API yolunu düzelt
 async function savePurchase() {
     const form = document.getElementById('purchaseForm');
     if (!form.checkValidity()) {
@@ -418,7 +462,8 @@ async function savePurchase() {
 
         console.log('Sending API data:', data); // Debug için ekledik
 
-        const response = await fetch(`${API_URL}/purchase/orders`, {
+        // API yolu düzeltildi: purchase -> purchases (çoğul form)
+        const response = await fetch(`${API_URL}/purchases/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -456,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Filtreleri uygula
+// Filtreleri uygula - API yolunu düzelt
 async function applyFilters() {
     try {
         const filters = {
@@ -479,7 +524,8 @@ async function applyFilters() {
             if (value) params.append(key, value);
         });
 
-        const response = await fetch(`${API_URL}/purchase/orders?${params}`);
+        // API yolu düzeltildi: purchase -> purchases (çoğul form)
+        const response = await fetch(`${API_URL}/purchases/orders?${params}`);
         if (!response.ok) throw new Error('API Hatası');
         
         const data = await response.json();
@@ -491,14 +537,15 @@ async function applyFilters() {
     }
 }
 
-// İptal fonksiyonu
+// İptal fonksiyonu - API yolunu düzelt
 async function cancelPurchase() {
     if (!confirm('Siparişi iptal etmek istediğinize emin misiniz?')) {
         return;
     }
     
     try {
-        const response = await fetch(`${API_URL}/purchase/orders/${currentPurchaseId}/status`, {
+        // API yolu düzeltildi: purchase -> purchases (çoğul form)
+        const response = await fetch(`${API_URL}/purchases/orders/${currentPurchaseId}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
