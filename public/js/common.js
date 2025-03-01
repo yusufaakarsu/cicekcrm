@@ -497,7 +497,22 @@ function getApiUrl(endpoint) {
 // ===============================================
 
 // Sayfa yüklendiğinde sidebar'ı yükle
-document.addEventListener('DOMContentLoaded', loadSideBar);
+document.addEventListener('DOMContentLoaded', () => {
+    loadSideBar();
+    
+    // Tıklanabilir satırlar için stil ekle
+    const style = document.createElement('style');
+    style.textContent = `
+        .table-row-clickable {
+            cursor: pointer;
+            transition: background-color 0.15s ease-in-out;
+        }
+        .table-row-clickable:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+    `;
+    document.head.appendChild(style);
+});
 
 // Global değişkenleri window nesnesine ekle
 window.API_URL = API_URL;

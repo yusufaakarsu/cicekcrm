@@ -326,13 +326,15 @@ router.get('/database/stats', async (c) => {
   const db = c.get('db')
   
   try {
-    // Toplam kayıt sayısı
-    const counts = await db.prepare(`
+    // Önemli tablolardaki kayıt sayıları
+    const stats = await db.prepare(`
       SELECT 
         (SELECT COUNT(*) FROM orders WHERE deleted_at IS NULL) as orders,
         (SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL) as customers,
         (SELECT COUNT(*) FROM products WHERE deleted_at IS NULL) as products,
-        (SELECT COUNT(*) FROM transactions WHERE deleted_at IS NULL) as transactions
+        (SELECT COUNT(*) FROM transactions WHERE deleted_at IS NULL) as transactions,
+        (SELECT COUNT(*) FROM suppliers WHERE deleted_at IS NULL) as suppliers,
+        (SELECT COUNT(*) FROM raw_materials WHERE deleted_at IS NULL) as raw_materials
     `).first()
 
     // Son yedekleme
@@ -342,11 +344,11 @@ router.get('/database/stats', async (c) => {
       ORDER BY created_at DESC LIMIT 1
     `).first()
     
-    // Tablo boyutları
+    // Tüm tablo listesi ve kayıt sayıları
     const { results: tableStats } = await db.prepare(`
       SELECT 
         name AS table_name,
-        'Unknown' AS size
+        (SELECT COUNT(*) FROM main.[name]) AS record_count
       FROM sqlite_master 
       WHERE type = 'table'
       AND name NOT LIKE 'sqlite_%'
@@ -355,7 +357,7 @@ router.get('/database/stats', async (c) => {
 
     return c.json({
       success: true,
-      stats: counts,
+      stats,
       lastBackup: backup?.created_at,
       tableStats
     })

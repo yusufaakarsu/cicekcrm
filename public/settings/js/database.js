@@ -19,50 +19,39 @@ async function loadDatabaseStats() {
         const response = await fetchAPI('/settings/database/stats');
         if (!response.success) throw new Error(response.error);
         
-        // Özet istatistikleri güncelle
+        // Önemli tabloların istatistiklerini göster
         document.getElementById('customerCount').textContent = formatNumber(response.stats.customers || 0);
         document.getElementById('orderCount').textContent = formatNumber(response.stats.orders || 0);
         document.getElementById('productCount').textContent = formatNumber(response.stats.products || 0);
         document.getElementById('transactionCount').textContent = formatNumber(response.stats.transactions || 0);
+        document.getElementById('supplierCount').textContent = formatNumber(response.stats.suppliers || 0);
+        document.getElementById('materialCount').textContent = formatNumber(response.stats.raw_materials || 0);
         
         // Son yedekleme tarihini güncelle
         if (response.lastBackup) {
             document.getElementById('lastBackupDate').textContent = formatDateTime(response.lastBackup);
         }
         
-        // Tablo istatistiklerini güncelle
+        // Tablolar listesini güncelle
         const tableStats = response.tableStats || [];
         const tbody = document.getElementById('tableStats');
         
         if (tableStats.length) {
-            // Boyutu bilinmeyen tablolar için tahmini boyut hesapla
-            let totalSize = 0;
-            const tablesWithSizes = tableStats.map(table => {
-                // Kayıt sayısına göre tahmini bir boyut hesapla (gerçek değer yerine)
-                const recordCount = table.count || Math.floor(Math.random() * 1000);
-                const estimatedSize = recordCount * 512; // Ortalama kayıt büyüklüğü
-                totalSize += estimatedSize;
-                return {
-                    ...table,
-                    size: estimatedSize,
-                    recordCount
-                };
-            });
+            // Tabloları alfabetik sırala
+            tableStats.sort((a, b) => a.table_name.localeCompare(b.table_name));
             
-            // En büyük tablolar üstte
-            tablesWithSizes.sort((a, b) => b.size - a.size);
-            
-            // Tabloyu oluştur
-            tbody.innerHTML = tablesWithSizes.map(table => `
-                <tr>
-                    <td>${table.table_name || table.name}</td>
-                    <td class="text-end">${formatNumber(table.recordCount)}</td>
-                    <td class="text-end">${formatFileSize(table.size)}</td>
+            // Tabloyu oluştur - tıklanabilir satırlar
+            tbody.innerHTML = tableStats.map(table => `
+                <tr class="table-row-clickable" onclick="showTableDetails('${table.table_name || table.name}')">
+                    <td><i class="bi bi-table me-2"></i>${table.table_name || table.name}</td>
+                    <td class="text-end">${formatNumber(table.record_count || 0)}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> İncele
+                        </button>
+                    </td>
                 </tr>
             `).join('');
-            
-            // Toplam veritabanı boyutunu ekle
-            document.getElementById('dbTotalSize').textContent = formatFileSize(totalSize);
         } else {
             tbody.innerHTML = '<tr><td colspan="3" class="text-center">Veri bulunamadı</td></tr>';
         }
@@ -71,6 +60,151 @@ async function loadDatabaseStats() {
         showError('Veritabanı istatistikleri yüklenemedi');
         document.getElementById('tableStats').innerHTML = 
             '<tr><td colspan="3" class="text-danger text-center">İstatistikler yüklenemedi!</td></tr>';
+    }
+}
+
+// Tablo detaylarını göster
+async function showTableDetails(tableName) {
+    try {
+        // Modal başlığını ve yükleme durumunu güncelle
+        document.getElementById('tableModalTitle').textContent = tableName;
+        document.getElementById('tableDataContainer').innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                </div>
+                <p class="mt-2">Tablo verisi yükleniyor...</p>
+            </div>
+        `;
+        
+        // Modalı göster
+        const tableModal = new bootstrap.Modal(document.getElementById('tableDetailsModal'));
+        tableModal.show();
+        
+        // Tablo verisini yükle
+        await loadTableData(tableName);
+        
+    } catch (error) {
+        console.error(`Error showing table details for ${tableName}:`, error);
+        document.getElementById('tableDataContainer').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Tablo verisi yüklenirken hata oluştu
+            </div>
+        `;
+    }
+}
+
+// Tablo verisini yükle
+async function loadTableData(tableName) {
+    try {
+        const query = `SELECT * FROM "${tableName}" LIMIT 100`;
+        const response = await fetchAPI('/settings/database/query', {
+            method: 'POST',
+            body: JSON.stringify({ query })
+        });
+        
+        if (!response.success) throw new Error(response.error);
+        
+        const results = response.results || [];
+        
+        if (!results.length) {
+            document.getElementById('tableDataContainer').innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    Bu tabloda kayıt bulunmuyor veya erişim izniniz yok.
+                </div>
+            `;
+            return;
+        }
+        
+        // Tablo sütun bilgilerini göster
+        const columns = Object.keys(results[0]);
+        
+        // Tablo verilerini göster
+        document.getElementById('tableDataContainer').innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-sm table-striped table-hover">
+                    <thead>
+                        <tr>
+                            ${columns.map(col => `<th>${col}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${results.map(row => `
+                            <tr>
+                                ${columns.map(col => `<td>${row[col] !== null ? row[col] : '<span class="text-muted">null</span>'}</td>`).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-end text-muted">
+                <small>En fazla 100 kayıt gösteriliyor</small>
+            </div>
+        `;
+        
+        // Tablo yapısını göster
+        document.getElementById('tableStructureTab').addEventListener('click', async () => {
+            try {
+                const structureResponse = await fetchAPI('/settings/database/query', {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        query: `PRAGMA table_info("${tableName}")` 
+                    })
+                });
+                
+                if (!structureResponse.success) throw new Error(structureResponse.error);
+                
+                const structureData = structureResponse.results || [];
+                
+                document.getElementById('tableStructureContainer').innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Sıra</th>
+                                    <th>Kolon</th>
+                                    <th>Tip</th>
+                                    <th>Boş Olabilir</th>
+                                    <th>Varsayılan</th>
+                                    <th>Primary Key</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${structureData.map(col => `
+                                    <tr>
+                                        <td>${col.cid}</td>
+                                        <td><strong>${col.name}</strong></td>
+                                        <td>${col.type || 'TEXT'}</td>
+                                        <td>${col.notnull ? 'Hayır' : 'Evet'}</td>
+                                        <td>${col.dflt_value !== null ? col.dflt_value : '-'}</td>
+                                        <td>${col.pk ? '<span class="badge bg-primary">Evet</span>' : 'Hayır'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error(`Error loading table structure for ${tableName}:`, error);
+                document.getElementById('tableStructureContainer').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Tablo yapısı yüklenirken hata oluştu
+                    </div>
+                `;
+            }
+        });
+    } catch (error) {
+        console.error(`Error loading table data for ${tableName}:`, error);
+        document.getElementById('tableDataContainer').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Tablo verisi yüklenirken hata oluştu: ${error.message}
+            </div>
+        `;
     }
 }
 

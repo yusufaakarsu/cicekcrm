@@ -84,32 +84,43 @@
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">Veritabanı İstatistikleri</h5>
-                            <span class="text-muted">Toplam boyut: <span class="fw-bold" id="dbTotalSize">-</span></span>
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 col-lg-2 mb-3">
                                     <div class="border rounded p-3 text-center">
                                         <div class="h3" id="customerCount">-</div>
                                         <div class="text-muted">Müşteri</div>
                                     </div>
                                 </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 col-lg-2 mb-3">
                                     <div class="border rounded p-3 text-center">
                                         <div class="h3" id="orderCount">-</div>
                                         <div class="text-muted">Sipariş</div>
                                     </div>
                                 </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 col-lg-2 mb-3">
                                     <div class="border rounded p-3 text-center">
                                         <div class="h3" id="productCount">-</div>
                                         <div class="text-muted">Ürün</div>
                                     </div>
                                 </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 col-lg-2 mb-3">
                                     <div class="border rounded p-3 text-center">
                                         <div class="h3" id="transactionCount">-</div>
                                         <div class="text-muted">İşlem</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-lg-2 mb-3">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h3" id="supplierCount">-</div>
+                                        <div class="text-muted">Tedarikçi</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-lg-2 mb-3">
+                                    <div class="border rounded p-3 text-center">
+                                        <div class="h3" id="materialCount">-</div>
+                                        <div class="text-muted">Malzeme</div>
                                     </div>
                                 </div>
                             </div>
@@ -133,7 +144,7 @@
                                     <tr>
                                         <th>Tablo Adı</th>
                                         <th class="text-end">Kayıt Sayısı</th>
-                                        <th class="text-end">Boyut</th>
+                                        <th class="text-end">İşlem</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tableStats">
@@ -142,6 +153,55 @@
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tablo Detayları Modal -->
+    <div class="modal fade" id="tableDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tableModalTitle">Tablo Detayları</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tab Menüsü -->
+                    <ul class="nav nav-tabs" id="tableDetailsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="tableDataTab" data-bs-toggle="tab" 
+                                    data-bs-target="#tableDataContent" type="button" role="tab">
+                                <i class="bi bi-table me-1"></i> Veriler
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tableStructureTab" data-bs-toggle="tab" 
+                                    data-bs-target="#tableStructureContent" type="button" role="tab">
+                                <i class="bi bi-list-columns me-1"></i> Yapı
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <!-- Tab İçerikleri -->
+                    <div class="tab-content mt-3" id="tableDetailsTabContent">
+                        <!-- Tablo Verileri -->
+                        <div class="tab-pane fade show active" id="tableDataContent" role="tabpanel">
+                            <div id="tableDataContainer">
+                                <!-- Veriler buraya yüklenecek -->
+                            </div>
+                        </div>
+                        
+                        <!-- Tablo Yapısı -->
+                        <div class="tab-pane fade" id="tableStructureContent" role="tabpanel">
+                            <div id="tableStructureContainer">
+                                <!-- Yapı bilgisi buraya yüklenecek -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
                 </div>
             </div>
         </div>
