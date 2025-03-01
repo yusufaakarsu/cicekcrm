@@ -1,17 +1,3 @@
--- Öncelikle tabloları temizleyelim (test verisi eklemeden önce) - opsiyonel
-DELETE FROM transactions;
-DELETE FROM order_items_materials;
-DELETE FROM order_items;
-DELETE FROM orders;
-DELETE FROM product_materials;
-DELETE FROM products;
-DELETE FROM addresses;
-DELETE FROM recipients;
-DELETE FROM customers;
-DELETE FROM raw_materials;
-DELETE FROM suppliers;
-
--- Default kullanıcı - (diğer kayıtların foreign key ihtiyacı için)
 INSERT INTO users (email, password_hash, name) VALUES
 ('yusufaakarsu@gmail.com', 'hash123', 'Yusuf Akarsu'),
 ('aktasshilall@outlook.com', 'hash456', 'Hilal Akarsu'),
@@ -76,16 +62,16 @@ INSERT INTO product_categories (name, description, status) VALUES
 
 -- Ürünler
 INSERT INTO products (name, description, base_price, status, category_id) VALUES
-('Kırmızı Gül Buketi', '12 adet kırmızı gül ve yeşillikler', 1200.00, 'active', 1),
-('Mevsim Buketi', 'Mevsim çiçeklerinden buket', 950.00, 'active', 1),
-('Papatya Buketi', 'Papatyalar ve yeşillikler', 850.00, 'active', 1),
-('Kutuda Güller', 'Kutuda kırmızı güller', 1500.00, 'active', 2),
-('Kutuda Karışık', 'Özel kutuda mevsim çiçekleri', 1300.00, 'active', 2),
-('Cam Vazoda Lilyum', 'Cam vazoda lilyumlar', 1100.00, 'active', 3),
-('Soft Aranjman', 'Pastel tonlarda aranjman', 1200.00, 'active', 3),
-('Orkide Aranjmanı', 'İki dallı orkide aranjmanı', 2000.00, 'active', 3),
-('Mini Sukulent', 'Mini sukulent terrarium', 450.00, 'active', 4),
-('Bonsai', 'Dekoratif bonsai bitkisi', 1500.00, 'active', 4);
+('Kırmızı Gül Buketi', '12 adet kırmızı gül ve yeşillikler', 3000.00, 'active', 1),
+('Mevsim Buketi', 'Mevsim çiçeklerinden buket', 3300.00, 'active', 1),
+('Papatya Buketi', 'Papatyalar ve yeşillikler', 3500.00, 'active', 1),
+('Kutuda Güller', 'Kutuda kırmızı güller', 4000.00, 'active', 2),
+('Kutuda Karışık', 'Özel kutuda mevsim çiçekleri', 4400.00, 'active', 2),
+('Cam Vazoda Lilyum', 'Cam vazoda lilyumlar', 4500.00, 'active', 3),
+('Soft Aranjman', 'Pastel tonlarda aranjman', 5000.00, 'active', 3),
+('Orkide Aranjmanı', 'İki dallı orkide aranjmanı', 5000.00, 'active', 3),
+('Mini Sukulent', 'Mini sukulent terrarium', 3000.00, 'active', 4),
+('Bonsai', 'Dekoratif bonsai bitkisi', 6500.00, 'active', 4);
 
 -- Ürün malzemeleri
 -- Kırmızı Gül Buketi malzemeleri
@@ -123,7 +109,6 @@ INSERT INTO product_materials (product_id, material_id, default_quantity) VALUES
 (9, 20, 1),  -- Mini Sukulent: 1 adet su süngeri
 (10, 20, 1); -- Bonsai: 1 adet su süngeri
 
--- Tedarikçiler
 INSERT INTO suppliers (name, contact_name, phone, email, address, status) VALUES
 ('Çiçek Deposu', 'Ahmet Yılmaz', '5551234567', 'info@cicekdeposu.com', 'Çiçekçiler Hali No: 45', 'active'),
 ('Flora Toptan', 'Ayşe Demir', '5559876543', 'satis@floratoptan.com', 'Sanayi Sitesi A Blok No: 12', 'active'),
@@ -131,7 +116,6 @@ INSERT INTO suppliers (name, contact_name, phone, email, address, status) VALUES
 ('Ambalaj Market', 'Zeynep Şahin', '5552223344', 'satis@ambalajmarket.com', 'Kervan Caddesi No: 78', 'active'),
 ('Çiçekçi Malzemeleri', 'Ali Öztürk', '5554445566', 'info@cicekci-malzemeleri.com', 'Çiçekçiler Pasajı No: 23', 'active');
 
--- Müşteriler
 INSERT INTO customers (name, phone, email, notes) VALUES
 ('Fatma Yıldız', '5051234567', 'fatma@example.com', 'VIP müşteri'),
 ('Ahmet Kara', '5062345678', 'ahmet@example.com', 'Ofis siparişleri verir'),
@@ -154,7 +138,6 @@ INSERT INTO customers (name, phone, email, notes) VALUES
 ('Eren Gri', '5239012345', 'eren@example.com', 'Ofis siparişleri'),
 ('Derya Mor', '5240123456', 'derya@example.com', 'Düzenli müşteri');
 
--- Alıcılar (her müşteri için bir alıcı)
 INSERT INTO recipients (customer_id, name, phone, notes) VALUES
 (1, 'Fatma Yıldız', '5051234567', 'Kendisi'),
 (2, 'Ahmet Kara', '5062345678', 'Kendisi'),
@@ -177,96 +160,78 @@ INSERT INTO recipients (customer_id, name, phone, notes) VALUES
 (19, 'Eren Gri', '5239012345', 'Kendisi'),
 (20, 'Derya Mor', '5240123456', 'Kendisi');
 
--- Adresler
-INSERT INTO addresses (customer_id, recipient_id, label, district, neighborhood, street, building_no, floor_no, directions) VALUES
-(1, 1, 'Ev', 'Kadıköy', 'Caferağa', 'Moda Caddesi', '12', '3', 'Sarı apartman, 3. kat'),
-(2, 2, 'Ofis', 'Şişli', 'Mecidiyeköy', 'Büyükdere Caddesi', '120', '5', 'Plaza girişinde resepsiyon var'),
-(3, 3, 'Ev', 'Beşiktaş', 'Levent', 'Ebulula Caddesi', '15', NULL, 'Site içerisinde 2. blok'),
-(4, 4, 'Ev', 'Üsküdar', 'Acıbadem', 'Tekin Sokak', '8', '4', 'Beyaz apartman, 4. kat'),
-(5, 5, 'Ofis', 'Bakırköy', 'Ataköy', 'İnönü Caddesi', '45', '3', 'İş merkezi 3. kat'),
-(6, 6, 'Ev', 'Beyoğlu', 'Cihangir', 'Sıraselviler Caddesi', '18', '5', 'Köşedeki apartman'),
-(7, 7, 'Ev', 'Maltepe', 'Bağlarbaşı', 'Çınar Sokak', '23', '6', 'Yeşil apartman, 6. kat'),
-(8, 8, 'Ofis', 'Sarıyer', 'Maslak', 'Büyükdere Caddesi', '193', '2', 'Plaza B blok, 2. kat'),
-(9, 9, 'Ev', 'Ataşehir', 'Barbaros', 'Mimar Sinan Caddesi', '34', '7', 'Site içerisinde C blok'),
-(10, 10, 'Ev', 'Beykoz', 'Kavacık', 'Orhan Veli Sokak', '12', '3', 'Kavacık merkeze yakın'),
-(11, 11, 'Ev', 'Pendik', 'Bahçelievler', 'Fatih Caddesi', '5', '2', 'Mavi apartman'),
-(12, 12, 'Ofis', 'Kartal', 'Yakacık', 'Sanayi Sokak', '10', '4', 'Ofis binası 4. kat'),
-(13, 13, 'Ev', 'Adalar', 'Büyükada', 'Naber Sokak', '3', NULL, 'Deniz manzaralı ev'),
-(14, 14, 'Ev', 'Tuzla', 'Postane', 'İstasyon Caddesi', '22', '1', 'Kırmızı bina'),
-(15, 15, 'Ofis', 'Esenyurt', 'Merkez', 'Cumhuriyet Caddesi', '50', '6', 'Plaza A blok'),
-(16, 16, 'Ev', 'Fatih', 'Aksaray', 'Mithatpaşa Caddesi', '17', '3', 'Köşe apartman'),
-(17, 17, 'Ev', 'Bağcılar', 'Yıldıztepe', 'Bağlar Sokak', '9', '5', '5. kat'),
-(18, 18, 'Ev', 'Beylikdüzü', 'Adnan Kahveci', 'Güzel Sokak', '14', '2', 'Site içi B blok'),
-(19, 19, 'Ofis', 'Avcılar', 'Merkez', 'Denizköşkler Caddesi', '25', '3', 'İş hanı 3. kat'),
-(20, 20, 'Ev', 'Silivri', 'Piri Mehmet', 'Sahil Yolu', '8', '1', 'Deniz kenarı');
+INSERT INTO addresses (customer_id, recipient_id, here_place_id, label, district, neighborhood, street, lat, lng, building_no, floor_no, door_no, directions, deleted_at) VALUES
+(1, 1, 'here_0001', 'Ev', 'Kadıköy', 'Caferağa', 'Moda Caddesi', 40.9793, 29.0268, '12', '3', '8', 'Sarı apartman, 3. kat', NULL),
+(2, 2, 'here_0002', 'Ofis', 'Şişli', 'Mecidiyeköy', 'Büyükdere Caddesi', 41.0671, 28.9850, '120', '5', '10', 'Plaza girişinde resepsiyon var', NULL),
+(3, 3, 'here_0003', 'Ev', 'Beşiktaş', 'Levent', 'Ebulula Caddesi', 41.0792, 29.0155, '15', '2', '5', 'Site içerisinde 2. blok', NULL),
+(4, 4, 'here_0004', 'Ev', 'Üsküdar', 'Acıbadem', 'Tekin Sokak', 41.0053, 29.0493, '8', '4', '7', 'Beyaz apartman, 4. kat', NULL),
+(5, 5, 'here_0005', 'Ofis', 'Bakırköy', 'Ataköy', 'İnönü Caddesi', 40.9782, 28.8355, '45', '3', '15', 'İş merkezi 3. kat', NULL),
+(6, 6, 'here_0006', 'Ev', 'Beyoğlu', 'Cihangir', 'Sıraselviler Caddesi', 41.0309, 28.9846, '18', '5', '12', 'Köşedeki apartman', NULL),
+(7, 7, 'here_0007', 'Ev', 'Maltepe', 'Bağlarbaşı', 'Çınar Sokak', 40.9396, 29.1488, '23', '6', '9', 'Yeşil apartman, 6. kat', NULL),
+(8, 8, 'here_0008', 'Ofis', 'Sarıyer', 'Maslak', 'Büyükdere Caddesi', 41.1085, 29.0117, '193', '2', '4', 'Plaza B blok, 2. kat', NULL),
+(9, 9, 'here_0009', 'Ev', 'Ataşehir', 'Barbaros', 'Mimar Sinan Caddesi', 40.9900, 29.1342, '34', '7', '3', 'Site içerisinde C blok', NULL),
+(10, 10, 'here_0010', 'Ev', 'Beykoz', 'Kavacık', 'Orhan Veli Sokak', 41.1081, 29.0914, '12', '3', '6', 'Kavacık merkeze yakın', NULL),
+(11, 11, 'here_0011', 'Ev', 'Pendik', 'Bahçelievler', 'Fatih Caddesi', 40.8763, 29.2622, '5', '2', '11', 'Mavi apartman', NULL),
+(12, 12, 'here_0012', 'Ofis', 'Kartal', 'Yakacık', 'Sanayi Sokak', 40.8937, 29.1968, '10', '4', '2', 'Ofis binası 4. kat', NULL),
+(13, 13, 'here_0013', 'Ev', 'Adalar', 'Büyükada', 'Naber Sokak', 40.8553, 29.1281, '3', '1', '1', 'Deniz manzaralı ev', NULL),
+(14, 14, 'here_0014', 'Ev', 'Tuzla', 'Postane', 'İstasyon Caddesi', 40.8163, 29.3069, '22', '1', '4', 'Kırmızı bina', NULL),
+(15, 15, 'here_0015', 'Ofis', 'Esenyurt', 'Merkez', 'Cumhuriyet Caddesi', 41.0345, 28.6731, '50', '6', '8', 'Plaza A blok', NULL),
+(16, 16, 'here_0016', 'Ev', 'Fatih', 'Aksaray', 'Mithatpaşa Caddesi', 41.0131, 28.9452, '17', '3', '5', 'Köşe apartman', NULL),
+(17, 17, 'here_0017', 'Ev', 'Bağcılar', 'Yıldıztepe', 'Bağlar Sokak', 41.0462, 28.8291, '9', '5', '6', '5. kat', NULL),
+(18, 18, 'here_0018', 'Ev', 'Beylikdüzü', 'Adnan Kahveci', 'Güzel Sokak', 41.0028, 28.6469, '14', '2', '3', 'Site içi B blok', NULL),
+(19, 19, 'here_0019', 'Ofis', 'Avcılar', 'Merkez', 'Denizköşkler Caddesi', 40.9784, 28.7219, '25', '3', '9', 'İş hanı 3. kat', NULL),
+(20, 20, 'here_0020', 'Ev', 'Silivri', 'Piri Mehmet', 'Sahil Yolu', 41.0735, 28.2468, '8', '1', '2', 'Deniz kenarı', NULL);
 
--- Bugünün, yarının ve öbür günün tarihlerini hesapla
--- SQLite'da bugünün tarihini DATE('now') ile alabiliriz
--- YIL-AY-GÜN formatında olacak (YYYY-MM-DD)
 
--- Siparişler (Bugün, yarın ve öbür gün için)
--- 20 sipariş, farklı statüler ve teslimat saatleri
 INSERT INTO orders (
     customer_id, recipient_id, address_id, 
     delivery_date, delivery_time, delivery_region, 
     delivery_fee, status, total_amount, 
     payment_status, custom_card_message, created_by
 ) VALUES
--- BUGÜN için siparişler
-(1, 1, 1, DATE('now'), 'morning', 'Kadıköy', 50.00, 'new', 1250.00, 'pending', 'Doğum günün kutlu olsun!', 1),
-(2, 2, 2, DATE('now'), 'morning', 'Şişli', 60.00, 'new', 1310.00, 'pending', 'Başarılar dilerim!', 1),
-(3, 3, 3, DATE('now'), 'afternoon', 'Beşiktaş', 45.00, 'new', 895.00, 'pending', 'Nice yıllara!', 1),
-(4, 4, 4, DATE('now'), 'afternoon', 'Üsküdar', 50.00, 'new', 1550.00, 'pending', 'Sevgilerimle...', 1),
-(5, 5, 5, DATE('now'), 'evening', 'Bakırköy', 70.00, 'new', 1270.00, 'pending', 'Yeni iş yeriniz hayırlı olsun!', 1),
-(6, 6, 6, DATE('now'), 'evening', 'Beyoğlu', 65.00, 'new', 915.00, 'pending', 'Özledim seni!', 1),
-(7, 7, 7, DATE('now'), 'morning', 'Maltepe', 60.00, 'new', 1160.00, 'pending', 'İyi ki varsın!', 1),
+(1, 1, 1, DATE('now'), 'morning', 'Kadıköy', 50.00, 'new', 4000.00, 'pending', 'Doğum günün kutlu olsun!', 1),
+(2, 2, 2, DATE('now'), 'morning', 'Şişli', 60.00, 'new', 4500.00, 'pending', 'Başarılar dilerim!', 1),
+(3, 3, 3, DATE('now'), 'afternoon', 'Beşiktaş', 45.00, 'new', 4200.00, 'pending', 'Nice yıllara!', 1),
+(4, 4, 4, DATE('now'), 'afternoon', 'Üsküdar', 50.00, 'new', 4800.00, 'pending', 'Sevgilerimle...', 1),
+(5, 5, 5, DATE('now'), 'evening', 'Bakırköy', 70.00, 'new', 4700.00, 'pending', 'Yeni iş yeriniz hayırlı olsun!', 1),
+(6, 6, 6, DATE('now'), 'evening', 'Beyoğlu', 65.00, 'new', 4300.00, 'pending', 'Özledim seni!', 1),
+(7, 7, 7, DATE('now'), 'morning', 'Maltepe', 60.00, 'new', 4900.00, 'pending', 'İyi ki varsın!', 1),
+(8, 8, 8, DATE('now', '+1 day'), 'morning', 'Sarıyer', 80.00, 'new', 6000.00, 'pending', 'Tebrikler!', 1),
+(9, 9, 9, DATE('now', '+1 day'), 'morning', 'Ataşehir', 55.00, 'new', 4100.00, 'pending', 'Anneler Günün kutlu olsun!', 1),
+(10, 10, 10, DATE('now', '+1 day'), 'afternoon', 'Beykoz', 90.00, 'new', 5200.00, 'pending', 'Seni seviyorum!', 1),
+(11, 11, 11, DATE('now', '+2 day'), 'morning', 'Kadıköy', 55.00, 'new', 5300.00, 'pending', 'Tebrik ederim!', 1),
+(12, 12, 12, DATE('now', '+2 day'), 'morning', 'Şişli', 75.00, 'new', 5900.00, 'pending', 'Bol şans!', 1),
+(13, 13, 13, DATE('now', '+2 day'), 'afternoon', 'Beşiktaş', 85.00, 'new', 6800.00, 'pending', 'İyi tatiller!', 1),
+(14, 14, 14, DATE('now', '+2 day'), 'afternoon', 'Üsküdar', 70.00, 'new', 4500.00, 'pending', 'Geçmiş olsun!', 1),
+(15, 15, 15, DATE('now', '+2 day'), 'evening', 'Bakırköy', 60.00, 'new', 6200.00, 'pending', 'Hoşgeldin!', 1),
+(16, 16, 16, DATE('now', '+3 day'), 'evening', 'Beyoğlu', 80.00, 'new', 6700.00, 'pending', 'Yeni yaşın kutlu olsun!', 1),
+(17, 17, 17, DATE('now', '+3 day'), 'morning', 'Maltepe', 55.00, 'new', 4800.00, 'pending', 'Sevgilerle...', 1),
+(18, 18, 18, DATE('now', '+3 day'), 'morning', 'Sarıyer', 90.00, 'new', 7000.00, 'pending', 'Sana en güzel dileklerimle!', 1),
+(19, 19, 19, DATE('now', '+3 day'), 'afternoon', 'Ataşehir', 65.00, 'new', 4600.00, 'pending', 'Başarılar dilerim!', 1),
+(20, 20, 20, DATE('now', '+3 day'), 'afternoon', 'Beykoz', 50.00, 'new', 5500.00, 'pending', 'Seninle gurur duyuyorum!', 1);
 
--- YARIN için siparişler
-(8, 8, 8, DATE('now', '+1 day'), 'morning', 'Sarıyer', 80.00, 'new', 2080.00, 'pending', 'Tebrikler!', 1),
-(9, 9, 9, DATE('now', '+1 day'), 'morning', 'Ataşehir', 55.00, 'new', 1255.00, 'pending', 'Anneler Günün kutlu olsun!', 1),
-(10, 10, 10, DATE('now', '+1 day'), 'afternoon', 'Beykoz', 90.00, 'new', 1290.00, 'pending', 'Seni seviyorum!', 1),
-(1, 1, 1, DATE('now', '+1 day'), 'afternoon', 'Kadıköy', 50.00, 'new', 900.00, 'pending', 'Geçmiş olsun!', 1),
-(2, 2, 2, DATE('now', '+1 day'), 'afternoon', 'Şişli', 60.00, 'new', 910.00, 'pending', 'Yeni yaşın kutlu olsun!', 1),
-(3, 3, 3, DATE('now', '+1 day'), 'evening', 'Beşiktaş', 45.00, 'new', 1945.00, 'pending', 'Başarılar!', 1),
-(4, 4, 4, DATE('now', '+1 day'), 'evening', 'Üsküdar', 50.00, 'new', 1000.00, 'pending', 'Seni düşünüyorum!', 1),
-
--- ÖBÜR GÜN için siparişler
-(5, 5, 5, DATE('now', '+2 day'), 'morning', 'Bakırköy', 70.00, 'new', 770.00, 'pending', 'Mutlu yıllar!', 1),
-(6, 6, 6, DATE('now', '+2 day'), 'morning', 'Beyoğlu', 65.00, 'new', 1165.00, 'pending', 'Bir tanecik annem!', 1),
-(7, 7, 7, DATE('now', '+2 day'), 'afternoon', 'Maltepe', 60.00, 'new', 1560.00, 'pending', 'İyi ki doğdun!', 1),
-(8, 8, 8, DATE('now', '+2 day'), 'afternoon', 'Sarıyer', 80.00, 'new', 1280.00, 'pending', 'Başarılar!', 1),
-(9, 9, 9, DATE('now', '+2 day'), 'evening', 'Ataşehir', 55.00, 'new', 505.00, 'pending', 'İyi ki varsın canım!', 1),
-(10, 10, 10, DATE('now', '+2 day'), 'evening', 'Beykoz', 90.00, 'new', 790.00, 'pending', 'Seni seviyorum aşkım!', 1);
-
--- Sipariş ürünleri
--- Bugün için siparişlerin ürünleri
 INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_amount) VALUES
-(1, 1, 1, 1200.00, 1200.00), -- Kırmızı Gül Buketi
-(2, 4, 1, 1250.00, 1250.00), -- Kutuda Güller
-(3, 3, 1, 850.00, 850.00),   -- Papatya Buketi
-(4, 8, 1, 1500.00, 1500.00), -- Orkide Aranjmanı
-(5, 5, 1, 1200.00, 1200.00), -- Kutuda Karışık
-(6, 2, 1, 850.00, 850.00),   -- Mevsim Buketi
-(7, 6, 1, 1100.00, 1100.00), -- Cam Vazoda Lilyum
+(1, 1, 1, 4000.00, 4000.00),
+(2, 4, 1, 4500.00, 4500.00),
+(3, 3, 1, 4200.00, 4200.00),
+(4, 8, 1, 4800.00, 4800.00),
+(5, 5, 1, 4700.00, 4700.00),
+(6, 2, 1, 4300.00, 4300.00),
+(7, 6, 1, 4900.00, 4900.00),
+(8, 8, 1, 6000.00, 6000.00),
+(9, 1, 1, 4100.00, 4100.00),
+(10, 5, 1, 5200.00, 5200.00),
+(11, 7, 1, 5300.00, 5300.00),
+(12, 3, 1, 5900.00, 5900.00),
+(13, 9, 1, 6800.00, 6800.00),
+(14, 2, 1, 4500.00, 4500.00),
+(15, 5, 1, 6200.00, 6200.00),
+(16, 6, 1, 6700.00, 6700.00),
+(17, 4, 1, 4800.00, 4800.00),
+(18, 1, 1, 7000.00, 7000.00),
+(19, 8, 1, 4600.00, 4600.00),
+(20, 10, 1, 5500.00, 5500.00);
 
--- Yarın için siparişlerin ürünleri
-(8, 8, 1, 2000.00, 2000.00), -- Orkide Aranjmanı
-(9, 1, 1, 1200.00, 1200.00), -- Kırmızı Gül Buketi
-(10, 5, 1, 1200.00, 1200.00), -- Kutuda Karışık
-(11, 3, 1, 850.00, 850.00),   -- Papatya Buketi
-(12, 2, 1, 850.00, 850.00),   -- Mevsim Buketi
-(13, 7, 1, 1900.00, 1900.00), -- Soft Aranjman
-(14, 9, 2, 450.00, 900.00),   -- Mini Sukulent (2 adet)
-
--- Öbür gün için siparişlerin ürünleri
-(15, 10, 1, 700.00, 700.00),  -- Bonsai
-(16, 6, 1, 1100.00, 1100.00), -- Cam Vazoda Lilyum
-(17, 4, 1, 1500.00, 1500.00), -- Kutuda Güller
-(18, 5, 1, 1200.00, 1200.00), -- Kutuda Karışık
-(19, 9, 1, 450.00, 450.00),   -- Mini Sukulent
-(20, 10, 1, 700.00, 700.00);  -- Bonsai
-
--- Teslimat Bölgeleri - 200_seed_data.sql'den eksik olan
 INSERT INTO delivery_regions (name, base_fee) VALUES
 ('Kadıköy', 50.00),
 ('Üsküdar', 50.00),
@@ -279,7 +244,6 @@ INSERT INTO delivery_regions (name, base_fee) VALUES
 ('Sarıyer', 80.00),
 ('Beykoz', 90.00);
 
--- Kart Mesajları - 200_seed_data.sql'den eksik olan
 INSERT INTO card_messages (category, title, content) VALUES
 ('birthday', 'Doğum Günü', 'Nice mutlu, sağlıklı yıllara...'),
 ('anniversary', 'Yıldönümü', 'Nice mutlu yıllara...'),
@@ -289,14 +253,12 @@ INSERT INTO card_messages (category, title, content) VALUES
 ('mother_day', 'Anneler Günü', 'Canım annem, sen benim her şeyimsin...'),
 ('father_day', 'Babalar Günü', 'Canım babam, iyi ki varsın...');
 
--- Hesaplar - 200_seed_data.sql'den eksik olan
 INSERT INTO accounts (name, type, initial_balance, status) VALUES 
 ('Ana Kasa', 'cash', 0.00, 'active'),
 ('Kredi Kartı POS', 'pos', 0.00, 'active'),
 ('Banka Hesabı', 'bank', 0.00, 'active'),
 ('Online Ödeme', 'online', 0.00, 'active');
 
--- İşlem Kategorileri - 200_seed_data.sql'den eksik olan
 INSERT INTO transaction_categories (name, type, reporting_code) VALUES
 -- Gelir Kategorileri (in)
 ('Nakit Satış', 'in', 'SALES_CASH'),               -- Nakit ödeme ile yapılan satışlar
@@ -310,7 +272,6 @@ INSERT INTO transaction_categories (name, type, reporting_code) VALUES
 ('Yatırım Geliri', 'in', 'INVESTMENT'),            -- Yatırım veya faiz gelirleri
 ('Diğer Gelirler', 'in', 'MISC_IN'),               -- Tanımlanamayan diğer gelir kaynakları
 
--- Gider Kategorileri (out)
 ('Tedarikçi Ödemesi', 'out', 'SUPPLIER'),          -- Tedarikçilere yapılan ödemeler
 ('Kira Gideri', 'out', 'RENT'),                    -- İş yeri veya depo kirası
 ('Elektrik/Su/Doğalgaz', 'out', 'UTILITY'),        -- Faturalar

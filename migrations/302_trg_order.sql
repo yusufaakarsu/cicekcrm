@@ -86,3 +86,34 @@ BEGIN
     SET paid_amount = 0
     WHERE id = NEW.id;
 END;
+
+-- Ham madde fiyat güncelleme trigger'ı
+CREATE TRIGGER IF NOT EXISTS update_material_price_after_insert
+AFTER INSERT ON order_items_materials
+FOR EACH ROW
+BEGIN
+    -- En son satın alma fiyatını bul
+    UPDATE order_items_materials
+    SET unit_price = (
+        SELECT poi.unit_price
+        FROM purchase_order_items poi
+        JOIN purchase_orders po ON poi.order_id = po.id
+        WHERE poi.material_id = NEW.material_id
+        AND poi.deleted_at IS NULL
+        AND po.deleted_at IS NULL
+        ORDER BY po.order_date DESC
+        LIMIT 1
+    ),
+    -- Toplam tutarı hesapla
+    total_amount = NEW.quantity * (
+        SELECT poi.unit_price
+        FROM purchase_order_items poi
+        JOIN purchase_orders po ON poi.order_id = po.id
+        WHERE poi.material_id = NEW.material_id
+        AND poi.deleted_at IS NULL
+        AND po.deleted_at IS NULL
+        ORDER BY po.order_date DESC
+        LIMIT 1
+    )
+    WHERE id = NEW.id;
+END;
