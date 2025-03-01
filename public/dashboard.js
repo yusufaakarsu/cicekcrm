@@ -1,491 +1,356 @@
-// Dashboard bileşenlerini yükle
-document.addEventListener('DOMContentLoaded', () => {
-    // Debug bilgisi
-    console.log('Dashboard sayfası yükleniyor...');
-    console.log('API URL:', API_URL);
-    
+// Dashboard için gerekli değişkenler
+let salesChart = null;
+let categoryChart = null;
+let currentTimeRange = '30days'; // Varsayılan zaman aralığı
+
+// Sayfa yüklendiğinde
+document.addEventListener('DOMContentLoaded', async () => {
     // Sidebar'ı yükle
-    loadSideBar();
+    await loadSideBar();
     
     // Dashboard verilerini yükle
-    loadDashboard();
-
-    // Yenileme butonuna olay dinleyici ekle
-    document.getElementById('refreshDashboard').addEventListener('click', loadDashboard);
+    await loadDashboardData();
+    
+    // Event listeners
+    setupEventListeners();
+    
+    // Zaman aralığı butonunu aktif yap
+    document.getElementById('timeRange30Days').classList.add('active');
 });
 
-// Test verisi - API çalışmadığında kullanılacak
-const testData = {
-    success: true,
-    summary: {
-        total_orders: 125,
-        new_orders: 15,
-        confirmed_orders: 25,
-        preparing_orders: 10,
-        ready_orders: 5,
-        delivering_orders: 8,
-        delivered_orders: 62,
-        today_orders: 12,
-        tomorrow_orders: 8,
-        week_orders: 45,
-        customer_count: 78,
-        new_customers: 12,
-        total_revenue: 15750,
-        monthly_revenue: 5250,
-        low_stock_count: 4
-    },
-    todayOrders: [
-        {
-            id: 123,
-            status: 'preparing',
-            payment_status: 'partial',
-            district: 'Kadıköy',
-            delivery_time: 'morning',
-            customer_name: 'Ali Yılmaz',
-            customer_phone: '5551234567',
-            recipient_name: 'Ayşe Demir',
-            recipient_phone: '5557654321',
-            products: 'Papatya Buketi (x1), Özel Çikolata (x2)'
-        },
-        {
-            id: 124,
-            status: 'delivering',
-            payment_status: 'paid',
-            district: 'Beşiktaş',
-            delivery_time: 'afternoon',
-            customer_name: 'Mehmet Can',
-            customer_phone: '5551112233',
-            recipient_name: 'Zeynep Kaya',
-            recipient_phone: '5554445566',
-            products: 'Gül Buketi (x1)'
-        }
-    ],
-    upcomingOrders: [
-        {
-            id: 125,
-            status: 'confirmed',
-            delivery_time: 'morning',
-            delivery_date: '2023-11-30',
-            recipient_name: 'Deniz Aydın'
-        },
-        {
-            id: 126,
-            status: 'new',
-            delivery_time: 'afternoon',
-            delivery_date: '2023-11-30',
-            recipient_name: 'Selin Yıldız'
-        }
-    ],
-    lowStockItems: [
-        {
-            id: 1,
-            name: 'Kırmızı Gül',
-            stock_level: 3,
-            unit_code: 'adet'
-        },
-        {
-            id: 2,
-            name: 'Beyaz Kurdele',
-            stock_level: 5,
-            unit_code: 'metre'
-        }
-    ],
-    recentTransactions: [
-        {
-            id: 1,
-            type: 'in',
-            amount: 250,
-            date: '2023-11-28',
-            account_name: 'Ana Kasa',
-            payment_method: 'cash',
-            description: 'Sipariş ödemesi'
-        },
-        {
-            id: 2,
-            type: 'out',
-            amount: 120,
-            date: '2023-11-27',
-            account_name: 'Banka',
-            payment_method: 'bank_transfer',
-            description: 'Tedarikçi ödemesi'
-        }
-    ]
-};
+// Event listener'ları ayarla
+function setupEventListeners() {
+    // Zaman aralığı butonları
+    document.getElementById('timeRange30Days').addEventListener('click', () => changeTimeRange('30days'));
+    document.getElementById('timeRangeThisMonth').addEventListener('click', () => changeTimeRange('thismonth'));
+    document.getElementById('timeRangeThisYear').addEventListener('click', () => changeTimeRange('thisyear'));
+    
+    // Grafik gruplandırma butonları
+    document.getElementById('salesChartDaily').addEventListener('click', () => changeSalesChartGrouping('daily'));
+    document.getElementById('salesChartWeekly').addEventListener('click', () => changeSalesChartGrouping('weekly'));
+    document.getElementById('salesChartMonthly').addEventListener('click', () => changeSalesChartGrouping('monthly'));
+}
 
-async function loadDashboard() {
-    showLoading();
-
+// Dashboard verilerini yükle
+async function loadDashboardData() {
     try {
-        console.log('Dashboard verileri yükleniyor...');
-        let data;
+        showLoading();
         
-        try {
-            // API URL'ini konsola yazdır
-            console.log('API URL:', `${API_URL}/dashboard`);
-            
-            // API isteği yapılıyor
-            const response = await fetch(`${API_URL}/dashboard`);
-            console.log('API yanıt statüsü:', response.status);
-            
-            if (!response.ok) {
-                console.warn('API hatası, test verileri kullanılacak');
-                throw new Error(`API yanıt hatası: ${response.status}`);
-            }
-            
-            data = await response.json();
-            console.log('API verileri:', data);
-        } 
-        catch (apiError) {
-            console.warn('API bağlantı hatası veya veri işleme hatası:', apiError);
-            console.log('Test verileri kullanılacak');
-            // API bağlantı hatası durumunda test verilerini kullan
-            data = testData;
-        }
+        // Paralel olarak tüm verileri yükle
+        const [summaryData, trendData, categoryData, recentOrders, targetData] = await Promise.all([
+            fetchAPI(`/dashboard/summary?timeRange=${currentTimeRange}`),
+            fetchAPI(`/dashboard/trends?timeRange=${currentTimeRange}`),
+            fetchAPI(`/dashboard/categories?timeRange=${currentTimeRange}`),
+            fetchAPI(`/dashboard/recent-orders`),
+            fetchAPI(`/dashboard/targets`)
+        ]);
         
-        // Panelleri güncelle
-        updateSummaryCards(data.summary);
-        renderTodayOrders(data.todayOrders || []);
-        renderUpcomingOrders(data.upcomingOrders || []);
-        renderLowStockItems(data.lowStockItems || []);
-        renderRecentTransactions(data.recentTransactions || []);
+        // Özet verileri güncelle
+        updateSummaryCards(summaryData);
         
-        // Timestamp ile son güncelleme zamanını göster
-        document.getElementById('lastUpdated').textContent = 
-            `Son güncelleme: ${new Date().toLocaleTimeString()}`;
+        // Grafikleri güncelle
+        updateSalesChart(trendData);
+        updateCategoryChart(categoryData);
+        
+        // Son siparişleri güncelle
+        updateRecentOrders(recentOrders);
+        
+        // Hedefleri güncelle
+        updateTargets(targetData);
         
     } catch (error) {
-        console.error('Dashboard yükleme hatası:', error);
-        showError('Panel yüklenemedi: ' + error.message);
-        
-        // Hata durumunda UI'da "veri yüklenemedi" göster
-        document.querySelectorAll('.dashboard-panel').forEach(panel => {
-            panel.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle me-2"></i> 
-                    Veriler yüklenemedi: ${error.message}
-                </div>
-            `;
-        });
+        console.error('Dashboard data loading error:', error);
+        showError('Dashboard verileri yüklenemedi');
     } finally {
         hideLoading();
     }
 }
 
-// Özet kartlarını güncelle
-function updateSummaryCards(summary) {
-    if (!summary) return;
-
-    // Bugünün siparişleri
-    document.getElementById('todayOrdersCount').textContent = summary.today_orders || 0;
-    
-    // Yarının siparişleri
-    document.getElementById('tomorrowOrdersCount').textContent = summary.tomorrow_orders || 0;
-    
-    // Bu haftanın siparişleri
-    document.getElementById('weekOrdersCount').textContent = summary.week_orders || 0;
-    
-    // Toplam müşteri sayısı
-    document.getElementById('customerCount').textContent = summary.customer_count || 0;
-    
-    // Son 30 günün yeni müşterileri
-    document.getElementById('newCustomers').textContent = summary.new_customers || 0;
-    
-    // Düşük stok ürünleri
-    document.getElementById('lowStockCount').textContent = summary.low_stock_count || 0;
-    
-    // Sipariş durumları
-    document.getElementById('newOrdersCount').textContent = summary.new_orders || 0;
-    document.getElementById('confirmedOrdersCount').textContent = summary.confirmed_orders || 0;
-    document.getElementById('preparingOrdersCount').textContent = summary.preparing_orders || 0;
-    document.getElementById('readyOrdersCount').textContent = summary.ready_orders || 0;
-    document.getElementById('deliveringOrdersCount').textContent = summary.delivering_orders || 0;
-    document.getElementById('deliveredOrdersCount').textContent = summary.delivered_orders || 0;
-    
-    // Finansal metrikler
-    document.getElementById('totalRevenue').textContent = formatCurrency(summary.total_revenue || 0);
-    document.getElementById('monthlyRevenue').textContent = formatCurrency(summary.monthly_revenue || 0);
-    
-    // Sipariş durumu grafiğini güncelle
-    updateOrdersChart(summary);
-}
-
-// Bugünkü siparişler tablosunu oluştur
-function renderTodayOrders(orders) {
-    const container = document.getElementById('todayOrdersList');
-    
-    if (!orders || orders.length === 0) {
-        container.innerHTML = `
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle me-2"></i>
-                Bugün için teslimat bulunmuyor
-            </div>
-        `;
+// Özet kartları güncelle
+function updateSummaryCards(data) {
+    if (!data || !data.success) {
+        showError('Özet verileri yüklenemedi');
         return;
     }
     
-    container.innerHTML = orders.map(order => `
-        <div class="card mb-2">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-1">
-                            #${order.id} · 
-                            <span class="badge ${getStatusBadgeClass(order.status)}">
-                                ${getStatusText(order.status)}
-                            </span>
-                            <span class="badge ${getPaymentStatusBadgeClass(order.payment_status)}">
-                                ${getPaymentStatusText(order.payment_status)}
-                            </span>
-                        </h6>
-                        <div class="small">
-                            <i class="bi bi-geo-alt"></i> 
-                            ${order.district} - ${formatDeliveryTime(order.delivery_time)}
-                        </div>
-                    </div>
-                    <a href="/orders/order-detail.html?id=${order.id}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-eye"></i> Detay
-                    </a>
-                </div>
-                <hr class="my-2">
-                <div class="row g-2">
-                    <div class="col-md-4">
-                        <div class="small text-muted">Müşteri</div>
-                        <div>${order.customer_name || '-'}</div>
-                        <div class="small">${formatPhoneNumber(order.customer_phone) || ''}</div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="small text-muted">Alıcı</div>
-                        <div>${order.recipient_name || '-'}</div>
-                        <div class="small">${formatPhoneNumber(order.recipient_phone) || ''}</div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="small text-muted">Ürünler</div>
-                        <div class="small">${formatProducts(order.products)}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `).join('');
+    const summary = data.summary;
+    
+    // Toplam sipariş
+    document.getElementById('totalOrdersCount').textContent = formatNumber(summary.orders.total);
+    const ordersTrend = summary.orders.trend;
+    updateTrendBadge('ordersTrendBadge', ordersTrend);
+    
+    // Toplam gelir
+    document.getElementById('totalRevenueAmount').textContent = formatCurrency(summary.revenue.total);
+    const revenueTrend = summary.revenue.trend;
+    updateTrendBadge('revenueTrendBadge', revenueTrend);
+    
+    // Ortalama sipariş tutarı
+    document.getElementById('averageOrderAmount').textContent = formatCurrency(summary.average_order.total);
+    const avgOrderTrend = summary.average_order.trend;
+    updateTrendBadge('avgOrderTrendBadge', avgOrderTrend);
+    
+    // Yeni müşteriler
+    document.getElementById('newCustomersCount').textContent = formatNumber(summary.new_customers.total);
+    const customersTrend = summary.new_customers.trend;
+    updateTrendBadge('customersTrendBadge', customersTrend);
 }
 
-// Yaklaşan siparişleri göster
-function renderUpcomingOrders(orders) {
-    const container = document.getElementById('upcomingOrdersList');
+// Trend badge'ini güncelle (artış/azalış)
+function updateTrendBadge(elementId, trendValue) {
+    const badge = document.getElementById(elementId);
     
-    if (!orders || orders.length === 0) {
-        container.innerHTML = `
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle me-2"></i>
-                Yaklaşan sipariş bulunmuyor
-            </div>
-        `;
+    if (trendValue > 0) {
+        badge.className = 'badge bg-success me-1';
+        badge.textContent = `+${trendValue}%`;
+    } else if (trendValue < 0) {
+        badge.className = 'badge bg-danger me-1';
+        badge.textContent = `${trendValue}%`;
+    } else {
+        badge.className = 'badge bg-secondary me-1';
+        badge.textContent = `0%`;
+    }
+}
+
+// Satış grafiğini güncelle
+function updateSalesChart(data) {
+    if (!data || !data.success) {
+        showError('Trend verileri yüklenemedi');
         return;
     }
     
-    container.innerHTML = orders.map(order => `
-        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-            <div>
-                <div class="fw-medium">
-                    #${order.id} - ${order.recipient_name || 'İsimsiz'} 
-                    <span class="badge ${getStatusBadgeClass(order.status)}">
-                        ${getStatusText(order.status)}
-                    </span>
-                </div>
-                <div class="small text-muted">
-                    ${formatDate(order.delivery_date)} - ${formatDeliveryTime(order.delivery_time)}
-                </div>
-            </div>
-            <a href="/orders/order-detail.html?id=${order.id}" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-eye"></i> Detay
-            </a>
-        </div>
-    `).join('');
-}
-
-// Düşük stok ürünlerini göster
-function renderLowStockItems(items) {
-    const container = document.getElementById('lowStockItemsList');
+    const trendsData = data.trends;
+    const ctx = document.getElementById('salesTrendChart').getContext('2d');
     
-    if (!items || items.length === 0) {
-        container.innerHTML = `
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle me-2"></i>
-                Stok seviyeleri normal
-            </div>
-        `;
-        return;
+    // Varsa mevcut grafiği temizle
+    if (salesChart) {
+        salesChart.destroy();
     }
     
-    container.innerHTML = items.map(item => `
-        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-            <div>
-                <div class="fw-medium">
-                    ${item.name} 
-                    ${item.stock_level <= 5 ? 
-                        '<span class="badge bg-danger">Kritik</span>' : 
-                        '<span class="badge bg-warning">Düşük</span>'
-                    }
-                </div>
-                <div class="small text-muted">
-                    Stok: ${item.stock_level} ${item.unit_code || 'adet'}
-                </div>
-            </div>
-            <a href="/stock/stock.html" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-plus"></i> Detay
-            </a>
-        </div>
-    `).join('');
-}
-
-// Son finansal işlemleri göster
-function renderRecentTransactions(transactions) {
-    const container = document.getElementById('recentTransactionsList');
-    
-    if (!transactions || transactions.length === 0) {
-        container.innerHTML = `
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle me-2"></i>
-                Finansal işlem bulunmuyor
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = transactions.map(tx => `
-        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-            <div>
-                <div class="fw-medium">
-                    <span class="badge ${tx.type === 'in' ? 'bg-success' : 'bg-danger'}">
-                        ${tx.type === 'in' ? 'Gelen' : 'Giden'}
-                    </span>
-                    ${formatCurrency(tx.amount)}
-                </div>
-                <div class="small text-muted">
-                    ${tx.description || '-'} · ${formatDate(tx.date)}
-                </div>
-            </div>
-            <div class="text-end">
-                <div>${tx.account_name || '-'}</div>
-                <div class="small text-muted">${tx.payment_method || '-'}</div>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Sipariş durum grafiğini güncelle
-function updateOrdersChart(summary) {
-    // Canvas elementi varsa
-    const canvas = document.getElementById('ordersStatusChart');
-    if (!canvas) return;
-
-    // Chart.js yüklüysa
-    if (window.Chart) {
-        // Önceki grafiği temizle
-        if (window.ordersChart) {
-            window.ordersChart.destroy();
-        }
-
-        const data = {
-            labels: ['Yeni', 'Onaylandı', 'Hazırlanıyor', 'Hazır', 'Taşımada', 'Teslim Edildi'],
-            datasets: [{
-                data: [
-                    summary.new_orders || 0,
-                    summary.confirmed_orders || 0,
-                    summary.preparing_orders || 0,
-                    summary.ready_orders || 0,
-                    summary.delivering_orders || 0,
-                    summary.delivered_orders || 0
-                ],
-                backgroundColor: [
-                    '#20c997', // Yeni
-                    '#0dcaf0', // Onaylandı
-                    '#ffc107', // Hazırlanıyor
-                    '#0d6efd', // Hazır
-                    '#fd7e14', // Taşımada
-                    '#198754'  // Teslim Edildi
-                ]
-            }]
-        };
-        
-        const config = {
-            type: 'doughnut',
-            data: data,
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    },
+    // Yeni grafik oluştur
+    salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: trendsData.labels,
+            datasets: [
+                {
+                    label: 'Siparişler',
+                    data: trendsData.orders,
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#3498db'
                 },
-                cutout: '70%'
+                {
+                    label: 'Gelir',
+                    data: trendsData.revenue,
+                    borderColor: '#2ecc71',
+                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#2ecc71',
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Sipariş Sayısı'
+                    }
+                },
+                y1: {
+                    beginAtZero: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Gelir (₺)'
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
             }
-        };
-        
-        window.ordersChart = new Chart(canvas, config);
+        }
+    });
+}
+
+// Kategori grafiğini güncelle
+function updateCategoryChart(data) {
+    if (!data || !data.success) {
+        showError('Kategori verileri yüklenemedi');
+        return;
     }
+    
+    const categoriesData = data.categories;
+    const ctx = document.getElementById('categoryChart').getContext('2d');
+    
+    // Varsa mevcut grafiği temizle
+    if (categoryChart) {
+        categoryChart.destroy();
+    }
+    
+    // Rastgele renkler oluştur
+    const backgroundColors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
+        '#8AC249', '#EA526F', '#63B7AF', '#D499B9', '#2D4059', '#EA9010'
+    ];
+    
+    // Yeni grafik oluştur
+    categoryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: categoriesData.labels,
+            datasets: [{
+                data: categoriesData.data,
+                backgroundColor: backgroundColors.slice(0, categoriesData.data.length),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${context.label}: ${percentage}% (${formatCurrency(value)})`;
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 
-// Helper fonksiyonlar
-function formatProducts(productsString) {
-    if (!productsString) return '-';
-    return productsString.split(',').map(p => `<div>${p}</div>`).join('');
+// Son siparişleri güncelle
+function updateRecentOrders(data) {
+    if (!data || !data.success) {
+        showError('Son siparişler yüklenemedi');
+        return;
+    }
+    
+    const recentOrders = data.orders || [];
+    const tbody = document.getElementById('recentOrdersTable');
+    
+    if (recentOrders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3">Sipariş bulunamadı</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = recentOrders.map(order => `
+        <tr onclick="window.location='/orders/detail.html?id=${order.id}';" style="cursor:pointer">
+            <td>${formatDate(order.created_at)}</td>
+            <td>${order.customer_name}</td>
+            <td>${formatCurrency(order.total_amount)}</td>
+            <td>${getStatusBadge(order.status)}</td>
+        </tr>
+    `).join('');
 }
 
-function formatDeliveryTime(time) {
-    const times = {
-        'morning': 'Sabah (09:00-12:00)',
-        'afternoon': 'Öğleden Sonra (12:00-17:00)',
-        'evening': 'Akşam (17:00-21:00)'
-    };
-    return times[time] || time;
+// Hedefleri güncelle
+function updateTargets(data) {
+    if (!data || !data.success) {
+        showError('Hedef verileri yüklenemedi');
+        return;
+    }
+    
+    const targets = data.targets;
+    
+    // Sipariş hedefi
+    const ordersTarget = targets.orders;
+    document.getElementById('currentOrdersCount').textContent = formatNumber(ordersTarget.current);
+    document.getElementById('orderTarget').textContent = formatNumber(ordersTarget.target);
+    const ordersPercentage = Math.min(100, Math.round((ordersTarget.current / ordersTarget.target) * 100));
+    document.getElementById('ordersProgressBar').style.width = `${ordersPercentage}%`;
+    
+    // Gelir hedefi
+    const revenueTarget = targets.revenue;
+    document.getElementById('currentRevenue').textContent = formatCurrency(revenueTarget.current);
+    document.getElementById('revenueTarget').textContent = formatCurrency(revenueTarget.target);
+    const revenuePercentage = Math.min(100, Math.round((revenueTarget.current / revenueTarget.target) * 100));
+    document.getElementById('revenueProgressBar').style.width = `${revenuePercentage}%`;
+    
+    // Müşteri hedefi
+    const customerTarget = targets.new_customers;
+    document.getElementById('currentNewCustomers').textContent = formatNumber(customerTarget.current);
+    document.getElementById('customerTarget').textContent = formatNumber(customerTarget.target);
+    const customerPercentage = Math.min(100, Math.round((customerTarget.current / customerTarget.target) * 100));
+    document.getElementById('customersProgressBar').style.width = `${customerPercentage}%`;
 }
 
-// Sipariş durumu için badge sınıfı
-function getStatusBadgeClass(status) {
-    const badges = {
-        'new': 'bg-info',
-        'confirmed': 'bg-primary',
-        'preparing': 'bg-warning',
-        'ready': 'bg-success',
-        'delivering': 'bg-danger',
-        'delivered': 'bg-success',
-        'cancelled': 'bg-dark'
-    };
-    return badges[status] || 'bg-secondary';
+// Zaman aralığını değiştir
+function changeTimeRange(range) {
+    // Eski butonun aktif halini kaldır
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Yeni butonu aktif yap
+    switch (range) {
+        case '30days':
+            document.getElementById('timeRange30Days').classList.add('active');
+            break;
+        case 'thismonth':
+            document.getElementById('timeRangeThisMonth').classList.add('active');
+            break;
+        case 'thisyear':
+            document.getElementById('timeRangeThisYear').classList.add('active');
+            break;
+    }
+    
+    currentTimeRange = range;
+    loadDashboardData();
 }
 
-// Sipariş durumu için metin
-function getStatusText(status) {
-    const texts = {
-        'new': 'Yeni',
-        'confirmed': 'Onaylandı',
-        'preparing': 'Hazırlanıyor',
-        'ready': 'Hazır',
-        'delivering': 'Taşınıyor',
-        'delivered': 'Teslim Edildi',
-        'cancelled': 'İptal'
-    };
-    return texts[status] || status;
-}
-
-// Ödeme durumu için badge sınıfı
-function getPaymentStatusBadgeClass(status) {
-    const badges = {
-        'pending': 'bg-warning text-dark',
-        'partial': 'bg-info',
-        'paid': 'bg-success',
-        'cancelled': 'bg-dark'
-    };
-    return badges[status] || 'bg-secondary';
-}
-
-// Ödeme durumu için metin
-function getPaymentStatusText(status) {
-    const texts = {
-        'pending': 'Bekliyor',
-        'partial': 'Kısmi',
-        'paid': 'Ödendi',
-        'cancelled': 'İptal'
-    };
-    return texts[status] || status;
+// Satış grafiği gruplandırmasını değiştir
+function changeSalesChartGrouping(grouping) {
+    // Eski butonun aktif halini kaldır
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        if (btn.id.startsWith('salesChart')) {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Yeni butonu aktif yap
+    document.getElementById(`salesChart${grouping.charAt(0).toUpperCase() + grouping.slice(1)}`).classList.add('active');
+    
+    // API çağrısı ve grafik güncelleme
+    fetchAPI(`/dashboard/trends?timeRange=${currentTimeRange}&grouping=${grouping}`)
+        .then(data => {
+            updateSalesChart(data);
+        })
+        .catch(error => {
+            console.error('Chart grouping change error:', error);
+            showError('Grafik verileri yüklenemedi');
+        });
 }

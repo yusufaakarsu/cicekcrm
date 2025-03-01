@@ -2,15 +2,46 @@ import { Hono } from 'hono';
 
 const router = new Hono();
 
+// Yardımcı fonksiyonlar
+function getTimeFilter(timeRange: string): string {
+  switch (timeRange) {
+    case '30days':
+      return "DATE('now', '-30 days')";
+    case 'thismonth':
+      return "DATE('now', 'start of month')";
+    case 'thisyear':
+      return "DATE('now', 'start of year')";
+    default:
+      return "DATE('now', '-30 days')";
+  }
+}
+
+function getPreviousPeriodFilter(timeRange: string): string {
+  switch (timeRange) {
+    case '30days':
+      return "DATE('now', '-60 days')";
+    case 'thismonth':
+      return "DATE('now', 'start of month', '-1 month')";
+    case 'thisyear':
+      return "DATE('now', 'start of year', '-1 year')";
+    default:
+      return "DATE('now', '-60 days')";
+  }
+}
+
+function calculateTrend(current: number, previous: number): number {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+// Ana dashboard
 router.get('/', async (c) => {
     const db = c.get('db');
 
     try {
         console.log('Dashboard request received');
         
-        // Tenant ID referansını kaldırın (tenant_id artık kullanılmıyor)
-        
-        // Özet metrikleri tek sorguda al - Güvenlik için try/catch ile her sorguyu koru
+        // Özet metrikleri tek sorguda al
         try {
             const dashboardSummary = await db.prepare(`
                 SELECT 
@@ -164,10 +195,9 @@ router.get('/', async (c) => {
     }
 });
 
-// Son siparişler endpoint'i ekle
+// Son siparişler endpoint'i
 router.get('/recent-orders', async (c) => {
     const db = c.get('db');
-    const tenant_id = c.get('tenant_id');
 
     try {
         const { results: orders } = await db.prepare(`
@@ -184,12 +214,11 @@ router.get('/recent-orders', async (c) => {
             JOIN customers c ON o.customer_id = c.id
             JOIN order_items oi ON o.id = oi.order_id
             JOIN products p ON oi.product_id = p.id
-            WHERE o.tenant_id = ?
-            AND o.deleted_at IS NULL
+            WHERE o.deleted_at IS NULL
             GROUP BY o.id
             ORDER BY o.created_at DESC
             LIMIT 10
-        `).bind(tenant_id).all();
+        `).all();
 
         return c.json({
             success: true,
@@ -197,12 +226,323 @@ router.get('/recent-orders', async (c) => {
         });
 
     } catch (error) {
+        console.error('Recent orders error:', error);
         return c.json({
             success: false,
-            error: 'Database error',
+            error: 'Veritabanı hatası',
             details: error.message
         }, 500);
     }
 });
+
+// Dashboard özet verileri
+router.get('/summary', async (c) => {
+  const db = c.get('db')
+  const timeRange = c.req.query('timeRange') || '30days'
+  
+  try {
+    // Zaman filtresi oluştur
+    const timeFilter = getTimeFilter(timeRange)
+    
+    // Geçen dönem için zaman filtresi
+    const prevTimeFilter = getPreviousPeriodFilter(timeRange)
+    
+    // Dönem siparişleri
+    const currentPeriodOrders = await db.prepare(`
+      SELECT COUNT(*) as count, SUM(total_amount) as revenue
+      FROM orders
+      WHERE created_at >= ${timeFilter}
+      AND deleted_at IS NULL
+    `).first()
+    
+    // Geçen dönem siparişleri
+    const previousPeriodOrders = await db.prepare(`
+      SELECT COUNT(*) as count, SUM(total_amount) as revenue
+      FROM orders
+      WHERE created_at >= ${prevTimeFilter} AND created_at < ${timeFilter}
+      AND deleted_at IS NULL
+    `).first()
+    
+    // Trendleri hesapla
+    const ordersTrend = calculateTrend(
+      currentPeriodOrders?.count || 0, 
+      previousPeriodOrders?.count || 0
+    )
+    
+    const revenueTrend = calculateTrend(
+      currentPeriodOrders?.revenue || 0, 
+      previousPeriodOrders?.revenue || 0
+    )
+    
+    // Ortalama sipariş tutarı
+    const averageOrderCurrent = currentPeriodOrders?.count > 0 
+      ? (currentPeriodOrders.revenue / currentPeriodOrders.count) 
+      : 0
+    
+    const averageOrderPrevious = previousPeriodOrders?.count > 0 
+      ? (previousPeriodOrders.revenue / previousPeriodOrders.count) 
+      : 0
+    
+    const averageOrderTrend = calculateTrend(
+      averageOrderCurrent, 
+      averageOrderPrevious
+    )
+    
+    // Yeni müşteriler
+    const newCustomers = await db.prepare(`
+      SELECT COUNT(*) as count
+      FROM customers
+      WHERE created_at >= ${timeFilter}
+      AND deleted_at IS NULL
+    `).first()
+    
+    // Önceki dönem yeni müşteriler
+    const previousNewCustomers = await db.prepare(`
+      SELECT COUNT(*) as count
+      FROM customers
+      WHERE created_at >= ${prevTimeFilter} AND created_at < ${timeFilter}
+      AND deleted_at IS NULL
+    `).first()
+    
+    const newCustomersTrend = calculateTrend(
+      newCustomers?.count || 0,
+      previousNewCustomers?.count || 0
+    )
+    
+    return c.json({
+      success: true,
+      summary: {
+        orders: {
+          total: currentPeriodOrders?.count || 0,
+          trend: ordersTrend
+        },
+        revenue: {
+          total: currentPeriodOrders?.revenue || 0,
+          trend: revenueTrend
+        },
+        average_order: {
+          total: averageOrderCurrent,
+          trend: averageOrderTrend
+        },
+        new_customers: {
+          total: newCustomers?.count || 0,
+          trend: newCustomersTrend
+        }
+      }
+    })
+    
+  } catch (error) {
+    console.error('Dashboard summary error:', error)
+    return c.json({
+      success: false,
+      error: 'Özet verileri alınamadı',
+      details: error.message
+    }, 500)
+  }
+})
+
+// Trend verileri - zaman bazlı satış trendi grafiği için
+router.get('/trends', async (c) => {
+  const db = c.get('db')
+  const timeRange = c.req.query('timeRange') || '30days'
+  const grouping = c.req.query('grouping') || 'daily' // daily, weekly, monthly
+  
+  try {
+    // Sorgu için format bilgisi
+    let dateFormat: string
+    let interval: string
+    let dayCount: number
+    
+    switch (grouping) {
+      case 'weekly':
+        dateFormat = "'Hafta' || strftime('%W', created_at)"
+        interval = "7 day"
+        dayCount = 10 // 10 hafta
+        break
+      case 'monthly':
+        dateFormat = "strftime('%Y-%m', created_at)"
+        interval = "1 month"
+        dayCount = 12 // 12 ay
+        break
+      default: // daily
+        dateFormat = "date(created_at)"
+        interval = "1 day"
+        dayCount = 30 // 30 gün
+    }
+    
+    // Zaman aralığına göre başlangıç tarihi hesapla
+    const startDate = timeRange === 'thisyear' 
+      ? "date('now', 'start of year')" 
+      : (timeRange === 'thismonth' 
+          ? "date('now', 'start of month')" 
+          : `date('now', '-${dayCount} day')`)
+    
+    // Verileri getir
+    const { results } = await db.prepare(`
+      WITH date_series AS (
+        SELECT 
+          date(
+            ${startDate}, 
+            '+' || seq || ' ${interval}'
+          ) AS date_point
+        FROM 
+          (WITH RECURSIVE seq(seq) AS (
+            SELECT 0
+            UNION ALL
+            SELECT seq + 1
+            FROM seq
+            LIMIT ${dayCount}
+          )
+          SELECT seq FROM seq)
+      )
+      
+      SELECT 
+        ds.date_point as date,
+        COUNT(o.id) as order_count,
+        COALESCE(SUM(o.total_amount), 0) as revenue
+      FROM 
+        date_series ds
+      LEFT JOIN 
+        orders o ON ${dateFormat} = ds.date_point AND o.deleted_at IS NULL
+      GROUP BY 
+        ds.date_point
+      ORDER BY 
+        ds.date_point ASC
+    `).all()
+    
+    // Etiketler ve veri dizilerini oluştur
+    const labels = results.map(r => r.date)
+    const orders = results.map(r => r.order_count)
+    const revenue = results.map(r => r.revenue)
+    
+    return c.json({
+      success: true,
+      trends: {
+        labels,
+        orders,
+        revenue
+      }
+    })
+    
+  } catch (error) {
+    console.error('Dashboard trends error:', error)
+    return c.json({
+      success: false,
+      error: 'Trend verileri alınamadı',
+      details: error.message
+    }, 500)
+  }
+})
+
+// Kategori dağılımı - pasta grafik için
+router.get('/categories', async (c) => {
+  const db = c.get('db')
+  const timeRange = c.req.query('timeRange') || '30days'
+  
+  try {
+    // Zaman filtresi
+    const timeFilter = getTimeFilter(timeRange)
+    
+    // Kategori verileri
+    const { results } = await db.prepare(`
+      SELECT 
+        pc.name as category,
+        COALESCE(SUM(oi.total_amount), 0) as amount
+      FROM 
+        product_categories pc
+      LEFT JOIN 
+        products p ON pc.id = p.category_id AND p.deleted_at IS NULL
+      LEFT JOIN 
+        order_items oi ON p.id = oi.product_id AND oi.deleted_at IS NULL
+      LEFT JOIN 
+        orders o ON oi.order_id = o.id AND o.deleted_at IS NULL
+                   AND o.created_at >= ${timeFilter}
+      WHERE 
+        pc.deleted_at IS NULL
+      GROUP BY 
+        pc.id
+      HAVING
+        amount > 0
+      ORDER BY 
+        amount DESC
+    `).all()
+    
+    // Etiketler ve veriler
+    const labels = results.map(r => r.category)
+    const data = results.map(r => r.amount)
+    
+    return c.json({
+      success: true,
+      categories: {
+        labels,
+        data
+      }
+    })
+    
+  } catch (error) {
+    console.error('Dashboard categories error:', error)
+    return c.json({
+      success: false,
+      error: 'Kategori verileri alınamadı', 
+      details: error.message
+    }, 500)
+  }
+})
+
+// Hedefler
+router.get('/targets', async (c) => {
+  const db = c.get('db')
+  
+  try {
+    // Varsayılan hedef değerleri
+    // NOT: Gerçekte bu değerler veritabanından gelmeli
+    const currentMonth = new Date().getMonth() + 1 // 1-12
+    
+    // Bu ay için gerçek değerler
+    const currentStats = await db.prepare(`
+      SELECT
+        (SELECT COUNT(*) FROM orders 
+         WHERE strftime('%m', created_at) = '${currentMonth.toString().padStart(2, '0')}'
+         AND deleted_at IS NULL) AS order_count,
+         
+        (SELECT SUM(total_amount) FROM orders 
+         WHERE strftime('%m', created_at) = '${currentMonth.toString().padStart(2, '0')}'
+         AND deleted_at IS NULL) AS revenue,
+         
+        (SELECT COUNT(*) FROM customers 
+         WHERE strftime('%m', created_at) = '${currentMonth.toString().padStart(2, '0')}'
+         AND deleted_at IS NULL) AS new_customers
+    `).first()
+    
+    // Hedefler
+    const targets = {
+      orders: {
+        current: currentStats?.order_count || 0,
+        target: 100 // Sabit değer, ileride ayarlanabilir
+      },
+      revenue: {
+        current: currentStats?.revenue || 0,
+        target: 10000 // Sabit değer, ileride ayarlanabilir
+      },
+      new_customers: {
+        current: currentStats?.new_customers || 0,
+        target: 50 // Sabit değer, ileride ayarlanabilir
+      }
+    }
+    
+    return c.json({
+      success: true,
+      targets
+    })
+    
+  } catch (error) {
+    console.error('Dashboard targets error:', error)
+    return c.json({
+      success: false,
+      error: 'Hedef verileri alınamadı',
+      details: error.message
+    }, 500)
+  }
+})
 
 export default router;
