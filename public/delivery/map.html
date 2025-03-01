@@ -6,110 +6,117 @@
     <title>Teslimat Haritası - Çiçek CRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <link rel="stylesheet" href="css/delivery-map.css">
-</head>nk rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.css" />
-<body data-page="delivery">href="css/delivery-map.css">
+    <style>
+        .table-row-clickable {
+            cursor: pointer;
+            transition: background-color 0.15s ease-in-out;
+        }
+        .table-row-clickable:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body data-page="delivery">
     <div class="vh-100 d-flex flex-column">
         <!-- Üst Navigasyon -->
         <div class="bg-primary text-white p-2">
             <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-geo-alt-fill"></i> Teslimat Haritası</h5>
-                    <div>s="d-flex justify-content-between align-items-center">
-                        <span id="deliveryDate">Bugün: <span id="todayDate"></span></span>/h5>
+                    <div>
+                        <span id="deliveryDate">Bugün: <span id="todayDate"></span></span>
                         <span class="badge bg-light text-primary ms-2" id="deliveryCount">0 teslimat</span>
-                    </div>pan id="deliveryDate">Bugün: <span id="todayDate"></span></span>
-                </div>  <span class="badge bg-light text-primary ms-2" id="deliveryCount">0 teslimat</span>
-            </div>  </div>
-        </div>  </div>
+                    </div>
+                </div>
             </div>
+        </div>
+        
         <!-- Ana İçerik -->
         <div class="flex-grow-1 position-relative">
             <!-- Harita Konteyner -->
-            <div id="map" class="h-100"></div>ive">
-            <!-- Harita Konteyner -->
-            <!-- Teslimat Listesi Panel -->iv>
+            <div id="map" class="h-100"></div>
+            
+            <!-- Teslimat Listesi Panel -->
             <div class="delivery-panel">
                 <div class="delivery-panel-header">
                     <h6 class="mb-0">Teslimatlar</h6>
                     <button class="btn btn-sm btn-outline-dark" id="togglePanelBtn">
                         <i class="bi bi-chevron-down"></i>
-                    </button>lass="btn btn-sm btn-outline-dark" id="togglePanelBtn">
-                </div>  <i class="bi bi-chevron-down"></i>
+                    </button>
+                </div>
                 <div class="delivery-panel-body">
                     <div class="list-group list-group-flush" id="deliveryList">
                         <!-- Teslimat listesi buraya yüklenecek -->
-                        <div class="text-center p-3">-flush" id="deliveryList">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Yükleniyor...</span>
-                            </div>lass="spinner-border text-primary" role="status">
-                        </div>  <span class="visually-hidden">Yükleniyor...</span>
-                    </div>  </div>
-                </div>  </div>
-            </div>  </div>
-        </div>  </div>
+                    </div>
+                </div>
             </div>
+        </div>
+        
         <!-- Alt Bilgi Çubuğu -->
         <div class="bg-light p-2 border-top">
             <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center">
-                    <div>ontainer-fluid">
+                    <div>
                         <button class="btn btn-sm btn-success me-1" id="btnRefresh">
                             <i class="bi bi-arrow-clockwise"></i> Yenile
-                        </button>lass="btn btn-sm btn-success me-1" id="btnRefresh">
+                        </button>
                         <button class="btn btn-sm btn-secondary me-1" id="btnMyLocation">
                             <i class="bi bi-geo"></i> Konumum
-                        </button>lass="btn btn-sm btn-secondary me-1" id="btnMyLocation">
-                    </div>  <i class="bi bi-geo"></i> Konumum
+                        </button>
+                    </div>
                     <div class="text-muted small" id="locationStatus">
                         <i class="bi bi-info-circle"></i> Harita yükleniyor...
-                    </div>lass="text-muted small" id="locationStatus">
-                </div>  <i class="bi bi-info-circle"></i> Harita yükleniyor...
-            </div>  </div>
-        </div>  </div>
-    </div>  </div>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
+    
     <!-- Teslimat Detay Modal -->
     <div class="modal fade" id="deliveryModal" tabindex="-1">
         <div class="modal-dialog">
-            <div class="modal-content">yModal" tabindex="-1">
+            <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Teslimat #<span id="deliveryId"></span></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>5 class="modal-title">Teslimat #<span id="deliveryId"></span></h5>
-                <div class="modal-body" id="deliveryDetails">ata-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="deliveryDetails">
                     <!-- Teslimat detayları buraya yüklenecek -->
-                </div>lass="modal-body" id="deliveryDetails">
-                <div class="modal-footer">ı buraya yüklenecek -->
+                </div>
+                <div class="modal-footer">
                     <div class="d-flex w-100 justify-content-between">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
-                        <div class="btn-group">stify-content-between">
-                            <button class="btn btn-outline-primary" id="btnGoogleMaps">="modal">Kapat</button>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary" id="btnGoogleMaps">
                                 <i class="bi bi-google"></i> Google Maps
-                            </button>lass="btn btn-outline-primary" id="btnGoogleMaps">
+                            </button>
                             <button class="btn btn-outline-primary" id="btnAppleMaps">
                                 <i class="bi bi-apple"></i> Apple Maps
-                            </button>lass="btn btn-outline-primary" id="btnAppleMaps">
+                            </button>
                             <button class="btn btn-outline-primary" id="btnYandexMaps">
                                 <i class="bi bi-map"></i> Yandex
-                            </button>lass="btn btn-outline-primary" id="btnYandexMaps">
-                        </div>  <i class="bi bi-map"></i> Yandex
-                    </div>  </button>
-                </div>  </div>
-            </div>  </div>
-        </div>  </div>
-    </div>  </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
+
+    <!-- Yükleme Göstergesi -->
+    <div id="loadingIndicator" class="position-fixed top-50 start-50 translate-middle d-none">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Yükleniyor...</span>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    <script src="/js/common.js"></script>/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/map/geolocation.js"></script>ist/leaflet.js" crossorigin=""></script>
-    <script src="js/map-service.js"></script>
-    <script src="js/navigation.js"></script>m/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.js"></script>
-    <script src="js/delivery-map.js"></script>
-</body>ript src="/js/map/geolocation.js"></script>
-</html>ript src="js/navigation.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/js/map/geolocation.js"></script>
+    <script src="js/navigation.js"></script>
     <script src="js/map-service.js"></script>
     <script src="js/delivery-map.js"></script>
 </body>
