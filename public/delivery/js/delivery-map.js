@@ -36,7 +36,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btnRefresh').addEventListener('click', loadDeliveries);
     document.getElementById('btnMyLocation').addEventListener('click', centerOnUserLocation);
     
-    // Navigasyon butonları
+    // Navigasyon butonlarını kaldır
+    
     document.getElementById('btnGoogleMaps').addEventListener('click', () => {
         if (selectedDeliveryId) {
             const delivery = getDeliveryById(selectedDeliveryId);
@@ -63,6 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
+    
 });
 
 // Teslimat panelini aç/kapat

@@ -20,7 +20,7 @@ async function initMap(elementId, options = {}) {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
         
-        /* Geolocation kontrolünü kaldırdık çünkü eklenti yüklü değil 
+        // Geolocation kontrolünü kaldırdık çünkü eklenti yüklü değil 
         // Geolocation kontrolünü ekle
         L.control.locate({
             position: 'bottomright',
@@ -32,7 +32,7 @@ async function initMap(elementId, options = {}) {
                 watch: true
             }
         }).addTo(map);
-        */
+        
         
         return map;
     } catch (error) {
