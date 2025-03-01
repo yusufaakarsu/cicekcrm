@@ -7,8 +7,12 @@ let selectedDeliveryId = null;
 let deliveryModal;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Sidebar yüklemeyi atlayalım (teslimat sayfasında gerekli değil)
-    // await loadSideBar(); - BU SATIRI KALDIRIN VEYA YORUMA ALIN
+    // Sidebar yükleme işlemini devre dışı bırak
+    // common.js dosyasının loadSideBar çağrısını geçersiz kılmak için
+    window.loadSideBar = function() {
+        console.log('Teslimat haritası için sidebar gerekmiyor');
+        return Promise.resolve();
+    };
     
     // Bootstrap modal'ını başlat
     deliveryModal = new bootstrap.Modal(document.getElementById('deliveryModal'));
@@ -541,6 +545,21 @@ function getStatusBadgeColor(status) {
     return colors[status] || 'secondary';
 }
 
+// Kısa durum metni getir
+function getStatusShortText(status) {
+    const texts = {
+        'new': 'Yeni',
+        'confirmed': 'Onay',
+        'preparing': 'Hazır',
+        'ready': 'Hazır',
+        'delivering': 'Yolda',
+        'delivered': 'Tamam',
+        'cancelled': 'İptal'
+    };
+    
+    return texts[status] || status;
+}
+
 // Durum metnini belirle
 function getStatusText(status) {
     const texts = {
@@ -553,41 +572,26 @@ function getStatusText(status) {
         'cancelled': 'İptal'
     };
     
-    return texts[status] || status;- EKSİK FONKSİYON TANIMLANIYOR
-} {
-{
+    return texts[status] || status;
+}
+
 // Teslimat zamanı formatı
 function formatDeliveryTime(time) {
-    switch(time) {ır',
+    switch(time) {
         case 'morning':
-            return '📅 Sabah (09:00-12:00)';Yolda',
+            return '📅 Sabah (09:00-12:00)';
         case 'afternoon':
-            return '🌞 Öğleden Sonra (12:00-17:00)';ed': 'İptal'
+            return '🌞 Öğleden Sonra (12:00-17:00)';
         case 'evening':
             return '🌙 Akşam (17:00-21:00)';
-        default:   return texts[status] || status;
-            return time;}
+        default:
+            return time;
     }
 }
-e(time) {
-// Telefon numarası formatlaswitch(time) {
+
+// Telefon numarası formatla
 function formatPhoneNumber(phone) {
-    if (!phone) return '';09:00-12:00)';
-    
-    // 10 haneli (5XX XXX XXXX) formata dönüştür       return '🌞 Öğleden Sonra (12:00-17:00)';
-    if (phone.length === 10) {    case 'evening':
-        return `${phone.substring(0, 3)} ${phone.substring(3, 6)} ${phone.substring(6)}`;
-    }
-    
-    // 11 haneli (0 5XX XXX XXXX) formata dönüştür
-    if (phone.length === 11 && phone.startsWith('0')) {
-        return `${phone.substring(0, 1)} ${phone.substring(1, 4)} ${phone.substring(4, 7)} ${phone.substring(7)}`;
-    }/ Telefon numarası formatla
-    function formatPhoneNumber(phone) {
-
-
-
-}    return phone;    if (!phone) return '';
+    if (!phone) return '';
     
     // 10 haneli (5XX XXX XXXX) formata dönüştür
     if (phone.length === 10) {
