@@ -250,15 +250,15 @@ function createDeliveryPopup(delivery) {
     `;
 }
 
-// Teslimat listesini güncelle - GELİŞTİRİLMİŞ VERSİYON
+// Teslimat listesini güncelle - BOOTSTRAP ODAKLI
 function updateDeliveryList() {
     const listElement = document.getElementById('deliveryList');
     
     if (deliveries.length === 0) {
         listElement.innerHTML = `
-            <div class="text-center p-3">
-                <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
-                <p class="text-muted">Bugün için teslimat yok</p>
+            <div class="text-center py-5">
+                <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">Bugün için teslimat yok</p>
             </div>
         `;
         return;
@@ -277,10 +277,14 @@ function updateDeliveryList() {
     // Sabah teslimatları
     if (groupedDeliveries.morning.length > 0) {
         html += `
-            <div class="delivery-time-group">
-                <div class="delivery-time-header bg-light p-2 sticky-top">
-                    <strong><i class="bi bi-sunrise"></i> Sabah (09:00-12:00)</strong>
-                    <span class="badge bg-primary rounded-pill ms-2">${groupedDeliveries.morning.length}</span>
+            <div class="mb-2">
+                <div class="delivery-time-header bg-light px-3 py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-sunrise text-warning me-1"></i> 
+                        <span class="fw-medium">Sabah</span>
+                        <span class="text-muted small ms-1">(09:00-12:00)</span>
+                    </div>
+                    <span class="badge rounded-pill bg-primary">${groupedDeliveries.morning.length}</span>
                 </div>
                 ${renderDeliveryItems(groupedDeliveries.morning)}
             </div>
@@ -290,10 +294,14 @@ function updateDeliveryList() {
     // Öğleden sonra teslimatları
     if (groupedDeliveries.afternoon.length > 0) {
         html += `
-            <div class="delivery-time-group">
-                <div class="delivery-time-header bg-light p-2 sticky-top">
-                    <strong><i class="bi bi-sun"></i> Öğleden Sonra (12:00-17:00)</strong>
-                    <span class="badge bg-primary rounded-pill ms-2">${groupedDeliveries.afternoon.length}</span>
+            <div class="mb-2">
+                <div class="delivery-time-header bg-light px-3 py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-sun text-warning me-1"></i> 
+                        <span class="fw-medium">Öğleden Sonra</span>
+                        <span class="text-muted small ms-1">(12:00-17:00)</span>
+                    </div>
+                    <span class="badge rounded-pill bg-primary">${groupedDeliveries.afternoon.length}</span>
                 </div>
                 ${renderDeliveryItems(groupedDeliveries.afternoon)}
             </div>
@@ -303,10 +311,14 @@ function updateDeliveryList() {
     // Akşam teslimatları
     if (groupedDeliveries.evening.length > 0) {
         html += `
-            <div class="delivery-time-group">
-                <div class="delivery-time-header bg-light p-2 sticky-top">
-                    <strong><i class="bi bi-moon"></i> Akşam (17:00-21:00)</strong>
-                    <span class="badge bg-primary rounded-pill ms-2">${groupedDeliveries.evening.length}</span>
+            <div class="mb-2">
+                <div class="delivery-time-header bg-light px-3 py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-moon text-primary me-1"></i> 
+                        <span class="fw-medium">Akşam</span>
+                        <span class="text-muted small ms-1">(17:00-21:00)</span>
+                    </div>
+                    <span class="badge rounded-pill bg-primary">${groupedDeliveries.evening.length}</span>
                 </div>
                 ${renderDeliveryItems(groupedDeliveries.evening)}
             </div>
@@ -315,75 +327,80 @@ function updateDeliveryList() {
     
     listElement.innerHTML = html;
     
-    // Teslimat listelerinde bulunan "İncele" butonlarına event listener ekle
+    // Event listener'ları ekle
     document.querySelectorAll('.btn-view-delivery').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Butonun tıklanmasının parent click olayını tetiklemesini engelle
+            e.stopPropagation();
             const deliveryId = parseInt(btn.getAttribute('data-id'));
             showDeliveryDetails(deliveryId);
         });
     });
 }
 
-// Teslimat öğelerini render et
+// Teslimat öğelerini render et - BOOTSTRAP ODAKLI
 function renderDeliveryItems(deliveryList) {
     return deliveryList.map(delivery => {
-        const statusClass = getStatusClass(delivery.status);
-        const activeClass = selectedDeliveryId === delivery.id ? 'active' : '';
-        const statusBadge = `<span class="badge ${statusClass.badge} me-1">${getStatusShortText(delivery.status)}</span>`;
+        const statusClass = getStatusBootstrapClass(delivery.status);
+        const activeClass = selectedDeliveryId === delivery.id ? 'active bg-light' : '';
         
         return `
-            <div class="delivery-list-item list-group-item ${activeClass} ${statusClass.item}" 
+            <div class="list-group-item list-group-item-action ${activeClass} p-2 border-start border-4 ${statusClass.border}" 
                  onclick="selectDelivery(${delivery.id})">
-                <div class="d-flex w-100 justify-content-between align-items-center">
-                    <div class="delivery-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex flex-column">
                         <div class="d-flex align-items-center">
-                            ${statusBadge}
-                            <strong>${delivery.recipient_name}</strong>
+                            <span class="badge ${statusClass.badge} me-1">${getStatusShortText(delivery.status)}</span>
+                            <span class="fw-medium">${delivery.recipient_name}</span>
                         </div>
-                        <small class="text-muted">${delivery.order_number || `#${delivery.id}`}</small>
+                        <small class="text-muted mt-1">${delivery.order_number || `#${delivery.id}`}</small>
                     </div>
-                    <button class="btn btn-sm btn-outline-primary btn-view-delivery" data-id="${delivery.id}">
+                    <button class="btn btn-sm btn-outline-primary ms-2 btn-view-delivery" data-id="${delivery.id}">
                         <i class="bi bi-eye"></i>
                     </button>
                 </div>
-                <div class="delivery-content mt-1 small">
-                    <div><i class="bi bi-geo-alt text-muted me-1"></i>${delivery.district}, ${delivery.neighborhood}</div>
-                    <div class="text-truncate"><i class="bi bi-box text-muted me-1"></i>${delivery.product_summary || 'Ürün detayı yok'}</div>
+                <div class="mt-2 small">
+                    <div class="text-muted"><i class="bi bi-geo-alt me-1"></i>${delivery.district}, ${delivery.neighborhood}</div>
+                    <div class="text-truncate mt-1"><i class="bi bi-box me-1"></i>${delivery.product_summary || 'Ürün detayı yok'}</div>
                 </div>
             </div>
         `;
     }).join('');
 }
 
-// Durum sınıflarını getir (badge ve item için)
-function getStatusClass(status) {
+// Bootstrap sınıflarını kullanarak durum stilleri
+function getStatusBootstrapClass(status) {
     const classes = {
-        'new': { badge: 'bg-primary', item: 'border-start-primary' },
-        'confirmed': { badge: 'bg-info', item: 'border-start-info' },
-        'preparing': { badge: 'bg-info', item: 'border-start-info' },
-        'ready': { badge: 'bg-primary', item: 'border-start-primary' },
-        'delivering': { badge: 'bg-warning', item: 'border-start-warning' },
-        'delivered': { badge: 'bg-success', item: 'border-start-success' },
-        'cancelled': { badge: 'bg-danger', item: 'border-start-danger' }
+        'new': { 
+            badge: 'bg-primary', 
+            border: 'border-primary' 
+        },
+        'confirmed': { 
+            badge: 'bg-info', 
+            border: 'border-info' 
+        },
+        'preparing': { 
+            badge: 'bg-info', 
+            border: 'border-info' 
+        },
+        'ready': { 
+            badge: 'bg-primary', 
+            border: 'border-primary' 
+        },
+        'delivering': { 
+            badge: 'bg-warning', 
+            border: 'border-warning' 
+        },
+        'delivered': { 
+            badge: 'bg-success', 
+            border: 'border-success' 
+        },
+        'cancelled': { 
+            badge: 'bg-danger', 
+            border: 'border-danger' 
+        }
     };
     
-    return classes[status] || { badge: 'bg-secondary', item: '' };
-}
-
-// Kısa durum metni getir
-function getStatusShortText(status) {
-    const texts = {
-        'new': 'Yeni',
-        'confirmed': 'Onay',
-        'preparing': 'Hazır',
-        'ready': 'Hazır',
-        'delivering': 'Yolda',
-        'delivered': 'Tamam',
-        'cancelled': 'İptal'
-    };
-    
-    return texts[status] || status;
+    return classes[status] || { badge: 'bg-secondary', border: 'border-secondary' };
 }
 
 // Teslimat seç
@@ -408,7 +425,7 @@ function selectDelivery(id) {
     }
 }
 
-// Teslimat detaylarını göster
+// Teslimat detaylarını göster - BOOTSTRAP ODAKLI
 async function showDeliveryDetails(id) {
     try {
         selectedDeliveryId = id;
@@ -423,35 +440,57 @@ async function showDeliveryDetails(id) {
             throw new Error('Teslimat bulunamadı');
         }
         
+        // Durum renk ve metni
+        const statusStyle = getStatusBootstrapClass(delivery.status);
+        
         // Detayları modal'a yerleştir
         document.getElementById('deliveryDetails').innerHTML = `
-            <div class="mb-3">
-                <span class="badge bg-${getStatusBadgeColor(delivery.status)}">${getStatusText(delivery.status)}</span>
-                <span class="badge bg-secondary">${formatDeliveryTime(delivery.delivery_time)}</span>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <span class="badge ${statusStyle.badge}">${getStatusText(delivery.status)}</span>
+                    <span class="badge bg-secondary">${formatDeliveryTime(delivery.delivery_time)}</span>
+                </div>
+                <div class="text-muted small">${delivery.delivery_date}</div>
             </div>
             
-            <h6>Teslimat Bilgileri</h6>
-            <div class="card mb-3">
-                <div class="card-body p-2">
-                    <div><strong>Alıcı:</strong> ${delivery.recipient_name}</div>
-                    <div><strong>Telefon:</strong> <a href="tel:${delivery.recipient_phone}">${formatPhoneNumber(delivery.recipient_phone)}</a></div>
-                    <div><strong>Adres:</strong> ${delivery.address}</div>
+            <h6 class="border-bottom pb-2 mb-3">Teslimat Bilgileri</h6>
+            <div class="card bg-light mb-3">
+                <div class="card-body p-3">
+                    <div class="mb-1">
+                        <i class="bi bi-person me-2 text-primary"></i>
+                        <strong>Alıcı:</strong> ${delivery.recipient_name}
+                    </div>
+                    <div class="mb-1">
+                        <i class="bi bi-telephone me-2 text-primary"></i>
+                        <strong>Telefon:</strong> 
+                        <a href="tel:${delivery.recipient_phone}" class="text-decoration-none">
+                            ${formatPhoneNumber(delivery.recipient_phone)}
+                        </a>
+                    </div>
+                    <div>
+                        <i class="bi bi-geo-alt me-2 text-primary"></i>
+                        <strong>Adres:</strong> ${delivery.address}
+                    </div>
                 </div>
             </div>
             
-            <h6>Sipariş İçeriği</h6>
-            <div class="card mb-3">
-                <div class="card-body p-2">
+            <h6 class="border-bottom pb-2 mb-3">Sipariş İçeriği</h6>
+            <div class="card bg-light mb-3">
+                <div class="card-body p-3">
+                    <i class="bi bi-box me-2 text-primary"></i>
                     ${delivery.product_summary || 'Ürün bilgisi yok'}
                 </div>
             </div>
             
-            <h6>Notlar</h6>
-            <div class="card">
-                <div class="card-body p-2">
-                    ${delivery.notes || 'Not yok'}
+            ${delivery.notes ? `
+                <h6 class="border-bottom pb-2 mb-3">Notlar</h6>
+                <div class="card bg-light">
+                    <div class="card-body p-3">
+                        <i class="bi bi-sticky me-2 text-primary"></i>
+                        ${delivery.notes}
+                    </div>
                 </div>
-            </div>
+            ` : ''}
         `;
         
         // Modal'ı göster
