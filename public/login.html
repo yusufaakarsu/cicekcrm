@@ -33,12 +33,17 @@
       <div class="alert alert-danger d-none" id="errorAlert"></div>
       
       <div class="form-floating mb-3">
-        <input type="email" class="form-control" id="email" placeholder="name@example.com" required>
+        <input type="email" class="form-control" id="email" placeholder="name@example.com" value="test@example.com" required>
         <label for="email">E-posta</label>
       </div>
       <div class="form-floating mb-3">
-        <input type="password" class="form-control" id="password" placeholder="Şifre" required>
+        <input type="password" class="form-control" id="password" placeholder="Şifre" value="123456" required>
         <label for="password">Şifre</label>
+      </div>
+      
+      <!-- Bilgilendirme mesajı -->
+      <div class="alert alert-info mb-3 small">
+        <strong>Geliştirme Modu:</strong> Herhangi bir değerle giriş yapabilirsiniz
       </div>
       
       <button class="w-100 btn btn-lg btn-primary" type="submit">
@@ -51,24 +56,17 @@
   </main>
   
   <script>
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
       
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+      // Geliştirme modu - herhangi bir giriş bilgisiyle oturum açmaya izin ver
+      console.log('Geliştirme modu: Otomatik giriş yapılıyor...');
       
-      // Test amaçlı: Sadece belirli bir kullanıcıyı kontrol et
-      if (email === "admin@example.com" && password === "password") {
-        // Sahte bir token oluştur
-        document.cookie = "session_token=test_token_123; path=/; max-age=86400";
-        // Başarılı giriş - anasayfaya yönlendir
-        window.location.href = '/index.html';
-      } else {
-        // Hata mesajı göster
-        const errorAlert = document.getElementById('errorAlert');
-        errorAlert.textContent = "Geçersiz e-posta veya şifre";
-        errorAlert.classList.remove('d-none');
-      }
+      // Test token oluştur
+      document.cookie = "session_token=test_token_123; path=/; max-age=86400";
+      
+      // Ana sayfaya yönlendir
+      window.location.href = '/index.html';
     });
   </script>
 </body>
