@@ -47,6 +47,7 @@ router.post('/login', async (c) => {
       httpOnly: true,
       secure: true,
       sameSite: 'Strict',
+      domain: c.req.header('host')?.includes('shirincicek.com') ? '.shirincicek.com' : undefined,
       maxAge: 60 * 60 * 24 // 1 gün
     })
     
@@ -119,6 +120,7 @@ router.get('/login', async (c) => {
       httpOnly: true,
       secure: true,
       sameSite: 'Strict',
+      domain: c.req.header('host')?.includes('shirincicek.com') ? '.shirincicek.com' : undefined,
       maxAge: 60 * 60 * 24 // 1 gün
     })
     
