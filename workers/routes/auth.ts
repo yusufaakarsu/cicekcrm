@@ -67,13 +67,76 @@ router.post('/login', async (c) => {
   }
 })
 
-// POST ve GET için login endpointini tanımla
+// GET ile login işlevselliği
 router.get('/login', async (c) => {
-  // Query parametrelerinden al
-  const email = c.req.query('email');
-  const password = c.req.query('password');
-  
-  // Aynı login mantığı...
+  try {
+    const email = c.req.query('email');
+    const password = c.req.query('password');
+    const db = c.get('db');
+    
+    if (!email || !password) {
+      return c.json({ 
+        success: false, 
+        error: 'E-posta ve şifre gereklidir' 
+      }, 400);
+    }
+    
+    // E-posta ile kullanıcıyı bul
+    const user = await db.prepare(`
+      SELECT id, name, email, password_hash, status
+      FROM users
+      WHERE email = ? AND deleted_at IS NULL
+    `).bind(email).first();
+    
+    // Kullanıcı bulunamadı veya şifre yanlış
+    if (!user || user.password_hash !== password) { // Gerçekte şifre hashlenmeli!
+      return c.json({ 
+        success: false, 
+        error: 'Geçersiz e-posta veya şifre' 
+      }, 401)
+    }
+    
+    // Kullanıcı pasif durumda
+    if (user.status === 'passive') {
+      return c.json({ 
+        success: false, 
+        error: 'Hesap aktif değil' 
+      }, 403)
+    }
+    
+    // Basit bir session token oluştur (gerçekte bu daha güvenli olmalı)
+    const sessionToken = crypto.randomUUID()
+    
+    // Session veritabanına kaydet
+    await db.prepare(`
+      INSERT INTO user_sessions (user_id, token, expires_at)
+      VALUES (?, ?, datetime('now', '+24 hours'))
+    `).bind(user.id, sessionToken).run()
+    
+    // Session token'ı cookie'ye kaydet
+    setCookie(c, 'session_token', sessionToken, {
+      path: '/',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict',
+      maxAge: 60 * 60 * 24 // 1 gün
+    })
+    
+    return c.json({ 
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email
+      }
+    })
+  } catch (error) {
+    console.error('Login GET error:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Giriş yapılamadı: ' + error.message
+    }, 500);
+  }
 });
 
 // Çıkış endpoint'i

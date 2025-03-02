@@ -67,13 +67,11 @@
       try {
         console.log('Login isteği gönderiliyor...');
         
-        // POST isteği kullanın ve URL parametresi kullanmayın
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
+        // URL parametreleri ile GET isteği kullanın (geçici)
+        const encodedEmail = encodeURIComponent(email);
+        const encodedPassword = encodeURIComponent(password);
+        const response = await fetch(`/api/auth/login?email=${encodedEmail}&password=${encodedPassword}`, {
+          method: 'GET',
           credentials: 'same-origin'
         });
         
