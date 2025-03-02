@@ -27,12 +27,6 @@ async function loadSideBar() {
         
         const response = await fetch('/common/sidebar.html');
         
-        if (!response.ok) {
-            console.error('Sidebar yüklenemedi:', response.status);
-            createFallbackSidebar();
-            return;
-        }
-        
         const html = await response.text();
         const sidebarEl = document.getElementById('mainSidebar');
         
@@ -41,12 +35,9 @@ async function loadSideBar() {
             return;
         }
         
-        sidebarEl.innerHTML = html;
-        markActiveNavItem();
         
     } catch (error) {
         console.error('Sidebar yükleme hatası:', error);
-        createFallbackSidebar();
     }
 }
 
