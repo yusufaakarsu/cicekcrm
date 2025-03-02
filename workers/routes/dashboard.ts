@@ -384,39 +384,78 @@ router.get('/categories', async (c) => {
   }
 })
 
-// Hedefler - Basitleştirilmiş sabit değerler
+// Hedefler - sabit değerler yerine gerçek hedefleri çek
 router.get('/targets', async (c) => {
+  const db = c.get('db');
+  
   try {
-    // Sabit hedef değerleri kullan - veritabanına bağımlılığı kaldır
-    const targets = {
-      orders: {
-        current: 25,  // Sabit değer
-        target: 100   // Sabit değer
-      },
-      revenue: {
-        current: 2500, // Sabit değer
-        target: 10000  // Sabit değer
-      },
-      new_customers: {
-        current: 15,   // Sabit değer
-        target: 50     // Sabit değer
-      }
+    // Belirli bir ay için gerçek hedefleri getir
+    const currentMonthOrders = await db.prepare(`
+      SELECT COUNT(*) as count, SUM(total_amount) as revenue
+      FROM orders
+      WHERE strftime('%Y-%m', delivery_date) = strftime('%Y-%m', 'now')
+      AND deleted_at IS NULL
+    `).first();
+    
+    // Hedefleri veritabanından çek
+    // NOT: Gerçek hedefler yoksa, örnek hedef hesaplar kullanıyoruz
+    const { results: targetSettings } = await db.prepare(`
+      SELECT setting_key, setting_value
+      FROM settings 
+      WHERE setting_key IN ('monthly_order_target', 'monthly_revenue_target', 'monthly_customer_target')
+      AND deleted_at IS NULL
+    `).all();
+    
+    // Hedef tablosu için varsayılan değerler
+    let orderTarget = 100;
+    let revenueTarget = 10000;
+    let customerTarget = 50;
+    
+    // Eğer ayarlar veritabanında varsa, kullan
+    if (targetSettings?.length) {
+      targetSettings.forEach(setting => {
+        if (setting.setting_key === 'monthly_order_target') orderTarget = parseInt(setting.setting_value);
+        if (setting.setting_key === 'monthly_revenue_target') revenueTarget = parseInt(setting.setting_value);
+        if (setting.setting_key === 'monthly_customer_target') customerTarget = parseInt(setting.setting_value);
+      });
     }
     
+    // Bu ayın yeni müşterileri
+    const newCustomersResult = await db.prepare(`
+      SELECT COUNT(*) as count
+      FROM customers
+      WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+      AND deleted_at IS NULL
+    `).first();
+    
+    // Hedeflere karşılık güncel ilerlemeyi döndür
     return c.json({
       success: true,
-      targets
-    })
+      targets: {
+        orders: {
+          current: currentMonthOrders?.count || 0,
+          target: orderTarget
+        },
+        revenue: {
+          current: currentMonthOrders?.revenue || 0,
+          target: revenueTarget
+        },
+        new_customers: {
+          current: newCustomersResult?.count || 0,
+          target: customerTarget
+        }
+      }
+    });
     
   } catch (error) {
-    console.error('Dashboard targets error:', error)
+    console.error('Dashboard targets error:', error);
     return c.json({
       success: false,
       error: 'Hedef verileri alınamadı',
       details: error.message
-    }, 500)
+    }, 500);
   }
-})
+});
 
 // Son siparişler endpoint'i - Basitleştirilmiş sorgu
 router.get('/recent-orders', async (c) => {
@@ -453,64 +492,73 @@ router.get('/recent-orders', async (c) => {
     }
 });
 
-// Ana dashboard - temel bilgiler
+// Ana dashboard verilerini getirir - temel bilgiler
 router.get('/', async (c) => {
     const db = c.get('db');
 
     try {
-        // Özet metrikleri tek sorguda al - basitleştirilmiş
-        const dashboardSummary = await db.prepare(`
+        // Teslimat sayıları - bugün, yarın, bu hafta
+        const deliveryCountsResult = await db.prepare(`
             SELECT 
-                (SELECT COUNT(*) FROM orders WHERE deleted_at IS NULL) as total_orders,
-                (SELECT COUNT(*) FROM orders WHERE status = 'new' AND deleted_at IS NULL) as new_orders,
-                (SELECT COUNT(*) FROM orders WHERE status = 'confirmed' AND deleted_at IS NULL) as confirmed_orders,
-                (SELECT COUNT(*) FROM orders WHERE status = 'preparing' AND deleted_at IS NULL) as preparing_orders,
-                (SELECT COUNT(*) FROM orders WHERE status = 'ready' AND deleted_at IS NULL) as ready_orders,
-                (SELECT COUNT(*) FROM orders WHERE status = 'delivering' AND deleted_at IS NULL) as delivering_orders,
-                (SELECT COUNT(*) FROM orders WHERE status = 'delivered' AND deleted_at IS NULL) as delivered_orders,
-                
-                -- Bugünkü ve haftanın siparişleri
-                (SELECT COUNT(*) FROM orders WHERE DATE(delivery_date) = DATE('now') AND deleted_at IS NULL) as today_orders,
-                (SELECT COUNT(*) FROM orders WHERE DATE(delivery_date) = DATE('now', '+1 day') AND deleted_at IS NULL) as tomorrow_orders,
-                (SELECT COUNT(*) FROM orders 
-                 WHERE DATE(delivery_date) BETWEEN DATE('now') AND DATE('now', '+7 day') 
-                 AND deleted_at IS NULL) as week_orders,
-                
-                -- Müşteri metrikleri
-                (SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL) as customer_count,
-                
-                -- Finansal metrikler
-                (SELECT COALESCE(SUM(total_amount), 0) FROM orders 
-                 WHERE status != 'cancelled' 
-                 AND deleted_at IS NULL) as total_revenue,
-                
-                -- Stok metrikleri
-                (SELECT COUNT(*) FROM raw_materials 
-                 WHERE deleted_at IS NULL) as materials_count
-            `).first();
+                SUM(CASE WHEN DATE(delivery_date) = DATE('now') THEN 1 ELSE 0 END) as today_deliveries,
+                SUM(CASE WHEN DATE(delivery_date) = DATE('now', '+1 day') THEN 1 ELSE 0 END) as tomorrow_deliveries,
+                SUM(CASE WHEN DATE(delivery_date) BETWEEN DATE('now') AND DATE('now', '+7 day') THEN 1 ELSE 0 END) as week_deliveries
+            FROM orders
+            WHERE deleted_at IS NULL
+            AND status NOT IN ('cancelled', 'delivered')
+        `).first();
         
-        // Son siparişler
-        const { results: recentOrders } = await db.prepare(`
-            SELECT 
-                o.id, o.status, o.delivery_time, o.delivery_date, o.total_amount,
-                c.name as customer_name
-            FROM orders o
-            LEFT JOIN customers c ON o.customer_id = c.id
-            WHERE o.deleted_at IS NULL
-            ORDER BY o.delivery_date DESC
-            LIMIT 5
-        `).all();
+        // Toplam yeni siparişler
+        const newOrdersResult = await db.prepare(`
+            SELECT COUNT(*) as count
+            FROM orders
+            WHERE status = 'new'
+            AND deleted_at IS NULL
+        `).first();
+        
+        // Kritik stok sayısı
+        const lowStockResult = await db.prepare(`
+            SELECT COUNT(*) as count
+            FROM raw_materials rm
+            LEFT JOIN (
+                SELECT 
+                    material_id,
+                    SUM(CASE WHEN movement_type = 'in' THEN quantity ELSE 0 END) - 
+                    SUM(CASE WHEN movement_type = 'out' THEN quantity ELSE 0 END) as current_stock
+                FROM stock_movements
+                WHERE deleted_at IS NULL
+                GROUP BY material_id
+            ) sm ON rm.id = sm.material_id
+            WHERE 
+                (sm.current_stock <= rm.min_stock OR sm.current_stock IS NULL OR sm.current_stock <= 0)
+                AND rm.deleted_at IS NULL
+        `).first();
+        
+        // Bu ayın geliri
+        const monthlyRevenueResult = await db.prepare(`
+            SELECT SUM(total_amount) as revenue
+            FROM orders
+            WHERE strftime('%Y-%m', delivery_date) = strftime('%Y-%m', 'now')
+            AND status != 'cancelled' 
+            AND deleted_at IS NULL
+        `).first();
 
         return c.json({
             success: true,
-            summary: dashboardSummary || {},
-            recentOrders: recentOrders || []
+            dashboard: {
+                today_deliveries: deliveryCountsResult?.today_deliveries || 0,
+                tomorrow_deliveries: deliveryCountsResult?.tomorrow_deliveries || 0,
+                week_deliveries: deliveryCountsResult?.week_deliveries || 0,
+                new_orders: newOrdersResult?.count || 0,
+                low_stock: lowStockResult?.count || 0,
+                monthly_revenue: monthlyRevenueResult?.revenue || 0
+            }
         });
     } catch (error) {
         console.error('Dashboard error:', error);
         return c.json({
             success: false,
-            error: 'Genel hata',
+            error: 'Gösterge paneli verileri alınamadı',
             details: error.message
         }, 500);
     }

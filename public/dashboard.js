@@ -11,12 +11,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Sidebar'ı yükle
     await loadSideBar();
     
-    // Dashboard verilerini yükle - hatalar sessizce yakalanacak
+    // Ana dashboard verilerini yükle
     try {
+        await loadMainDashboardData();
         await loadDashboardData();
+        await loadOrderStatusData();
+        await loadDeliveryTimeData('today');
     } catch (error) {
         console.error('Dashboard data error:', error);
-        showError('Bazı dashboard verileri yüklenemedi - Sayfayı yenileyin veya desteğe başvurun');
+        showError('Bazı dashboard verileri yüklenemedi');
     }
     
     // Event listeners
@@ -47,10 +50,34 @@ function setupEventListeners() {
     document.getElementById('timeRangeThisMonth').addEventListener('click', () => changeTimeRange('thismonth'));
     document.getElementById('timeRangeThisYear').addEventListener('click', () => changeTimeRange('thisyear'));
     
-    // Grafik gruplandırma butonları
-    document.getElementById('salesChartDaily').addEventListener('click', () => changeSalesChartGrouping('daily'));
-    document.getElementById('salesChartWeekly').addEventListener('click', () => changeSalesChartGrouping('weekly'));
-    document.getElementById('salesChartMonthly').addEventListener('click', () => changeSalesChartGrouping('monthly'));
+    // Teslimat günü filtresi
+    document.getElementById('deliveryDayFilter')?.addEventListener('change', (e) => {
+        currentDeliveryDay = e.target.value;
+        loadDeliveryTimeData(currentDeliveryDay);
+    });
+}
+
+// Ana dashboard bilgilerini yükle
+async function loadMainDashboardData() {
+    try {
+        const response = await fetchAPI('/dashboard');
+        
+        if (response.success) {
+            const data = response.dashboard;
+            
+            // Üst kartlar
+            document.getElementById('todaysDeliveryCount').textContent = formatNumber(data.today_deliveries);
+            document.getElementById('newOrdersCount').textContent = formatNumber(data.new_orders);
+            document.getElementById('lowStockCount').textContent = formatNumber(data.low_stock);
+            document.getElementById('monthlyRevenue').textContent = formatCurrency(data.monthly_revenue);
+        } else {
+            console.error('Dashboard main data error:', response.error);
+        }
+        
+    } catch (error) {
+        console.error('Main dashboard data loading error:', error);
+        throw error;
+    }
 }
 
 // Dashboard verilerini yükle - her bir API isteği için ayrı try-catch ile
@@ -121,8 +148,31 @@ async function loadOrderStatusData() {
         }
         
         updateOrderStatusChart(response.orderStatus);
+        // Durum sayılarını güncelle
+        updateOrderStatusCounts(response.orderStatus);
     } catch (error) {
         console.error('Order status data error:', error);
+    }
+}
+
+// Sipariş durumları sayılarını güncelle
+function updateOrderStatusCounts(data) {
+    // İndeksleri bul
+    const newIndex = data.statuses.indexOf('new');
+    const preparingIndex = data.statuses.indexOf('preparing');
+    const deliveringIndex = data.statuses.indexOf('delivering');
+    
+    // Sayıları güncelle
+    if (newIndex !== -1) {
+        document.getElementById('newStatusCount').textContent = formatNumber(data.counts[newIndex]);
+    }
+    
+    if (preparingIndex !== -1) {
+        document.getElementById('preparingStatusCount').textContent = formatNumber(data.counts[preparingIndex]);
+    }
+    
+    if (deliveringIndex !== -1) {
+        document.getElementById('deliveringStatusCount').textContent = formatNumber(data.counts[deliveringIndex]);
     }
 }
 
