@@ -63,6 +63,8 @@ async function loadMainDashboardData() {
         const response = await fetchAPI('/dashboard');
         
         if (response.success) {
+            // Burada response.dashboard yerine doğrudan response'a erişmemiz gerekiyor
+            // Backend, verileri {success: true, dashboard: {...}} formatında dönüyor
             const data = response.dashboard;
             
             // Üst kartlar
