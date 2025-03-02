@@ -20,7 +20,7 @@ const app = new Hono()
 
 // CORS yapılandırması
 app.use('*', cors({
-    origin: ['https://app.shirincicek.com', 'http://localhost:8787', '*'],
+    origin: ['https://app.hilolacicek.com', 'http://localhost:8787', '*'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept'],
     exposeHeaders: ['Content-Length', 'X-Total-Count', 'Set-Cookie'],

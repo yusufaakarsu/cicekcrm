@@ -1,6 +1,6 @@
 const CONFIG = {
-    API_URL: window.location.hostname.includes('shirincicek.com')
-        ? 'https://api.shirincicek.com/api'
+    API_URL: window.location.hostname.includes('hilolacicek.com')
+        ? 'https://api.hilolacicek.com/api'
         : window.location.hostname.includes('pages.dev')
             ? 'https://cicek-crm-api.yusufaakarsu.workers.dev/api'
             : `${window.location.protocol}//${window.location.host}/api`,
