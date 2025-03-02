@@ -1,7 +1,5 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { setCookie, getCookie } from 'hono/cookie'
-import { authMiddleware } from './routes/auth'
 
 // Route imports
 import dashboardRoutes from './routes/dashboard'
@@ -17,19 +15,17 @@ import purchaseRoutes from './routes/purchase'
 import settingsRoutes from './routes/settings'
 import workshopRoutes from './routes/workshop'
 import deliveryRoutes from './routes/delivery'
-import authRoutes from './routes/auth'
 
 const app = new Hono()
 
 // CORS yapılandırması
 app.use('*', cors({
-    origin: ['https://app.shirincicek.com', 'http://localhost:8787'],
+    origin: ['https://app.shirincicek.com', 'http://localhost:8787', '*'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-    exposeHeaders: ['Content-Length', 'X-Total-Count'],
+    allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept'],
+    exposeHeaders: ['Content-Length', 'X-Total-Count', 'Set-Cookie'],
     maxAge: 600,
-    credentials: true,
-    preflightContinue: true
+    credentials: true
 }))
 
 // Veritabanı bağlantısı middleware
@@ -38,21 +34,22 @@ app.use('*', async (c, next) => {
     await next()
 })
 
-// ÖNEMLİ: Tüm auth rotalarını tek bir şekilde tanımla
-// Burada SADECE "/auth" endpoint'ini tanımlayın, "/api/auth" değil
-const authRouter = new Hono()
-authRouter.route('/', authRoutes)
+// Cache-Control başlıkları
+app.use('*', async (c, next) => {
+  await next()
+  
+  // API yanıtları için cache-control başlıkları
+  if (c.req.url.includes('/api/')) {
+    c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    c.header('Pragma', 'no-cache')
+    c.header('Expires', '0')
+  }
+})
 
-// Auth middleware olmadan doğrudan /api/auth rotasını ekle
-app.route('/api/auth', authRouter)
-
-// API Routes - kimlik doğrulamalı
+// API Routes - kimlik doğrulaması kaldırıldı
 const api = new Hono()
 
-// Kimlik doğrulaması gerektiren tüm rotaları middleware ile koruyalım
-api.use('/*', authMiddleware)
-
-// İş rotalarını ekle
+// İş rotalarını ekle - auth middleware kaldırıldı
 api.route('/dashboard', dashboardRoutes)
 api.route('/settings', settingsRoutes)
 api.route('/customers', customerRoutes)
@@ -79,40 +76,14 @@ app.all('/api/*', (c) => {
     }, 404)
 })
 
-// Root URL için özel yönlendirme
+// Root URL için doğrudan index.html yönlendirmesi
 app.get('/', (c) => {
-    const sessionToken = getCookie(c, 'session_token')
-    
-    // Oturum yoksa login sayfasına yönlendir
-    if (!sessionToken) {
-        return c.redirect('/login.html')
-    }
-    
-    // Oturum varsa dashboard'a yönlendir
-    return c.redirect('/index.html')
+    return c.redirect('/index.html');
 })
 
-// Statik dosya sunucu - auth kontrolü ile
+// Statik dosya sunucusu - auth kontrolü kaldırıldı
 app.get('*', async (c) => {
-    const url = new URL(c.req.url)
-    const path = url.pathname
-    
-    // Login sayfası ve statik asset'ler için kimlik doğrulama atla
-    if (path === '/login.html' || 
-        path.startsWith('/common/') || 
-        path.endsWith('.css') || 
-        path.endsWith('.js') || 
-        path.endsWith('.ico')) {
-        return c.env.ASSETS.fetch(c.req)
-    }
-    
-    // HTML sayfaları için oturum kontrolü yap
-    const sessionToken = getCookie(c, 'session_token')
-    if (!sessionToken && path.endsWith('.html')) {
-        return c.redirect('/login.html')
-    }
-    
-    // Normal şekilde dosyaları sun
+    // Normal şekilde dosyaları sun - artık kimlik doğrulama kontrolü yok
     return c.env.ASSETS.fetch(c.req)
 })
 

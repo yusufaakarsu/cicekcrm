@@ -28,6 +28,7 @@ async function loadSideBar() {
     }
 }
 
+// Yardımcı fonksiyonlar
 function formatCurrency(amount) {
     if (amount === null || amount === undefined) return '0 ₺';
     const isInteger = Number.isInteger(Number(amount));
@@ -125,9 +126,11 @@ function formatPaymentMethod(method) {
     };
     return methodMap[method] || method;
 }
+
 function formatNumber(number) {
     return number?.toLocaleString('tr-TR') || '0';
 }
+
 function formatFileSize(bytes) {
     if (!bytes || bytes === 0) return '0 B';
     const k = 1024;
@@ -136,6 +139,7 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+// Bildirim fonksiyonları
 function showError(message) {
     console.error(message);
     showNotification('error', message);
@@ -192,6 +196,7 @@ function showToast(type, message) {
     bsToast.show();
 }
 
+// Yükleme göstergesi
 function showLoading() {
     let loader = document.getElementById('loadingIndicator');
     if (!loader) {
@@ -215,26 +220,41 @@ function hideLoading() {
     }
 }
 
+// Cookie işlemleri
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+}
+
+// API istekleri
 async function fetchAPI(endpoint, options = {}) {
     const apiUrl = API_URL + endpoint;
     console.log(`API Request to ${apiUrl}:`, { 
         method: options.method || 'GET',
         body: options.body ? JSON.parse(options.body) : undefined 
     });
+    
+    // Headers basitleştirildi - artık auth token kullanılmıyor
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers
     };
+    
     try {
         const response = await fetch(apiUrl, {
             ...options,
-            headers
+            headers,
+            credentials: 'include' // SSO için gerekirse cookie gönderimi
         });
+        
         if (!response.ok) {
             const errorBody = await response.text();
             console.error(`API Error (${response.status}):`, errorBody);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
         const data = await response.json();
         console.log(`API Response from ${endpoint}:`, data);
         return data;
@@ -246,37 +266,13 @@ async function fetchAPI(endpoint, options = {}) {
 
 function getApiUrl(endpoint) {
     const cleanEndpoint = endpoint.startsWith('/api/') ? endpoint.substring(4) : endpoint;
-    const path = cleanEndpoint.startsWith('/') ? cleanEndpoint : '/' + cleanEndpoint;
+    const path = cleanEndpoint.startsWith('/') ? endpoint : '/' + cleanEndpoint;
     return API_URL + path;
-}
-
-// Kimlik doğrulama kontrolü - login dışındaki tüm sayfalara eklenecek
-function checkAuthentication() {
-  // login.html sayfasındaysa kontrol etmeye gerek yok
-  if (window.location.pathname.includes('login.html')) {
-    return;
-  }
-  
-  // Cookie'de session token var mı kontrol et
-  function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return null;
-  }
-  
-  // Session token yoksa login sayfasına yönlendir
-  if (!getCookie('session_token')) {
-    window.location.href = '/login.html';
-  }
 }
 
 // Sayfa yüklendiğinde çalıştır
 document.addEventListener('DOMContentLoaded', () => {
-  // Önce kimlik doğrulama kontrolü yap
-  checkAuthentication();
-  
-  // Sonra sidebar'ı yükle
+  // Sidebar'ı yükle
   loadSideBar();
   
   const style = document.createElement('style');
@@ -290,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     `;
   document.head.appendChild(style);
+  
   const menuStyle = document.createElement('style');
   menuStyle.textContent = `
         .menu-parent-active {
@@ -314,8 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.head.appendChild(menuStyle);
 });
 
+// Global değişken ve fonksiyon tanımlamaları
 window.API_URL = API_URL;
-window.checkAuthentication = checkAuthentication;
 window.formatCurrency = formatCurrency;
 window.formatPrice = formatPrice;
 window.formatDate = formatDate;
