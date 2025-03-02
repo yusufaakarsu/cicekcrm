@@ -73,10 +73,27 @@
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ email, password }),
-          credentials: 'same-origin' // cookie'lerin gönderilmesi için
+          credentials: 'same-origin'
         });
         
         console.log('Login isteği cevabı:', response.status, response.statusText);
+        
+        // 405 hatasını ele al
+        if (response.status === 405) {
+          console.error('Method Not Allowed hatası: Endpoint POST metodunu desteklemiyor');
+          errorAlert.textContent = 'API yapılandırma hatası. Lütfen yöneticinize bilgi verin.';
+          errorAlert.classList.remove('d-none');
+          return;
+        }
+        
+        // JSON olup olmadığını kontrol et
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('JSON olmayan yanıt:', await response.text());
+          errorAlert.textContent = 'API yanıt formatı hatası';
+          errorAlert.classList.remove('d-none');
+          return;
+        }
         
         const data = await response.json();
         console.log('Login cevap verisi:', data);

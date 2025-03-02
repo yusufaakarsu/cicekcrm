@@ -21,14 +21,15 @@ import authRoutes from './routes/auth'
 
 const app = new Hono()
 
-// CORS ayarları - preflight isteklerini ve cookie'leri destekle
+// CORS yapılandırması
 app.use('*', cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'Cookie'],
     exposeHeaders: ['Content-Length', 'X-Total-Count'],
     maxAge: 600,
-    credentials: true // cross-origin cookie için gerekli
+    credentials: true,
+    preflightContinue: true
 }))
 
 // Veritabanı bağlantısı middleware
@@ -37,20 +38,14 @@ app.use('*', async (c, next) => {
     await next()
 })
 
-// API Routes
+// Auth rotalarını ayrıca doğrudan kaydet - kimlik doğrulama kontrolü olmadan
+app.route('/api/auth', authRoutes)
+
+// API Routes - kimlik doğrulamalı
 const api = new Hono()
 
-// Kimlik doğrulama gerektirmeyen auth routes
-api.route('/auth', authRoutes)
-
-// Tüm diğer API rotaları için kimlik doğrulama middleware'i
-api.use('/*', async (c, next) => {
-    // auth endpoint'ini korumadan geçir
-    if (c.req.path.startsWith('/auth')) {
-        return next()
-    }
-    return authMiddleware(c, next)
-})
+// Kimlik doğrulaması gerektiren tüm rotaları middleware ile koruyalım
+api.use('/*', authMiddleware)
 
 // İş rotalarını ekle
 api.route('/dashboard', dashboardRoutes)
@@ -79,7 +74,7 @@ app.all('/api/*', (c) => {
     }, 404)
 })
 
-// Root URL için yönlendirme
+// Root URL için özel yönlendirme
 app.get('/', (c) => {
     const sessionToken = getCookie(c, 'session_token')
     
