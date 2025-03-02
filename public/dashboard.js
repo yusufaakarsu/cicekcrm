@@ -1,7 +1,10 @@
-// Dashboard için gerekli değişkenler
+// Global değişkenler
 let salesChart = null;
 let categoryChart = null;
+let orderStatusChart = null;
+let deliveryTimeChart = null;
 let currentTimeRange = '30days'; // Varsayılan zaman aralığı
+let currentDeliveryDay = 'today'; // Varsayılan teslimat günü filtresi
 
 // Sayfa yüklendiğinde
 document.addEventListener('DOMContentLoaded', async () => {
@@ -21,6 +24,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Zaman aralığı butonunu aktif yap
     document.getElementById('timeRange30Days').classList.add('active');
+    
+    // Ek event listener'ları ekle
+    document.getElementById('deliveryDayFilter')?.addEventListener('change', (e) => {
+        currentDeliveryDay = e.target.value;
+        loadDeliveryTimeData(currentDeliveryDay);
+    });
+    
+    // Yeni grafikleri yükle
+    try {
+        await loadOrderStatusData();
+        await loadDeliveryTimeData('today');
+    } catch (error) {
+        console.error('Additional charts error:', error);
+    }
 });
 
 // Event listener'ları ayarla
@@ -52,15 +69,18 @@ async function loadDashboardData() {
             // Özet verisi hatası - sessiz geç
         }
         
-        // Trend verileri
+        // Trend verileri - daha iyi hata yönetimi ekleyelim
         try {
+            console.log(`Fetching trend data with timeRange: ${currentTimeRange}`);
             const trendData = await fetchAPI(`/dashboard/trends?timeRange=${currentTimeRange}`);
+            console.log('Trend data response:', trendData);
             if (trendData.success) {
                 updateSalesChart(trendData);
+            } else {
+                console.error('Trend data not successful:', trendData.error);
             }
         } catch (error) {
             console.error('Trend data error:', error);
-            // Trend verisi hatası - sessiz geç
         }
         
         // Kategori verileri
@@ -72,17 +92,6 @@ async function loadDashboardData() {
         } catch (error) {
             console.error('Category data error:', error);
             // Kategori verisi hatası - sessiz geç
-        }
-        
-        // Son siparişler
-        try {
-            const recentOrders = await fetchAPI(`/dashboard/recent-orders`);
-            if (recentOrders.success) {
-                updateRecentOrders(recentOrders);
-            }
-        } catch (error) {
-            console.error('Recent orders error:', error);
-            // Son siparişler hatası - sessiz geç
         }
         
         // Hedefler
@@ -100,6 +109,34 @@ async function loadDashboardData() {
         throw error; // Ana hata - yukarıya ilet
     } finally {
         hideLoading();
+    }
+}
+
+// Sipariş durumu verilerini yükle ve grafiği oluştur
+async function loadOrderStatusData() {
+    try {
+        const response = await fetchAPI('/dashboard/order-status');
+        if (!response.success) {
+            throw new Error(response.error || 'Veri alınamadı');
+        }
+        
+        updateOrderStatusChart(response.orderStatus);
+    } catch (error) {
+        console.error('Order status data error:', error);
+    }
+}
+
+// Teslimat zamanı verilerini yükle ve grafiği oluştur
+async function loadDeliveryTimeData(dayFilter) {
+    try {
+        const response = await fetchAPI(`/dashboard/delivery-times?day=${dayFilter}`);
+        if (!response.success) {
+            throw new Error(response.error || 'Veri alınamadı');
+        }
+        
+        updateDeliveryTimeChart(response.deliveryTimes);
+    } catch (error) {
+        console.error('Delivery time data error:', error);
     }
 }
 
@@ -149,15 +186,30 @@ function updateTrendBadge(elementId, trendValue) {
     }
 }
 
-// Satış grafiğini güncelle
+// Satış grafiğini güncelle - veri işleme iyileştirmeleri
 function updateSalesChart(data) {
     if (!data || !data.success) {
-        showError('Trend verileri yüklenemedi');
+        console.error('Trend verileri eksik veya hatalı:', data);
         return;
     }
     
     const trendsData = data.trends;
-    const ctx = document.getElementById('salesTrendChart').getContext('2d');
+    if (!trendsData || !trendsData.labels || !trendsData.orders || !trendsData.revenue) {
+        console.error('Trend verileri eksik:', trendsData);
+        return;
+    }
+    
+    console.log('Trend data for chart:', {
+        labels: trendsData.labels,
+        orders: trendsData.orders,
+        revenue: trendsData.revenue
+    });
+    
+    const ctx = document.getElementById('salesTrendChart')?.getContext('2d');
+    if (!ctx) {
+        console.error('Sales trend chart canvas not found');
+        return;
+    }
     
     // Varsa mevcut grafiği temizle
     if (salesChart) {
@@ -289,29 +341,155 @@ function updateCategoryChart(data) {
     });
 }
 
-// Son siparişleri güncelle
-function updateRecentOrders(data) {
-    if (!data || !data.success) {
-        showError('Son siparişler yüklenemedi');
+// Sipariş durumu grafiğini güncelle
+function updateOrderStatusChart(data) {
+    const ctx = document.getElementById('orderStatusChart');
+    
+    if (!ctx) {
+        console.error('Order status chart canvas not found');
         return;
     }
     
-    const recentOrders = data.orders || [];
-    const tbody = document.getElementById('recentOrdersTable');
+    if (orderStatusChart) {
+        orderStatusChart.destroy();
+    }
     
-    if (recentOrders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3">Sipariş bulunamadı</td></tr>';
+    // Status verilerini formatla
+    const statuses = data.statuses.map(status => {
+        switch(status) {
+            case 'new': return 'Yeni';
+            case 'confirmed': return 'Onaylandı';
+            case 'preparing': return 'Hazırlanıyor';
+            case 'ready': return 'Hazır';
+            case 'delivering': return 'Teslimat';
+            default: return status;
+        }
+    });
+    
+    // Renk atamaları
+    const backgroundColors = [
+        '#FF6384', // new
+        '#36A2EB', // confirmed
+        '#FFCE56', // preparing
+        '#4BC0C0', // ready
+        '#9966FF', // delivering
+    ];
+    
+    orderStatusChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: statuses,
+            datasets: [{
+                data: data.counts,
+                backgroundColor: backgroundColors.slice(0, data.counts.length),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} sipariş (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Teslimat zamanı grafiğini güncelle
+function updateDeliveryTimeChart(data) {
+    const ctx = document.getElementById('deliveryTimeChart');
+    
+    if (!ctx) {
+        console.error('Delivery time chart canvas not found');
         return;
     }
     
-    tbody.innerHTML = recentOrders.map(order => `
-        <tr onclick="window.location='/orders/detail.html?id=${order.id}';" style="cursor:pointer">
-            <td>${formatDate(order.created_at)}</td>
-            <td>${order.customer_name}</td>
-            <td>${formatCurrency(order.total_amount)}</td>
-            <td>${getStatusBadge(order.status)}</td>
-        </tr>
-    `).join('');
+    if (deliveryTimeChart) {
+        deliveryTimeChart.destroy();
+    }
+    
+    // Zaman dilimlerini formatla
+    const times = data.times.map(time => {
+        switch(time) {
+            case 'morning': return 'Sabah';
+            case 'afternoon': return 'Öğle';
+            case 'evening': return 'Akşam';
+            default: return time;
+        }
+    });
+    
+    // Gün etiketini güncelle
+    const dateLabel = document.getElementById('deliveryDateLabel');
+    if (dateLabel) {
+        switch(data.dayFilter) {
+            case 'today':
+                dateLabel.textContent = 'Bugünün teslimat dağılımı';
+                break;
+            case 'tomorrow':
+                dateLabel.textContent = 'Yarının teslimat dağılımı';
+                break;
+            case 'week':
+                dateLabel.textContent = 'Bu haftanın teslimat dağılımı';
+                break;
+        }
+    }
+    
+    deliveryTimeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: times,
+            datasets: [{
+                label: 'Sipariş Sayısı',
+                data: data.counts,
+                backgroundColor: [
+                    'rgba(255, 159, 64, 0.7)',  // Sabah - turuncu
+                    'rgba(54, 162, 235, 0.7)',  // Öğle - mavi
+                    'rgba(153, 102, 255, 0.7)'  // Akşam - mor
+                ],
+                borderColor: [
+                    'rgb(255, 159, 64)',
+                    'rgb(54, 162, 235)',
+                    'rgb(153, 102, 255)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
 }
 
 // Hedefleri güncelle

@@ -326,16 +326,16 @@ router.post('/orders/:id/payment', async (c) => {
     
     switch (paymentMethod) {
       case 'cash':
-        categoryId = 1; // Nakit Alışveriş
+        categoryId = 11; // Nakit Alışveriş
         break;
       case 'credit_card':
-        categoryId = 2; // Kredi Kartı Alışveriş
+        categoryId = 11; // Kredi Kartı Alışveriş
         break;
       case 'bank_transfer':
-        categoryId = 3; // Banka Havalesi
+        categoryId = 11; // Banka Havalesi
         break;
       default:
-        categoryId = 1; // Bilinmeyen durumda nakit varsay
+        categoryId = 11; // Bilinmeyen durumda nakit varsay
     }
     
     // Validasyonlar

@@ -15,7 +15,7 @@ INSERT INTO transactions (
     1,                                  
     1,                                 
     'in',                              
-    10000.00,                          
+    100000.00,                          
     datetime('now'),                
     'opening_balance',               
     0,                              

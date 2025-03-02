@@ -159,71 +159,79 @@
             
             <!-- Alt Satır -->
             <div class="row g-4">
-                <!-- Son Siparişler -->
+                <!-- Teslimat Planı Grafiği - Son Siparişler yerine -->
                 <div class="col-lg-6">
                     <div class="card border-0 shadow-sm">
                         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Son Siparişler</h5>
-                            <a href="/orders/orders.html" class="btn btn-sm btn-primary">Tümünü Gör</a>
+                            <h5 class="card-title mb-0">Günlük Teslimat Planı</h5>
+                            <select class="form-select form-select-sm" id="deliveryDayFilter" style="width: auto;">
+                                <option value="today">Bugün</option>
+                                <option value="tomorrow">Yarın</option>
+                                <option value="week">Tüm Hafta</option>
+                            </select>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Tarih</th>
-                                            <th>Müşteri</th>
-                                            <th>Tutar</th>
-                                            <th>Durum</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="recentOrdersTable">
-                                        <tr><td colspan="4" class="text-center py-3">Yükleniyor...</td></tr>
-                                    </tbody>
-                                </table>
+                        <div class="card-body">
+                            <div class="chart-container" style="height: 220px;">
+                                <canvas id="deliveryTimeChart"></canvas>
                             </div>
+                            <div class="mt-2 text-center small text-muted" id="deliveryDateLabel">Bugünün teslimat dağılımı</div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Performans Göstergeleri -->
+                <!-- Sipariş Durumları Grafiği -->
                 <div class="col-lg-6">
                     <div class="card border-0 shadow-sm">
                         <div class="card-header bg-white">
-                            <h5 class="card-title mb-0">Bu Ayın Hedefleri</h5>
+                            <h5 class="card-title mb-0">Sipariş Durumları</h5>
                         </div>
-                        <div class="card-body">
-                            <!-- Sipariş Hedefi -->
-                            <div class="mb-4">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span>Sipariş Hedefi</span>
-                                    <span><span id="currentOrdersCount">0</span>/<span id="orderTarget">100</span></span>
-                                </div>
-                                <div class="progress" style="height: 10px">
-                                    <div class="progress-bar bg-success" id="ordersProgressBar" role="progressbar" style="width: 0%"></div>
-                                </div>
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <div class="chart-container" style="height: 220px;">
+                                <canvas id="orderStatusChart"></canvas>
                             </div>
-                            
-                            <!-- Satış Hedefi -->
-                            <div class="mb-4">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span>Satış Hedefi</span>
-                                    <span><span id="currentRevenue">0₺</span>/<span id="revenueTarget">10.000₺</span></span>
-                                </div>
-                                <div class="progress" style="height: 10px">
-                                    <div class="progress-bar bg-primary" id="revenueProgressBar" role="progressbar" style="width: 0%"></div>
-                                </div>
+                            <div class="mt-2 text-center small text-muted">Aktif siparişlerin dağılımı</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Performans Göstergeleri -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0">Bu Ayın Hedefleri</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Sipariş Hedefi -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Sipariş Hedefi</span>
+                                <span><span id="currentOrdersCount">0</span>/<span id="orderTarget">100</span></span>
                             </div>
-                            
-                            <!-- Yeni Müşteri Hedefi -->
-                            <div>
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span>Yeni Müşteri Hedefi</span>
-                                    <span><span id="currentNewCustomers">0</span>/<span id="customerTarget">50</span></span>
-                                </div>
-                                <div class="progress" style="height: 10px">
-                                    <div class="progress-bar bg-warning" id="customersProgressBar" role="progressbar" style="width: 0%"></div>
-                                </div>
+                            <div class="progress" style="height: 10px">
+                                <div class="progress-bar bg-success" id="ordersProgressBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Satış Hedefi -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Satış Hedefi</span>
+                                <span><span id="currentRevenue">0₺</span>/<span id="revenueTarget">10.000₺</span></span>
+                            </div>
+                            <div class="progress" style="height: 10px">
+                                <div class="progress-bar bg-primary" id="revenueProgressBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Yeni Müşteri Hedefi -->
+                        <div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Yeni Müşteri Hedefi</span>
+                                <span><span id="currentNewCustomers">0</span>/<span id="customerTarget">50</span></span>
+                            </div>
+                            <div class="progress" style="height: 10px">
+                                <div class="progress-bar bg-warning" id="customersProgressBar" role="progressbar" style="width: 0%"></div>
                             </div>
                         </div>
                     </div>

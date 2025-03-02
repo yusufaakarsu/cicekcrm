@@ -161,43 +161,34 @@ router.get('/trends', async (c) => {
           ? "date('now', 'start of month')" 
           : `date('now', '-${dayCount} day')`)
     
-    // Verileri getir
+    console.log(`Trends query - timeRange: ${timeRange}, grouping: ${grouping}, startDate: ${startDate}`);
+    
+    // Daha basit bir sorgu kullanalım
     const { results } = await db.prepare(`
-      WITH date_series AS (
-        SELECT 
-          date(
-            ${startDate}, 
-            '+' || seq || ' ${interval}'
-          ) AS date_point
-        FROM 
-          (WITH RECURSIVE seq(seq) AS (
-            SELECT 0
-            UNION ALL
-            SELECT seq + 1
-            FROM seq
-            LIMIT ${dayCount}
-          )
-          SELECT seq FROM seq)
+      WITH days AS (
+        SELECT date('now', '-' || value || ' days') AS day
+        FROM generate_series(0, ${dayCount-1})
       )
-      
       SELECT 
-        ds.date_point as date,
+        days.day as date,
         COUNT(o.id) as order_count,
-        COALESCE(SUM(o.total_amount), 0) as revenue
+        SUM(COALESCE(o.total_amount, 0)) as revenue
       FROM 
-        date_series ds
+        days
       LEFT JOIN 
-        orders o ON ${dateFormat} = ds.date_point AND o.deleted_at IS NULL
+        orders o ON date(o.delivery_date) = days.day AND o.deleted_at IS NULL
       GROUP BY 
-        ds.date_point
+        days.day
       ORDER BY 
-        ds.date_point ASC
-    `).all()
+        days.day ASC
+    `).all();
+    
+    console.log(`Trends query result count: ${results?.length || 0}`);
     
     // Etiketler ve veri dizilerini oluştur
-    const labels = results.map(r => r.date)
-    const orders = results.map(r => r.order_count)
-    const revenue = results.map(r => r.revenue)
+    const labels = results?.map(r => r.date) || [];
+    const orders = results?.map(r => r.order_count || 0) || [];
+    const revenue = results?.map(r => r.revenue || 0) || [];
     
     return c.json({
       success: true,
@@ -216,7 +207,127 @@ router.get('/trends', async (c) => {
       details: error.message
     }, 500)
   }
-})
+});
+
+// Sipariş durumu dağılımı için yeni endpoint
+router.get('/order-status', async (c) => {
+  const db = c.get('db');
+  
+  try {
+    const { results } = await db.prepare(`
+      SELECT 
+        status,
+        COUNT(*) as count
+      FROM 
+        orders
+      WHERE 
+        deleted_at IS NULL
+        AND status != 'delivered' 
+        AND status != 'cancelled'
+      GROUP BY 
+        status
+      ORDER BY 
+        CASE 
+          WHEN status = 'new' THEN 1
+          WHEN status = 'confirmed' THEN 2
+          WHEN status = 'preparing' THEN 3
+          WHEN status = 'ready' THEN 4
+          WHEN status = 'delivering' THEN 5
+          ELSE 6
+        END
+    `).all();
+    
+    const statuses = results?.map(r => r.status) || [];
+    const counts = results?.map(r => r.count) || [];
+    
+    return c.json({
+      success: true,
+      orderStatus: {
+        statuses,
+        counts
+      }
+    });
+  } catch (error) {
+    console.error('Order status distribution error:', error);
+    return c.json({
+      success: false,
+      error: 'Sipariş durumu verileri alınamadı',
+      details: error.message
+    }, 500);
+  }
+});
+
+// Teslimat zaman dilimi dağılımı için yeni endpoint
+router.get('/delivery-times', async (c) => {
+  const db = c.get('db');
+  const dayFilter = c.req.query('day') || 'today';
+  
+  try {
+    // Filtre için tarih hesapla
+    let dateFilter;
+    switch (dayFilter) {
+      case 'tomorrow':
+        dateFilter = "date('now', '+1 day')";
+        break;
+      case 'week':
+        dateFilter = "date(delivery_date) BETWEEN date('now') AND date('now', '+7 days')";
+        break;
+      default: // today
+        dateFilter = "date('now')";
+    }
+    
+    // Günlük değilse tarih koşulunu değiştir
+    const whereClause = dayFilter === 'week' 
+      ? `WHERE ${dateFilter} AND deleted_at IS NULL` 
+      : `WHERE date(delivery_date) = ${dateFilter} AND deleted_at IS NULL`;
+    
+    const { results } = await db.prepare(`
+      SELECT 
+        delivery_time,
+        COUNT(*) as count
+      FROM 
+        orders
+      ${whereClause}
+      GROUP BY 
+        delivery_time
+      ORDER BY 
+        CASE 
+          WHEN delivery_time = 'morning' THEN 1
+          WHEN delivery_time = 'afternoon' THEN 2
+          WHEN delivery_time = 'evening' THEN 3
+          ELSE 4
+        END
+    `).all();
+    
+    // Zaman dilimlerini ve sayıları ayır
+    const times = [];
+    const counts = [];
+    
+    // Tüm zaman dilimleri için varsayılan olarak 0 değeri ekle
+    const allTimes = ['morning', 'afternoon', 'evening'];
+    allTimes.forEach(time => {
+      const found = results?.find(r => r.delivery_time === time);
+      times.push(time);
+      counts.push(found ? found.count : 0);
+    });
+    
+    return c.json({
+      success: true,
+      deliveryTimes: {
+        times,
+        counts,
+        dayFilter
+      }
+    });
+  } catch (error) {
+    console.error('Delivery time distribution error:', error);
+    return c.json({
+      success: false,
+      error: 'Teslimat zamanı verileri alınamadı',
+      details: error.message
+    }, 500);
+  }
+});
 
 // Kategori dağılımı - pasta grafik için
 router.get('/categories', async (c) => {
