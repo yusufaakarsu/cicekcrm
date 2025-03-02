@@ -75,7 +75,16 @@ protectedRoutes.use('*', authMiddleware)
 protectedRoutes.route('/dashboard', dashboardRoutes)
 protectedRoutes.route('/settings', settingsRoutes)
 protectedRoutes.route('/customers', customerRoutes)
-// ...diğer rotalar...
+protectedRoutes.route('/addresses', addressRoutes)
+protectedRoutes.route('/orders', orderRoutes)
+protectedRoutes.route('/products', productRoutes)
+protectedRoutes.route('/workshop', workshopRoutes)
+protectedRoutes.route('/delivery', deliveryRoutes)
+protectedRoutes.route('/finance', financeRoutes)
+protectedRoutes.route('/stock', stockRoutes)
+protectedRoutes.route('/purchases', purchaseRoutes)
+protectedRoutes.route('/suppliers', suppliersRoutes)
+protectedRoutes.route('/materials', materialsRouter)
 
 // Korumalı rotaları ana API'ye ekle
 api.route('/', protectedRoutes)
@@ -91,6 +100,44 @@ app.all('/api/*', (c) => {
         error: 'API endpoint not found'
     }, 404)
 })
+
+// Root URL için özel yönlendirme - doğrudan login sayfasına yönlendir
+app.get('/', (c) => {
+  // Token kontrol et ve yönlendir
+  const sessionToken = getCookie(c, 'session_token');
+  
+  // Oturum yoksa login sayfasına yönlendir
+  if (!sessionToken) {
+    return c.redirect('/login.html');
+  }
+  
+  // Oturum varsa dashboard'a yönlendir
+  return c.redirect('/index.html');
+});
+
+// Login sayfasını koruma dışı tut ama diğer statik dosyaları kontrol et
+app.get('*', async (c) => {
+  const url = new URL(c.req.url);
+  const path = url.pathname;
+  
+  // Login sayfası veya statik asset için oturum kontrolü yapmadan erişim ver
+  if (path === '/login.html' || 
+      path.startsWith('/common/') || 
+      path.endsWith('.css') || 
+      path.endsWith('.js') || 
+      path.endsWith('.ico')) {
+    return c.env.ASSETS.fetch(c.req);
+  }
+  
+  // Diğer tüm HTML sayfaları için oturum kontrolü yap
+  const sessionToken = getCookie(c, 'session_token');
+  if (!sessionToken && path.endsWith('.html')) {
+    return c.redirect('/login.html');
+  }
+  
+  // Session token varsa veya HTML dosyası değilse, normal şekilde işle
+  return c.env.ASSETS.fetch(c.req);
+});
 
 // Static file handler
 app.get('*', (c) => {

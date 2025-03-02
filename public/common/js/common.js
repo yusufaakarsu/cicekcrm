@@ -247,10 +247,38 @@ function getApiUrl(endpoint) {
     const path = cleanEndpoint.startsWith('/') ? cleanEndpoint : '/' + cleanEndpoint;
     return API_URL + path;
 }
+
+// Kimlik doğrulama kontrolü - login dışındaki tüm sayfalara eklenecek
+function checkAuthentication() {
+  // login.html sayfasındaysa kontrol etmeye gerek yok
+  if (window.location.pathname.includes('login.html')) {
+    return;
+  }
+  
+  // Cookie'de session token var mı kontrol et
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  }
+  
+  // Session token yoksa login sayfasına yönlendir
+  if (!getCookie('session_token')) {
+    window.location.href = '/login.html';
+  }
+}
+
+// Sayfa yüklendiğinde çalıştır
 document.addEventListener('DOMContentLoaded', () => {
-    loadSideBar();
-    const style = document.createElement('style');
-    style.textContent = `
+  // Önce kimlik doğrulama kontrolü yap
+  checkAuthentication();
+  
+  // Sonra sidebar'ı yükle
+  loadSideBar();
+  
+  const style = document.createElement('style');
+  style.textContent = `
         .table-row-clickable {
             cursor: pointer;
             transition: background-color 0.15s ease-in-out;
@@ -259,9 +287,9 @@ document.addEventListener('DOMContentLoaded', () => {
             background-color: rgba(0, 0, 0, 0.05);
         }
     `;
-    document.head.appendChild(style);
-    const menuStyle = document.createElement('style');
-    menuStyle.textContent = `
+  document.head.appendChild(style);
+  const menuStyle = document.createElement('style');
+  menuStyle.textContent = `
         .menu-parent-active {
             color: var(--bs-primary) !important;
             font-weight: 500;
@@ -281,9 +309,11 @@ document.addEventListener('DOMContentLoaded', () => {
             border-radius: 0 2px 2px 0;
         }
     `;
-    document.head.appendChild(menuStyle);
+  document.head.appendChild(menuStyle);
 });
+
 window.API_URL = API_URL;
+window.checkAuthentication = checkAuthentication;
 window.formatCurrency = formatCurrency;
 window.formatPrice = formatPrice;
 window.formatDate = formatDate;
