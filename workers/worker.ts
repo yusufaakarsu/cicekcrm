@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { authMiddleware } from './routes/auth'
 
 // Route imports
 import dashboardRoutes from './routes/dashboard'
@@ -15,6 +16,7 @@ import purchaseRoutes from './routes/purchase'
 import settingsRoutes from './routes/settings'
 import workshopRoutes from './routes/workshop'
 import deliveryRoutes from './routes/delivery' // Yeni teslimat rotası import ediliyor
+import authRoutes from './routes/auth'
 
 const app = new Hono()
 
@@ -60,6 +62,23 @@ api.route('/finance', financeRoutes)
 api.route('/stock', stockRoutes)
 api.route('/purchases', purchaseRoutes)
 api.route('/suppliers', suppliersRoutes)
+
+// Auth routes - kimlik doğrulama gerektirmeyen rotalar
+api.route('/auth', authRoutes)
+
+// Korumalı rotalar - kimlik doğrulama gerektiren rotalar
+const protectedRoutes = new Hono()
+
+protectedRoutes.use('*', authMiddleware)
+
+// Tüm korumalı rotaları ekle
+protectedRoutes.route('/dashboard', dashboardRoutes)
+protectedRoutes.route('/settings', settingsRoutes)
+protectedRoutes.route('/customers', customerRoutes)
+// ...diğer rotalar...
+
+// Korumalı rotaları ana API'ye ekle
+api.route('/', protectedRoutes)
 
 // Mount all routes under /api
 app.route('/api', api)
