@@ -516,7 +516,8 @@ router.get('/', async (c) => {
             AND deleted_at IS NULL
         `).first();
         
-        // Kritik stok sayısı
+        // Kritik stok sayısı - min_stock sütunu KULLANMADAN düzeltildi
+        // Sadece stok seviyesi 0 veya altında olanları kritik olarak kabul eder
         const lowStockResult = await db.prepare(`
             SELECT COUNT(*) as count
             FROM raw_materials rm
@@ -530,7 +531,7 @@ router.get('/', async (c) => {
                 GROUP BY material_id
             ) sm ON rm.id = sm.material_id
             WHERE 
-                (sm.current_stock <= rm.min_stock OR sm.current_stock IS NULL OR sm.current_stock <= 0)
+                (sm.current_stock <= 10 OR sm.current_stock IS NULL)
                 AND rm.deleted_at IS NULL
         `).first();
         
