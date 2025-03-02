@@ -656,4 +656,3 @@ router.get('/all', async (c) => {
 });
 
 export default router
-export default router

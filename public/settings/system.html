@@ -46,6 +46,11 @@
                                 <i class="bi bi-box"></i> Siparişler
                             </button>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="email-tab" data-bs-toggle="tab" data-bs-target="#email" type="button" role="tab" aria-controls="email" aria-selected="false">
+                                <i class="bi bi-envelope"></i> E-posta
+                            </button>
+                        </li>
                     </ul>
                     
                     <!-- Sekme İçeriği -->
@@ -133,6 +138,53 @@
                                         </div>
                                     </div>
                                 </div>
+                            </form>
+                        </div>
+
+                        <!-- E-posta Ayarları -->
+                        <div class="tab-pane fade" id="email" role="tabpanel" aria-labelledby="email-tab">
+                            <form id="emailSettingsForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="smtp_host" class="form-label">SMTP Sunucu</label>
+                                        <input type="text" class="form-control" id="smtp_host" name="smtp_host">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="smtp_port" class="form-label">Port</label>
+                                        <input type="number" class="form-control" id="smtp_port" name="smtp_port">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="smtp_security" class="form-label">Güvenlik</label>
+                                        <select class="form-select" id="smtp_security" name="smtp_security">
+                                            <option value="none">Yok</option>
+                                            <option value="ssl">SSL</option>
+                                            <option value="tls">TLS</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="smtp_username" class="form-label">Kullanıcı Adı</label>
+                                        <input type="text" class="form-control" id="smtp_username" name="smtp_username">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="smtp_password" class="form-label">Şifre</label>
+                                        <input type="password" class="form-control" id="smtp_password" name="smtp_password">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="email_from" class="form-label">Gönderen E-posta</label>
+                                        <input type="email" class="form-control" id="email_from" name="email_from">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="email_from_name" class="form-label">Gönderen Adı</label>
+                                        <input type="text" class="form-control" id="email_from_name" name="email_from_name">
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-primary" id="testEmail">
+                                    <i class="bi bi-envelope"></i> Test E-posta Gönder
+                                </button>
                             </form>
                         </div>
                     </div>
