@@ -496,7 +496,7 @@ function showPaymentModal(orderId, totalAmount) {
                                         <div class="mb-3">
                                             <label for="paymentAmount" class="form-label">Ödeme Tutarı</label>
                                             <div class="input-group">
-                                                <input type="text" class="form-control" id="paymentAmount" name="amount" value="${remainingAmount.toFixed(2)}">
+                                                <input type="text" class="form-control" id="paymentAmount" name="amount" value="${remainingAmount.toFixed(0)}">
                                                 <span class="input-group-text">₺</span>
                                             </div>
                                             <div class="form-text">Maksimum: ${formatCurrency(remainingAmount)}</div>
