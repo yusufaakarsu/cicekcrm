@@ -51,33 +51,75 @@ async function loadSideBar() {
     }
 }
 
-// Aktif menü öğesini işaretleyen fonksiyon
+/**
+ * Mevcut sayfa URL'sine göre menüdeki aktif öğeyi işaretler
+ * Tam eşleşme yaparak en uygun menü öğesini seçer
+ */
 function markActiveNavItem() {
     try {
         // Mevcut sayfa bilgisini al
         const currentPage = document.body.getAttribute('data-page');
         if (!currentPage) return;
         
-        // Tüm menü öğelerini kontrol et
+        // Geçerli sayfanın yolu - URL'den alın (daha doğru)
+        const currentPath = window.location.pathname;
+        
+        // Tüm menü linklerini topla
         const menuLinks = document.querySelectorAll('#mainSidebar .nav-link');
+        
+        // En iyi eşleşmeyi bulmaya çalış
+        let bestMatch = null;
+        let bestMatchScore = -1;
+        
         menuLinks.forEach(link => {
-            // Link href'inde sayfa adı geçiyorsa aktif yap
-            if (link.getAttribute('href')?.includes(currentPage)) {
-                link.classList.add('active');
-                
-                // Eğer alt menüdeyse, üst menüyü de genişlet
-                const parentCollapse = link.closest('.collapse');
-                if (parentCollapse) {
-                    parentCollapse.classList.add('show');
-                    const parentToggle = document.querySelector(`[data-bs-target="#${parentCollapse.id}"]`);
-                    if (parentToggle) {
-                        parentToggle.classList.remove('collapsed');
-                    }
-                }
-            } else {
-                link.classList.remove('active');
+            // Önce tüm linklerdeki aktif sınıfı kaldır
+            link.classList.remove('active');
+            
+            const href = link.getAttribute('href');
+            if (!href) return;
+            
+            // Link ve mevcut sayfa arasındaki eşleşme puanını hesapla
+            let matchScore = 0;
+            
+            // Tam yol eşleşmesi - en yüksek öncelik
+            if (href === currentPath) {
+                matchScore = 1000;
+            }
+            // Sayfa adı eşleşmesi
+            else if (href.includes(currentPage)) {
+                // Sayfa adını içeren URL'nin uzunluğuna bağlı puan
+                // Daha uzun ve spesifik URL'ler daha yüksek puan alır
+                matchScore = 500 + href.length;
+            }
+            // Menüye özel son çare eşleşme koşulları
+            else if (currentPage === 'dashboard' && href.includes('index.html')) {
+                matchScore = 100;
+            }
+            
+            // Bu link daha iyi eşleşme sağlıyorsa, en iyi eşleşme olarak kaydet
+            if (matchScore > bestMatchScore) {
+                bestMatch = link;
+                bestMatchScore = matchScore;
             }
         });
+        
+        // En iyi eşleşen menü öğesini aktif olarak işaretle
+        if (bestMatch && bestMatchScore > 0) {
+            bestMatch.classList.add('active');
+            
+            // Eğer alt menüdeyse, üst menüyü de genişlet
+            const parentCollapse = bestMatch.closest('.collapse');
+            if (parentCollapse) {
+                parentCollapse.classList.add('show');
+                const parentToggle = document.querySelector(`[data-bs-target="#${parentCollapse.id}"]`);
+                if (parentToggle) {
+                    parentToggle.classList.remove('collapsed');
+                    // Üst menü öğesini vurgula ama tam aktif yapma
+                    parentToggle.classList.add('menu-parent-active');
+                }
+            }
+        }
+        
     } catch (error) {
         console.error('Aktif menü işaretleme hatası:', error);
     }
@@ -470,6 +512,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     `;
     document.head.appendChild(style);
+
+    // Menü öğesi vurgulaması için stil ekle
+    const menuStyle = document.createElement('style');
+    menuStyle.textContent = `
+        .menu-parent-active {
+            color: var(--bs-primary) !important;
+            font-weight: 500;
+        }
+        .nav-link.active {
+            font-weight: 600;
+            position: relative;
+        }
+        .nav-link.active::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background-color: var(--bs-primary);
+            border-radius: 0 2px 2px 0;
+        }
+    `;
+    document.head.appendChild(menuStyle);
 });
 
 // Global değişkenleri window nesnesine ekle
