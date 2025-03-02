@@ -14,17 +14,6 @@ const CONFIG = {
 // API URL değişkeni oluştur - Tek bir API URL tanımı
 const API_URL = CONFIG.API_URL;
 
-// İstanbul ilçeleri - Adres işlemleri için
-const ISTANBUL_DISTRICTS = [
-    'Adalar', 'Arnavutköy', 'Ataşehir', 'Avcılar', 'Bağcılar', 'Bahçelievler',
-    'Bakırköy', 'Başakşehir', 'Bayrampaşa', 'Beşiktaş', 'Beykoz', 'Beylikdüzü',
-    'Beyoğlu', 'Büyükçekmece', 'Çatalca', 'Çekmeköy', 'Esenler', 'Esenyurt',
-    'Eyüp', 'Fatih', 'Gaziosmanpaşa', 'Güngören', 'Kadıköy', 'Kağıthane',
-    'Kartal', 'Küçükçekmece', 'Maltepe', 'Pendik', 'Sancaktepe', 'Sarıyer',
-    'Silivri', 'Sultanbeyli', 'Sultangazi', 'Şile', 'Şişli', 'Tuzla', 'Ümraniye',
-    'Üsküdar', 'Zeytinburnu'
-];
-
 // ===============================================
 // SIDEBAR & NAVIGATION
 // ===============================================
@@ -61,90 +50,26 @@ async function loadSideBar() {
     }
 }
 
-/**
- * Yedek sidebar oluştur - Ana sidebar yüklenemediğinde
- */
-function createFallbackSidebar() {
-    const sidebarContainer = document.getElementById('mainSidebar');
-    if (!sidebarContainer) return;
-    
-    sidebarContainer.innerHTML = `
-        <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 200px; min-height: 100vh;">
-            <h5 class="mb-4">Çiçek CRM</h5>
-            <ul class="nav nav-pills flex-column mb-auto">
-                <li class="nav-item">
-                    <a href="/index.html" class="nav-link text-white">
-                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/orders/orders.html" class="nav-link text-white">
-                        <i class="bi bi-box me-2"></i> Siparişler
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/products/products.html" class="nav-link text-white">
-                        <i class="bi bi-box-seam me-2"></i> Ürünler
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/stock/stock.html" class="nav-link text-white">
-                        <i class="bi bi-cart me-2"></i> Stok
-                    </a>
-                </li>
-            </ul>
-        </div>
-    `;
-    
-    // Yedek sidebar'da da aktif sayfayı işaretle
-    markActiveNavItem();
-}
-
-/**
- * Mevcut sayfaya göre sidebar'daki ilgili item'ı aktif olarak işaretler
- */
-function markActiveNavItem() {
-    const currentPage = document.body.dataset.page;
-    if (!currentPage) return;
-    
-    const links = document.querySelectorAll('#mainSidebar a');
-    
-    for (const link of links) {
-        const href = link.getAttribute('href').toLowerCase();
-        
-        // Sayfanın pathinde ilgili route var mı?
-        const isActive = href.includes('/' + currentPage.toLowerCase()) || 
-                        (currentPage.toLowerCase() === 'dashboard' && href.includes('index.html'));
-                        
-        if (isActive) {
-            link.classList.add('active');
-            
-            // Eğer dropdown içindeyse, parent dropdown'ı da aç
-            const parentDropdown = link.closest('.collapse');
-            if (parentDropdown) {
-                parentDropdown.classList.add('show');
-            }
-            
-            break;
-        }
-    }
-}
-
 // ===============================================
 // FORMAT UTILITIES
 // ===============================================
 
 /**
- * Para miktarını formatlar (₺ sembolü ile)
+ * Para miktarını formatlar (₺ sembolü ile, tam sayı ise ondalık kısım olmadan)
  * @param {number} amount - Formatlanacak miktar
  * @returns {string} Formatlanmış para miktarı (₺)
  */
 function formatCurrency(amount) {
-    if (amount === null || amount === undefined) return '0,00 ₺';
+    if (amount === null || amount === undefined) return '0 ₺';
+    
+    // Sayının tam sayı olup olmadığını kontrol et
+    const isInteger = Number.isInteger(Number(amount));
+    
     return new Intl.NumberFormat('tr-TR', { 
         style: 'currency', 
         currency: 'TRY',
-        minimumFractionDigits: 2
+        minimumFractionDigits: isInteger ? 0 : 2,
+        maximumFractionDigits: isInteger ? 0 : 2
     }).format(amount);
 }
 
