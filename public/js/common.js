@@ -27,6 +27,11 @@ async function loadSideBar() {
         
         const response = await fetch('/common/sidebar.html');
         
+        if (!response.ok) {
+            console.error('Sidebar yüklenemedi:', response.status);
+            return;
+        }
+        
         const html = await response.text();
         const sidebarEl = document.getElementById('mainSidebar');
         
@@ -35,9 +40,46 @@ async function loadSideBar() {
             return;
         }
         
+        // Bu satır eksikti - HTML içeriğini sidebar elementine ekliyoruz
+        sidebarEl.innerHTML = html;
+        
+        // Sayfaya göre aktif menü öğesini işaretle
+        markActiveNavItem();
         
     } catch (error) {
         console.error('Sidebar yükleme hatası:', error);
+    }
+}
+
+// Aktif menü öğesini işaretleyen fonksiyon
+function markActiveNavItem() {
+    try {
+        // Mevcut sayfa bilgisini al
+        const currentPage = document.body.getAttribute('data-page');
+        if (!currentPage) return;
+        
+        // Tüm menü öğelerini kontrol et
+        const menuLinks = document.querySelectorAll('#mainSidebar .nav-link');
+        menuLinks.forEach(link => {
+            // Link href'inde sayfa adı geçiyorsa aktif yap
+            if (link.getAttribute('href')?.includes(currentPage)) {
+                link.classList.add('active');
+                
+                // Eğer alt menüdeyse, üst menüyü de genişlet
+                const parentCollapse = link.closest('.collapse');
+                if (parentCollapse) {
+                    parentCollapse.classList.add('show');
+                    const parentToggle = document.querySelector(`[data-bs-target="#${parentCollapse.id}"]`);
+                    if (parentToggle) {
+                        parentToggle.classList.remove('collapsed');
+                    }
+                }
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    } catch (error) {
+        console.error('Aktif menü işaretleme hatası:', error);
     }
 }
 
