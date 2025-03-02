@@ -445,7 +445,7 @@ router.get('/targets', async (c) => {
     const newCustomersResult = await db.prepare(`
       SELECT COUNT(*) as count
       FROM customers
-      WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+      WHERE strftime('%Y-%m') = strftime('%Y-%m', 'now')
       AND deleted_at IS NULL
     `).first();
     
