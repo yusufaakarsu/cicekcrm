@@ -282,3 +282,18 @@ INSERT INTO transaction_categories (name, type, reporting_code) VALUES
 ('Bakım/Onarım', 'out', 'MAINTENANCE'),            -- Ekipman veya tesis bakım giderleri
 ('Vergi Ödemeleri', 'out', 'TAX'),                 -- Vergi ve resmi harçlar
 ('Eğitim/Personel Gelişimi', 'out', 'TRAINING');   -- Personel eğitimi veya seminer giderleri
+
+-- Varsayılan hedef değerlerini ekle
+INSERT INTO settings (setting_key, setting_value, setting_group, description) VALUES
+('monthly_order_target', '100', 'targets', 'Aylık sipariş hedefi'),
+('monthly_revenue_target', '100000', 'targets', 'Aylık gelir hedefi (TL)'),
+('monthly_customer_target', '50', 'targets', 'Aylık yeni müşteri hedefi');
+
+-- Diğer sistem ayarlarını ekle
+INSERT INTO settings (setting_key, setting_value, setting_group, description) VALUES
+('company_name', 'Çiçek CRM', 'general', 'Şirket adı'),
+('company_phone', '+90 555 123 4567', 'general', 'Şirket telefonu'),
+('company_email', 'info@cicekcrm.com', 'general', 'Şirket e-posta adresi'),
+('company_address', 'İstanbul, Türkiye', 'general', 'Şirket adresi'),
+('default_delivery_fee', '50', 'delivery', 'Varsayılan teslimat ücreti (TL)'),
+('min_order_amount', '200', 'orders', 'Minimum sipariş tutarı (TL)');

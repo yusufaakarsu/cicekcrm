@@ -213,31 +213,21 @@ async function loadDeliveryTimeData(dayFilter) {
 // Özet kartları güncelle
 function updateSummaryCards(data) {
     if (!data || !data.success) {
-        showError('Özet verileri yüklenemedi');
+        console.error('Summary data error:', data);
         return;
     }
     
     const summary = data.summary;
     
     // Toplam sipariş
-    document.getElementById('totalOrdersCount').textContent = formatNumber(summary.orders.total);
-    const ordersTrend = summary.orders.trend;
-    updateTrendBadge('ordersTrendBadge', ordersTrend);
+    document.getElementById('orderCount').textContent = formatNumber(summary.orders.total);
     
-    // Toplam gelir
-    document.getElementById('totalRevenueAmount').textContent = formatCurrency(summary.revenue.total);
-    const revenueTrend = summary.revenue.trend;
-    updateTrendBadge('revenueTrendBadge', revenueTrend);
+    // Gelir bilgisi
+    document.getElementById('totalRevenue').textContent = formatCurrency(summary.revenue.total);
     
-    // Ortalama sipariş tutarı
-    document.getElementById('averageOrderAmount').textContent = formatCurrency(summary.average_order.total);
-    const avgOrderTrend = summary.average_order.trend;
-    updateTrendBadge('avgOrderTrendBadge', avgOrderTrend);
-    
-    // Yeni müşteriler
-    document.getElementById('newCustomersCount').textContent = formatNumber(summary.new_customers.total);
-    const customersTrend = summary.new_customers.trend;
-    updateTrendBadge('customersTrendBadge', customersTrend);
+    // Trend badgeleri güncelleme
+    updateTrendBadge('ordersTrend', summary.orders.trend);
+    updateTrendBadge('revenueTrend', summary.revenue.trend);
 }
 
 // Trend badge'ini güncelle (artış/azalış)

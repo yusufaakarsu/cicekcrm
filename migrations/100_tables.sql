@@ -329,3 +329,16 @@ CREATE TABLE transactions (
     FOREIGN KEY (category_id) REFERENCES transaction_categories(id),
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    setting_key TEXT NOT NULL UNIQUE,
+    setting_value TEXT NOT NULL,
+    setting_group TEXT,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by INTEGER,
+    updated_by INTEGER,
+    deleted_at DATETIME
+);
