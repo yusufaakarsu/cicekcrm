@@ -1,8 +1,8 @@
 // Global değişkenler
-let salesChart = null;
+let salesPerformanceChart = null;
 let categoryChart = null;
 let orderStatusChart = null;
-let deliveryTimeChart = null;
+let deliveryChart = null;
 let currentTimeRange = '30days'; // Varsayılan zaman aralığı
 let currentDeliveryDay = 'today'; // Varsayılan teslimat günü filtresi
 
@@ -205,19 +205,19 @@ function updateSalesChart(data) {
         revenue: trendsData.revenue
     });
     
-    const ctx = document.getElementById('salesTrendChart')?.getContext('2d');
+    const ctx = document.getElementById('salesPerformanceChart')?.getContext('2d');
     if (!ctx) {
-        console.error('Sales trend chart canvas not found');
+        console.error('Sales chart canvas not found');
         return;
     }
     
     // Varsa mevcut grafiği temizle
-    if (salesChart) {
-        salesChart.destroy();
+    if (salesPerformanceChart) {
+        salesPerformanceChart.destroy();
     }
     
     // Yeni grafik oluştur
-    salesChart = new Chart(ctx, {
+    salesPerformanceChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: trendsData.labels,
@@ -415,15 +415,15 @@ function updateOrderStatusChart(data) {
 
 // Teslimat zamanı grafiğini güncelle
 function updateDeliveryTimeChart(data) {
-    const ctx = document.getElementById('deliveryTimeChart');
+    const ctx = document.getElementById('deliveryChart');
     
     if (!ctx) {
-        console.error('Delivery time chart canvas not found');
+        console.error('Delivery chart canvas not found');
         return;
     }
     
-    if (deliveryTimeChart) {
-        deliveryTimeChart.destroy();
+    if (deliveryChart) {
+        deliveryChart.destroy();
     }
     
     // Zaman dilimlerini formatla
@@ -452,7 +452,7 @@ function updateDeliveryTimeChart(data) {
         }
     }
     
-    deliveryTimeChart = new Chart(ctx, {
+    deliveryChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: times,

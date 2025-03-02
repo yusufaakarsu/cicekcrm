@@ -3,23 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Çiçek CRM</title>
+    <title>Çiçek CRM - Ana Sayfa</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Chart.js kütüphanesi -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/Chart.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
     <style>
-        .metric-card {
-            transition: all 0.3s ease;
+        :root {
+            --primary-color: #5e72e4;
+            --secondary-color: #8392ab;
+            --success-color: #2dce89;
+            --info-color: #11cdef;
+            --warning-color: #fb6340;
+            --danger-color: #f5365c;
+            --light-color: #e9ecef;
+            --dark-color: #344767;
+            --gradient-primary: linear-gradient(310deg, #7795f8, #555abf);
+            --gradient-success: linear-gradient(310deg, #2dce89, #26adab);
+            --gradient-info: linear-gradient(310deg, #1171ef, #11cdef);
+            --gradient-warning: linear-gradient(310deg, #fb6340, #fbb140);
+            --gradient-danger: linear-gradient(310deg, #f5365c, #f56036);
         }
-        .metric-card:hover {
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fe;
+        }
+        
+        .dashboard-container {
+            padding: 2rem;
+            max-width: 1700px;
+            margin: 0 auto;
+        }
+        
+        .dashboard-header {
+            margin-bottom: 2rem;
+        }
+        
+        .dashboard-card {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(50, 50, 93, .1), 0 5px 15px rgba(0, 0, 0, .07);
+            transition: transform .3s ease, box-shadow .3s ease;
+            border: none;
+            height: 100%;
+            position: relative;
+            z-index: 1;
+            margin-bottom: 1.5rem;
+        }
+        
+        .dashboard-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            box-shadow: 0 20px 40px rgba(50, 50, 93, .15), 0 10px 20px rgba(0, 0, 0, .1);
         }
+        
+        .dashboard-card-gradient {
+            background: var(--gradient-primary);
+            color: white;
+        }
+        
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, .1);
+        }
+        
+        .stats-card {
+            border-radius: 16px;
+            overflow: hidden;
+            background-color: white;
+            box-shadow: 0 7px 14px rgba(50, 50, 93, .1), 0 3px 6px rgba(0, 0, 0, .08);
+            border: none;
+        }
+        
+        .stats-value {
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+        
+        .stats-title {
+            font-size: 0.875rem;
+            color: var(--secondary-color);
+            font-weight: 500;
+        }
+        
+        .stats-icon {
+            font-size: 1.75rem;
+            opacity: 0.7;
+        }
+        
         .chart-container {
             position: relative;
-            height: 300px;
+            height: 100%;
+            min-height: 300px;
             width: 100%;
+            padding: 1rem;
+        }
+        
+        .activity-item {
+            padding: 0.75rem 1rem;
+            border-left: 3px solid transparent;
+            margin-bottom: 0.5rem;
+            border-radius: 0 8px 8px 0;
+            transition: all .2s ease;
+        }
+        
+        .activity-item:hover {
+            background-color: rgba(94, 114, 228, 0.05);
+            border-left-color: var(--primary-color);
+        }
+        
+        .activity-time {
+            font-size: 0.75rem;
+            color: var(--secondary-color);
+        }
+        
+        .activity-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+        
+        .badge-subtle {
+            padding: 0.35em 0.65em;
+            font-size: 0.75em;
+            font-weight: 500;
+            border-radius: 6px;
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .7;
+            }
+        }
+        
+        .rotating-card {
+            transition: all 0.5s cubic-bezier(.34, 1.45, .7, 1);
+        }
+        
+        .rotating-card:hover {
+            transform: perspective(1000px) rotateY(10deg) translateZ(50px);
+        }
+        
+        .bg-glass {
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .wave-bg {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 1200 800'%3E%3Cdefs%3E%3ClinearGradient id='a' gradientUnits='userSpaceOnUse' x1='600' y1='25' x2='600' y2='777'%3E%3Cstop offset='0' stop-color='%238392ab' stop-opacity='0.05'/%3E%3Cstop offset='1' stop-color='%235e72e4' stop-opacity='0.05'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect fill='url(%23a)' width='1200' height='800'/%3E%3Cg fill-opacity='0.04'%3E%3Cpath fill='%23444CF7' d='M486 705.8c-109.3-21.8-223.4-32.2-335.3-19.4C99.5 692.1 49 703 0 719.8V800h843.8c-115.9-33.2-230.8-68.1-347.6-92.2C492.8 707.1 489.4 706.5 486 705.8z'/%3E%3Cpath fill='%23606BF8' d='M1600 0H0v719.8c49-16.8 99.5-27.8 150.7-33.5c111.9-12.7 226-2.4 335.3 19.4c3.4 0.7 6.8 1.4 10.2 2c116.8 24 231.7 59 347.6 92.2H1600V0z'/%3E%3Cpath fill='%237B8AF9' d='M478.4 581c3.2 0.8 6.4 1.7 9.5 2.5c196.2 52.5 388.7 133.5 593.5 176.6c174.2 36.6 349.5 29.2 518.6-10.2V0H0v574.9c52.3-17.6 106.5-27.7 161.1-30.9C268.4 537.4 375.7 554.2 478.4 581z'/%3E%3Cpath fill='%2395A9FB' d='M0 0v429.4c55.6-18.4 113.5-27.3 171.4-27.7c102.8-0.8 203.2 22.7 299.3 54.5c3 1 5.9 2 8.9 3c183.6 62 365.7 146.1 562.4 192.1c186.7 43.7 376.3 34.4 557.9-12.6V0H0z'/%3E%3Cpath fill='%23B0C8FC' d='M181.8 259.4c98.2 6 191.9 35.2 281.3 72.1c2.8 1.1 5.5 2.3 8.3 3.4c171 71.6 342.7 158.5 531.3 207.7c198.8 51.8 403.4 40.8 597.3-14.8V0H0v283.2C59 263.6 120.6 255.7 181.8 259.4z'/%3E%3C/g%3E%3C/svg%3E");
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .sidebar {
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(50, 50, 93, .1), 0 5px 15px rgba(0, 0, 0, .07);
+        }
+        
+        .progress-thin {
+            height: 5px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .greeting-card {
+            background: var(--gradient-primary);
+            padding: 2rem;
+            color: white;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .greeting-card::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' fill-opacity='0.1' d='M0 0h200v200H0z'/%3E%3Cpath d='M100 0C44.8 0 0 44.8 0 100s44.8 100 100 100 100-44.8 100-100S155.2 0 100 0zm0 180c-44.1 0-80-35.9-80-80s35.9-80 80-80 80 35.9 80 80-35.9 80-80 80z' fill='white' fill-opacity='0.2'/%3E%3C/svg%3E");
+            background-size: cover;
+            z-index: -1;
         }
     </style>
 </head>
@@ -29,209 +212,304 @@
         <div id="mainSidebar"></div>
         
         <!-- Ana İçerik -->
-        <div class="flex-grow-1 overflow-auto p-3 pb-5">
-            <!-- Başlık -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
-                <div>
-                    <div class="btn-group">
-                        <button class="btn btn-outline-secondary btn-sm" id="timeRange30Days">Son 30 Gün</button>
-                        <button class="btn btn-outline-secondary btn-sm" id="timeRangeThisMonth">Bu Ay</button>
-                        <button class="btn btn-outline-secondary btn-sm" id="timeRangeThisYear">Bu Yıl</button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Özet Kartlar -->
-            <div class="row g-3 mb-4">
-                <!-- Toplam Sipariş -->
-                <div class="col-md-6 col-lg-3">
-                    <div class="card metric-card h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="text-muted small">Toplam Sipariş</div>
-                                <div class="bg-primary bg-opacity-10 p-2 rounded-circle">
-                                    <i class="bi bi-box h5 text-primary mb-0"></i>
+        <div class="flex-grow-1 overflow-auto">
+            <div class="dashboard-container">
+                <!-- Başlık ve Selamlama -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="greeting-card wave-bg">
+                            <h1 class="mb-2">Merhaba, <span id="userName">Yusuf</span>! 👋</h1>
+                            <p class="mb-4 opacity-8">Çiçek CRM dashboard'a hoş geldiniz. İşte bugünün özeti.</p>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center bg-glass p-3 rounded-3">
+                                        <div class="me-3">
+                                            <div class="card-icon bg-white text-primary">
+                                                <i class="bi bi-calendar-check"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div id="todayDeliveryCount" class="h3 mb-0">12</div>
+                                            <div class="small opacity-8">Bugün teslim edilecek</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center bg-glass p-3 rounded-3">
+                                        <div class="me-3">
+                                            <div class="card-icon bg-white text-danger">
+                                                <i class="bi bi-bell"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div id="newOrdersCount" class="h3 mb-0">7</div>
+                                            <div class="small opacity-8">Yeni siparişler</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center bg-glass p-3 rounded-3">
+                                        <div class="me-3">
+                                            <div class="card-icon bg-white text-warning">
+                                                <i class="bi bi-stars"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div id="lowStockCount" class="h3 mb-0">3</div>
+                                            <div class="small opacity-8">Kritik stok uyarısı</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="h2 my-2" id="totalOrdersCount">-</div>
-                            <div class="d-flex align-items-center">
-                                <span class="badge bg-success me-1" id="ordersTrendBadge">+0%</span>
-                                <span class="text-muted small">geçen döneme göre</span>
-                            </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Toplam Gelir -->
-                <div class="col-md-6 col-lg-3">
-                    <div class="card metric-card h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="text-muted small">Toplam Gelir</div>
-                                <div class="bg-success bg-opacity-10 p-2 rounded-circle">
-                                    <i class="bi bi-currency-lira h5 text-success mb-0"></i>
+                <!-- İstatistik kartları - Sıra 1 -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <div class="stats-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-4">
+                                    <div>
+                                        <div class="stats-title">Toplam Satış</div>
+                                        <div id="totalRevenue" class="stats-value">₺86,400</div>
+                                    </div>
+                                    <div class="card-icon" style="background-color: rgba(45, 206, 137, 0.1); color: var(--success-color);">
+                                        <i class="bi bi-currency-lira"></i>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <span id="revenueTrend" class="badge bg-success me-2">+23%</span>
+                                    <span class="text-muted small">geçen aya göre</span>
                                 </div>
                             </div>
-                            <div class="h2 my-2" id="totalRevenueAmount">-</div>
-                            <div class="d-flex align-items-center">
-                                <span class="badge bg-success me-1" id="revenueTrendBadge">+0%</span>
-                                <span class="text-muted small">geçen döneme göre</span>
-                            </div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Ortalama Sepet -->
-                <div class="col-md-6 col-lg-3">
-                    <div class="card metric-card h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="text-muted small">Ortalama Sepet</div>
-                                <div class="bg-info bg-opacity-10 p-2 rounded-circle">
-                                    <i class="bi bi-basket h5 text-info mb-0"></i>
+                    <div class="col-md-3">
+                        <div class="stats-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-4">
+                                    <div>
+                                        <div class="stats-title">Toplam Sipariş</div>
+                                        <div id="totalOrders" class="stats-value">325</div>
+                                    </div>
+                                    <div class="card-icon" style="background-color: rgba(17, 113, 239, 0.1); color: var(--primary-color);">
+                                        <i class="bi bi-box"></i>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <span id="ordersTrend" class="badge bg-success me-2">+15%</span>
+                                    <span class="text-muted small">geçen aya göre</span>
                                 </div>
                             </div>
-                            <div class="h2 my-2" id="averageOrderAmount">-</div>
-                            <div class="d-flex align-items-center">
-                                <span class="badge bg-success me-1" id="avgOrderTrendBadge">+0%</span>
-                                <span class="text-muted small">geçen döneme göre</span>
-                            </div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Yeni Müşteri -->
-                <div class="col-md-6 col-lg-3">
-                    <div class="card metric-card h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="text-muted small">Yeni Müşteriler</div>
-                                <div class="bg-warning bg-opacity-10 p-2 rounded-circle">
-                                    <i class="bi bi-people h5 text-warning mb-0"></i>
+                    <div class="col-md-3">
+                        <div class="stats-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-4">
+                                    <div>
+                                        <div class="stats-title">Ortalama Sepet</div>
+                                        <div id="averageOrderValue" class="stats-value">₺266</div>
+                                    </div>
+                                    <div class="card-icon" style="background-color: rgba(17, 205, 239, 0.1); color: var(--info-color);">
+                                        <i class="bi bi-basket"></i>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <span id="aovTrend" class="badge bg-success me-2">+7%</span>
+                                    <span class="text-muted small">geçen aya göre</span>
                                 </div>
                             </div>
-                            <div class="h2 my-2" id="newCustomersCount">-</div>
-                            <div class="d-flex align-items-center">
-                                <span class="badge bg-success me-1" id="customersTrendBadge">+0%</span>
-                                <span class="text-muted small">geçen döneme göre</span>
-                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Grafikler Satırı -->
-            <div class="row g-4 mb-4">
-                <!-- Satış Trendi Grafiği -->
-                <div class="col-lg-8">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Satış Trendi</h5>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-secondary active" id="salesChartDaily">Günlük</button>
-                                <button class="btn btn-outline-secondary" id="salesChartWeekly">Haftalık</button>
-                                <button class="btn btn-outline-secondary" id="salesChartMonthly">Aylık</button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="salesTrendChart"></canvas>
+                    <div class="col-md-3">
+                        <div class="stats-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-4">
+                                    <div>
+                                        <div class="stats-title">Yeni Müşteriler</div>
+                                        <div id="newCustomers" class="stats-value">48</div>
+                                    </div>
+                                    <div class="card-icon" style="background-color: rgba(245, 54, 92, 0.1); color: var(--warning-color);">
+                                        <i class="bi bi-people"></i>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <span id="customersTrend" class="badge bg-success me-2">+12%</span>
+                                    <span class="text-muted small">geçen aya göre</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Kategoriler Pasta Grafiği -->
-                <div class="col-lg-4">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white">
-                            <h5 class="card-title mb-0">Kategori Dağılımı</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="categoryChart"></canvas>
+                <!-- Ana içerik bölümü -->
+                <div class="row g-4 mb-4">
+                    <!-- Grafik kartı - Sol -->
+                    <div class="col-lg-8">
+                        <div class="dashboard-card h-100">
+                            <div class="card-header bg-white border-0">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Satış Performansı</h5>
+                                    <div class="badge badge-subtle bg-success">30 gün</div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="salesPerformanceChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Alt Satır -->
-            <div class="row g-4">
-                <!-- Teslimat Planı Grafiği - Son Siparişler yerine -->
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Günlük Teslimat Planı</h5>
-                            <select class="form-select form-select-sm" id="deliveryDayFilter" style="width: auto;">
-                                <option value="today">Bugün</option>
-                                <option value="tomorrow">Yarın</option>
-                                <option value="week">Tüm Hafta</option>
-                            </select>
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-container" style="height: 220px;">
-                                <canvas id="deliveryTimeChart"></canvas>
+                    
+                    <!-- Sağ yan kartlar -->
+                    <div class="col-lg-4">
+                        <div class="row g-4">
+                            <!-- Kategori dağılımı -->
+                            <div class="col-12">
+                                <div class="dashboard-card mb-0">
+                                    <div class="card-header bg-white border-0">
+                                        <h5 class="mb-0">Kategori Dağılımı</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" style="height: 220px;">
+                                            <canvas id="categoryChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="mt-2 text-center small text-muted" id="deliveryDateLabel">Bugünün teslimat dağılımı</div>
+                            
+                            <!-- Teslimat zamanı dağılımı -->
+                            <div class="col-12">
+                                <div class="dashboard-card mb-0">
+                                    <div class="card-header bg-white border-0">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0">Teslimat Planı</h5>
+                                            <div class="badge badge-subtle bg-info">Bugün</div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" style="height: 220px;">
+                                            <canvas id="deliveryChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Sipariş Durumları Grafiği -->
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white">
-                            <h5 class="card-title mb-0">Sipariş Durumları</h5>
-                        </div>
-                        <div class="card-body d-flex flex-column justify-content-between">
-                            <div class="chart-container" style="height: 220px;">
-                                <canvas id="orderStatusChart"></canvas>
+                <!-- Alt bölüm -->
+                <div class="row g-4">
+                    <!-- Sipariş durumları -->
+                    <div class="col-md-6">
+                        <div class="dashboard-card h-100">
+                            <div class="card-header bg-white border-0">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Sipariş Durumları</h5>
+                                    <div class="badge badge-subtle bg-light text-dark">Aktif siparişler</div>
+                                </div>
                             </div>
-                            <div class="mt-2 text-center small text-muted">Aktif siparişlerin dağılımı</div>
+                            <div class="card-body">
+                                <div class="row justify-content-center">
+                                    <div class="col-md-8">
+                                        <div class="chart-container" style="height: 260px;">
+                                            <canvas id="orderStatusChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <div class="small text-muted mb-1">Yeni</div>
+                                            <div class="h4 mb-0" id="newStatusCount">18</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <div class="small text-muted mb-1">Hazırlanıyor</div>
+                                            <div class="h4 mb-0" id="preparingStatusCount">24</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <div class="small text-muted mb-1">Teslimatta</div>
+                                            <div class="h4 mb-0" id="deliveringStatusCount">7</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Performans Göstergeleri -->
-            <div class="col-lg-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white">
-                        <h5 class="card-title mb-0">Bu Ayın Hedefleri</h5>
-                    </div>
-                    <div class="card-body">
-                        <!-- Sipariş Hedefi -->
-                        <div class="mb-4">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span>Sipariş Hedefi</span>
-                                <span><span id="currentOrdersCount">0</span>/<span id="orderTarget">100</span></span>
+                    
+                    <!-- Hedefler -->
+                    <div class="col-md-6">
+                        <div class="dashboard-card h-100">
+                            <div class="card-header bg-white border-0">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Aylık Hedefler</h5>
+                                    <div class="badge badge-subtle bg-light text-dark">Mayıs 2023</div>
+                                </div>
                             </div>
-                            <div class="progress" style="height: 10px">
-                                <div class="progress-bar bg-success" id="ordersProgressBar" role="progressbar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        
-                        <!-- Satış Hedefi -->
-                        <div class="mb-4">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span>Satış Hedefi</span>
-                                <span><span id="currentRevenue">0₺</span>/<span id="revenueTarget">10.000₺</span></span>
-                            </div>
-                            <div class="progress" style="height: 10px">
-                                <div class="progress-bar bg-primary" id="revenueProgressBar" role="progressbar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        
-                        <!-- Yeni Müşteri Hedefi -->
-                        <div>
-                            <div class="d-flex justify-content-between mb-1">
-                                <span>Yeni Müşteri Hedefi</span>
-                                <span><span id="currentNewCustomers">0</span>/<span id="customerTarget">50</span></span>
-                            </div>
-                            <div class="progress" style="height: 10px">
-                                <div class="progress-bar bg-warning" id="customersProgressBar" role="progressbar" style="width: 0%"></div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <h6 class="mb-0">Satış Hedefi</h6>
+                                            <small class="text-muted">Hedef: 100,000₺</small>
+                                        </div>
+                                        <div class="h5 mb-0">86,400₺</div>
+                                    </div>
+                                    <div class="progress progress-thin">
+                                        <div id="salesTargetProgress" class="progress-bar bg-success" style="width: 86%"></div>
+                                    </div>
+                                    <div class="small text-end mt-1 text-success">86% tamamlandı</div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <h6 class="mb-0">Sipariş Hedefi</h6>
+                                            <small class="text-muted">Hedef: 400 sipariş</small>
+                                        </div>
+                                        <div class="h5 mb-0">325</div>
+                                    </div>
+                                    <div class="progress progress-thin">
+                                        <div id="orderTargetProgress" class="progress-bar bg-primary" style="width: 81%"></div>
+                                    </div>
+                                    <div class="small text-end mt-1 text-primary">81% tamamlandı</div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <h6 class="mb-0">Yeni Müşteri Hedefi</h6>
+                                            <small class="text-muted">Hedef: 100 müşteri</small>
+                                        </div>
+                                        <div class="h5 mb-0">48</div>
+                                    </div>
+                                    <div class="progress progress-thin">
+                                        <div id="customerTargetProgress" class="progress-bar bg-info" style="width: 48%"></div>
+                                    </div>
+                                    <div class="small text-end mt-1 text-info">48% tamamlandı</div>
+                                </div>
+                                
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <h6 class="mb-0">Stok Tüketimi</h6>
+                                            <small class="text-muted">Bütçe: 40,000₺</small>
+                                        </div>
+                                        <div class="h5 mb-0">29,750₺</div>
+                                    </div>
+                                    <div class="progress progress-thin">
+                                        <div id="stockBudgetProgress" class="progress-bar bg-warning" style="width: 74%"></div>
+                                    </div>
+                                    <div class="small text-end mt-1 text-warning">74% tamamlandı</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -241,7 +519,6 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
     <script src="/js/common.js"></script>
     <script src="/dashboard.js"></script>
 </body>
