@@ -60,18 +60,20 @@
       const loginButton = document.querySelector('#loginForm button[type="submit"]');
       const spinner = document.getElementById('loginSpinner');
       
-      // Butonu devre dışı bırakıp spinner'ı göster
       loginButton.disabled = true;
       spinner.classList.remove('d-none');
       errorAlert.classList.add('d-none');
       
       try {
         console.log('Login isteği gönderiliyor...');
-        // Login isteği için parametreleri URL'ye ekleyin', {  // URL değiştirildi
-        const encodedEmail = encodeURIComponent(email);
-        const encodedPassword = encodeURIComponent(password);
-        const response = await fetch(`/api/auth/login?email=${encodedEmail}&password=${encodedPassword}`, {
-          method: 'GET',
+        
+        // POST isteği kullanın ve URL parametresi kullanmayın
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
           credentials: 'same-origin'
         });
         

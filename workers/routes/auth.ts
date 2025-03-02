@@ -5,10 +5,10 @@ const router = new Hono()
 
 // Basit login endpoint'i
 router.post('/login', async (c) => {
-  const { email, password } = await c.req.json()
-  const db = c.get('db')
-  
   try {
+    const { email, password } = await c.req.json()
+    const db = c.get('db')
+    
     // E-posta ile kullanıcıyı bul
     const user = await db.prepare(`
       SELECT id, name, email, password_hash, status
@@ -59,9 +59,10 @@ router.post('/login', async (c) => {
       }
     })
   } catch (error) {
+    console.error('Login error:', error);
     return c.json({ 
       success: false, 
-      error: 'Giriş yapılamadı' 
+      error: 'Giriş yapılamadı: ' + error.message
     }, 500)
   }
 })

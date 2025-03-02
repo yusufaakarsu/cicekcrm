@@ -38,8 +38,13 @@ app.use('*', async (c, next) => {
     await next()
 })
 
-// ÖNEMLİ: Auth rotalarını doğrudan tanımla - yani bu rotalar middleware tarafından korunmayacak
-app.route('/api/auth', authRoutes)
+// ÖNEMLİ: Tüm auth rotalarını tek bir şekilde tanımla
+// Burada SADECE "/auth" endpoint'ini tanımlayın, "/api/auth" değil
+const authRouter = new Hono()
+authRouter.route('/', authRoutes)
+
+// Auth middleware olmadan doğrudan /api/auth rotasını ekle
+app.route('/api/auth', authRouter)
 
 // API Routes - kimlik doğrulamalı
 const api = new Hono()
