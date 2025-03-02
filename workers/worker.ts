@@ -38,7 +38,7 @@ app.use('*', async (c, next) => {
     await next()
 })
 
-// Auth rotalarını ayrıca doğrudan kaydet - kimlik doğrulama kontrolü olmadan
+// ÖNEMLİ: Auth rotalarını doğrudan tanımla - yani bu rotalar middleware tarafından korunmayacak
 app.route('/api/auth', authRoutes)
 
 // API Routes - kimlik doğrulamalı

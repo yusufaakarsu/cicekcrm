@@ -66,6 +66,15 @@ router.post('/login', async (c) => {
   }
 })
 
+// POST ve GET için login endpointini tanımla
+router.get('/login', async (c) => {
+  // Query parametrelerinden al
+  const email = c.req.query('email');
+  const password = c.req.query('password');
+  
+  // Aynı login mantığı...
+});
+
 // Çıkış endpoint'i
 router.post('/logout', async (c) => {
   const sessionToken = getCookie(c, 'session_token')
