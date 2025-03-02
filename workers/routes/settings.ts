@@ -629,10 +629,8 @@ router.get('/status', async (c) => {
   }
 })
 
-const settingsRouter = new Hono();
-
-// Tüm ayarları getir
-settingsRouter.get('/all', async (c) => {
+// Tüm ayarları getir - doğrudan ana router'a bağla
+router.get('/all', async (c) => {
   const db = c.get('db');
   
   try {
@@ -657,118 +655,5 @@ settingsRouter.get('/all', async (c) => {
   }
 });
 
-// Belirli bir grup ayarlarını getir
-settingsRouter.get('/group/:group', async (c) => {
-  const db = c.get('db');
-  const group = c.req.param('group');
-  
-  try {
-    const { results } = await db.prepare(`
-      SELECT id, setting_key, setting_value, setting_group, description
-      FROM settings
-      WHERE setting_group = ?
-      AND deleted_at IS NULL
-      ORDER BY setting_key
-    `).bind(group).all();
-    
-    return c.json({
-      success: true,
-      settings: results
-    });
-  } catch (error) {
-    console.error('Settings group fetch error:', error);
-    return c.json({
-      success: false,
-      error: 'Ayarlar alınamadı',
-      details: error.message
-    }, 500);
-  }
-});
-
-// Ayarları güncelle
-settingsRouter.post('/update', async (c) => {
-  const db = c.get('db');
-  const body = await c.req.json();
-  
-  if (!body.settings || !Array.isArray(body.settings)) {
-    return c.json({
-      success: false,
-      error: 'Geçersiz istek formatı'
-    }, 400);
-  }
-  
-  try {
-    const updatePromises = body.settings.map(async (setting) => {
-      const { setting_key, setting_value } = setting;
-      
-      return db.prepare(`
-        UPDATE settings
-        SET setting_value = ?,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE setting_key = ?
-      `).bind(setting_value, setting_key).run();
-    });
-    
-    await Promise.all(updatePromises);
-    
-    return c.json({
-      success: true,
-      message: 'Ayarlar başarıyla güncellendi'
-    });
-  } catch (error) {
-    console.error('Settings update error:', error);
-    return c.json({
-      success: false,
-      error: 'Ayarlar güncellenemedi',
-      details: error.message
-    }, 500);
-  }
-});
-
-// Yeni ayar ekle
-settingsRouter.post('/create', async (c) => {
-  const db = c.get('db');
-  const body = await c.req.json();
-  
-  const { setting_key, setting_value, setting_group, description } = body;
-  
-  if (!setting_key || !setting_value || !setting_group) {
-    return c.json({
-      success: false,
-      error: 'Eksik parametreler'
-    }, 400);
-  }
-  
-  try {
-    // Önce bu anahtara sahip bir ayar var mı kontrol et
-    const existingResult = await db.prepare(`
-      SELECT id FROM settings WHERE setting_key = ?
-    `).bind(setting_key).first();
-    
-    if (existingResult) {
-      return c.json({
-        success: false,
-        error: 'Bu anahtarla bir ayar zaten mevcut'
-      }, 400);
-    }
-    
-    await db.prepare(`
-      INSERT INTO settings (setting_key, setting_value, setting_group, description)
-      VALUES (?, ?, ?, ?)
-    `).bind(setting_key, setting_value, setting_group, description || null).run();
-    
-    return c.json({
-      success: true,
-      message: 'Ayar başarıyla oluşturuldu'
-    });
-  } catch (error) {
-    console.error('Setting create error:', error);
-    return c.json({
-      success: false,
-      error: 'Ayar oluşturulamadı',
-      details: error.message
-    }, 500);
-  }
-});
-
+export default router
 export default router
