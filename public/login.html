@@ -66,15 +66,20 @@
       errorAlert.classList.add('d-none');
       
       try {
+        console.log('Login isteği gönderiliyor...');
         const response = await fetch('/api/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ email, password }),
+          credentials: 'same-origin' // cookie'lerin gönderilmesi için
         });
         
+        console.log('Login isteği cevabı:', response.status, response.statusText);
+        
         const data = await response.json();
+        console.log('Login cevap verisi:', data);
         
         if (data.success) {
           // Başarılı giriş - anasayfaya yönlendir
@@ -85,6 +90,7 @@
           errorAlert.classList.remove('d-none');
         }
       } catch (error) {
+        console.error('Login hatası detayı:', error);
         errorAlert.textContent = 'Sunucu bağlantısı kurulamadı';
         errorAlert.classList.remove('d-none');
       } finally {
